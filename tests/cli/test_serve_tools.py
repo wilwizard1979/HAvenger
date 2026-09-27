@@ -70,3 +70,44 @@ def test_cors_config_is_used_without_environment(monkeypatch):
     origins = _resolve_server_cors_origins(["http://localhost:5173"])
 
     assert origins == ["http://localhost:5173"]
+
+
+def _write_skill(root, name):
+    skill_dir = root / name
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        f"---\nname: {name}\ndescription: Test skill {name}.\n---\n\n# {name}\n",
+        encoding="utf-8",
+    )
+
+
+def test_serve_loads_only_enabled_skills(tmp_path):
+    from openjarvis.cli.serve import _load_skill_tools
+    from openjarvis.core.events import EventBus
+
+    _write_skill(tmp_path, "wanted-skill")
+    _write_skill(tmp_path, "other-skill")
+    config = JarvisConfig()
+    config.skills.skills_dir = str(tmp_path)
+
+    tools = _load_skill_tools(
+        config, EventBus(), None, {"skill_wanted-skill", "file_read"}, set()
+    )
+
+    assert [t.spec.name for t in tools] == ["skill_wanted-skill"]
+    assert "# wanted-skill" in tools[0].execute().content
+
+
+def test_serve_skill_loading_never_duplicates_or_crashes(tmp_path):
+    from openjarvis.cli.serve import _load_skill_tools
+    from openjarvis.core.events import EventBus
+
+    _write_skill(tmp_path, "wanted-skill")
+    config = JarvisConfig()
+    config.skills.skills_dir = str(tmp_path)
+    allowed = {"skill_wanted-skill"}
+
+    assert _load_skill_tools(config, EventBus(), None, allowed, allowed) == []
+
+    config.skills.skills_dir = str(tmp_path / "missing")
+    assert _load_skill_tools(config, EventBus(), None, allowed, set()) == []

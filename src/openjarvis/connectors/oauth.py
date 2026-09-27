@@ -58,14 +58,18 @@ GOOGLE_ALL_SCOPES: List[str] = [
     "openid",
     "email",
     "profile",
-    "https://www.googleapis.com/auth/drive.readonly",
+    # drive (not .readonly) so approved actions can create folders and move
+    # files. Google has no move-only scope; deletion is excluded in code, see
+    # tools/google_workspace.py.
+    "https://www.googleapis.com/auth/drive",
     # calendar (not .readonly) so the proactive agent can accept/decline events.
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/contacts.readonly",
     # gmail.modify (a superset of gmail.readonly) so the proactive agent
     # can trash and label-modify (archive) emails after user approval.
     "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/tasks.readonly",
+    # tasks (not .readonly) so approved actions can create tasks.
+    "https://www.googleapis.com/auth/tasks",
 ]
 
 OAUTH_PROVIDERS: Dict[str, OAuthProvider] = {

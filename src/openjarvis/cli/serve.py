@@ -61,6 +61,36 @@ def _resolve_allowed_tools(config: object) -> tuple[set[str], bool]:
     return allowed, True
 
 
+def _load_skill_tools(
+    config: object,
+    bus: EventBus,
+    capability_policy: object,
+    allowed: set[str],
+    existing: set[str],
+) -> list:
+    """Return user skills (``skills_dir``) as ``skill_<name>`` tools.
+
+    Mirrors ``SystemBuilder`` so a skill works in the GUI as in the CLI.
+    Opt-in: only skills named in ``tools.enabled`` are served, so adding a
+    skill directory never silently grows every agent's tool list.
+    """
+    try:
+        from pathlib import Path
+
+        from openjarvis.skills.manager import SkillManager
+
+        manager = SkillManager(bus, capability_policy=capability_policy)
+        manager.discover(paths=[Path(config.skills.skills_dir).expanduser()])
+        return [
+            tool
+            for tool in manager.get_skill_tools()
+            if tool.spec.name in allowed and tool.spec.name not in existing
+        ]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to load skills: %s", exc)
+        return []
+
+
 def _unique_model_ids(model_ids: list[str]) -> list[str]:
     """Return model ids in first-seen order without duplicates."""
     unique: list[str] = []
@@ -370,6 +400,13 @@ def serve(
                             if t.spec.name not in existing:
                                 tools.append(t)
                                 existing.add(t.spec.name)
+
+                    existing = {t.spec.name for t in tools}
+                    tools.extend(
+                        _load_skill_tools(
+                            config, bus, sec.capability_policy, allowed, existing
+                        )
+                    )
 
                     if tools:
                         agent_kwargs["tools"] = tools

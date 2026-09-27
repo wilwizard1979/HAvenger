@@ -34,6 +34,7 @@ STATUS_APPROVED = "approved"
 STATUS_DENIED = "denied"
 STATUS_EXPIRED = "expired"
 STATUS_EXECUTED = "executed"
+STATUS_FAILED = "failed"  # approved, ran, and errored; never retried silently
 
 # Tiers govern default ask behavior
 TIER_TRIVIAL = "trivial"  # Execute immediately, no ask

@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, Optional
 
 from openjarvis.tools.approval_store import (
     STATUS_APPROVED,
     STATUS_DENIED,
+    STATUS_EXECUTED,
+    STATUS_FAILED,
+    STATUS_PENDING,
     ApprovalStore,
     PendingAction,
 )
@@ -60,6 +64,33 @@ async def approve_action(action_id: str) -> Dict[str, Any]:
     action = store.get_action(action_id)
     if action is None:
         raise HTTPException(status_code=404, detail="Action not found")
+
+    from openjarvis.tools.google_workspace import (
+        GOOGLE_ACTION_EXECUTORS,
+        execute_google_action,
+    )
+
+    if action.action_type in GOOGLE_ACTION_EXECUTORS:
+        # Google actions were queued from chat, where nothing else would pick
+        # them up, so run them now. Only a still-pending action may run: a
+        # repeated click or a stale card must never execute it twice.
+        store.expire_stale()
+        current = store.get_action(action_id)
+        if current is None or current.status != STATUS_PENDING:
+            status = current.status if current else "missing"
+            raise HTTPException(status_code=409, detail=f"Action is {status}")
+        store.update_status(action_id, STATUS_APPROVED)
+        ok, message = await asyncio.to_thread(
+            execute_google_action, action.action_type, action.payload
+        )
+        store.update_status(action_id, STATUS_EXECUTED if ok else STATUS_FAILED)
+        logger.info("Action %s approved via UI; executed=%s", action_id, ok)
+        return {
+            "status": "executed" if ok else "failed",
+            "id": action_id,
+            "result": message,
+        }
+
     store.update_status(action_id, STATUS_APPROVED)
     logger.info("Action %s approved via UI", action_id)
     return {"status": "approved", "id": action_id}
