@@ -252,6 +252,7 @@ DEFAULT_TOOL_CAPABILITIES: Dict[str, List[str]] = {
     "git_log": [Capability.FILE_READ],
     "git_status": [Capability.FILE_READ],
     "gmail_draft_reply": [Capability.MEMORY_WRITE],
+    "gmail_pending_replies": [Capability.NETWORK_FETCH],
     "gmail_read_message": [Capability.NETWORK_FETCH],
     "gmail_search": [Capability.NETWORK_FETCH],
     "http_request": [Capability.NETWORK_FETCH],

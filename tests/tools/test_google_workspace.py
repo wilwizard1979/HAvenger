@@ -321,3 +321,102 @@ def test_failed_action_is_marked_failed_not_approved(client, store, monkeypatch)
     assert body["status"] == "failed" and body["result"] == "boom"
     assert store.get_action(action_id).status == "failed"
     assert store.list_approved() == []
+
+
+# ---------------------------------------------------------------------------
+# gmail_pending_replies
+# ---------------------------------------------------------------------------
+
+
+def _msg(msg_id, sender, subject, labels, when_ms):
+    return {
+        "id": msg_id,
+        "labelIds": labels,
+        "internalDate": str(when_ms),
+        "payload": {
+            "headers": [
+                {"name": "From", "value": sender},
+                {"name": "Subject", "value": subject},
+            ]
+        },
+    }
+
+
+@respx.mock
+def test_pending_replies_finds_threads_where_someone_else_wrote_last(monkeypatch):
+    import time
+
+    now = int(time.time() * 1000)
+    day = 86_400_000
+    threads = {
+        # Anna wrote last 3 days ago -> pending
+        "t1": [
+            _msg("m1", "Anna <anna@example.com>", "Budget", ["INBOX"], now - 3 * day)
+        ],
+        # User replied last -> not pending
+        "t2": [
+            _msg("m2", "Bob <bob@example.com>", "Lunch", ["INBOX"], now - 2 * day),
+            _msg("m3", "Me <me@example.com>", "Re: Lunch", ["SENT"], now - day),
+        ],
+        # Carol wrote last; a draft reply exists -> pending, flagged
+        "t3": [
+            _msg(
+                "m4", "Carol <carol@example.com>", "Contract", ["INBOX"], now - 6 * day
+            ),
+            _msg("m5", "Me <me@example.com>", "Re: Contract", ["DRAFT"], now),
+        ],
+        # Promotion that slipped past the query -> ignored
+        "t4": [
+            _msg("m6", "Shop <deals@shop.com>", "Sale", ["CATEGORY_PROMOTIONS"], now)
+        ],
+        # Automated sender -> skipped and counted
+        "t5": [_msg("m7", "GitHub <noreply@github.com>", "CI", ["INBOX"], now)],
+    }
+    listing = respx.get(f"{GMAIL}/threads").mock(
+        return_value=httpx.Response(200, json={"threads": [{"id": t} for t in threads]})
+    )
+    for tid, msgs in threads.items():
+        respx.get(f"{GMAIL}/threads/{tid}").mock(
+            return_value=httpx.Response(200, json={"messages": msgs})
+        )
+
+    result = gw.GmailPendingRepliesTool().execute()
+
+    assert result.success, result.content
+    query = listing.calls.last.request.url.params["q"]
+    assert "newer_than:10d" in query and "-category:promotions" in query
+    assert "in:inbox" in query
+    lines = [line for line in result.content.splitlines() if line.startswith("- ")]
+    assert len(lines) == 2
+    # Oldest first: Carol (6 days) before Anna (3 days)
+    assert "Contract" in lines[0] and "draft reply already saved" in lines[0]
+    assert "Budget" in lines[1] and "message_id=m1" in lines[1]
+    assert "Lunch" not in result.content and "Sale" not in result.content
+    assert "1 automated no-reply email(s) skipped" in result.content
+
+
+@respx.mock
+def test_pending_replies_clamps_days_and_reports_empty():
+    route = respx.get(f"{GMAIL}/threads").mock(
+        return_value=httpx.Response(200, json={})
+    )
+    result = gw.GmailPendingRepliesTool().execute(days=365)
+    assert "newer_than:30d" in route.calls.last.request.url.params["q"]
+    assert result.content.startswith("No emails are waiting")
+
+
+@pytest.mark.parametrize(
+    ("address", "automated"),
+    [
+        ("noreply@github.com", True),
+        ("no-reply@accounts.google.com", True),
+        ("do-not-reply@bank.example", True),
+        ("notifications@github.com", True),
+        ("news-noreply@site.example", True),
+        ("anna@example.com", False),
+        ("info@company.example", False),
+        ("replyteam@example.com", False),
+    ],
+)
+def test_automated_sender_detection(address, automated):
+    assert bool(gw._AUTOMATED_SENDER_RE.search(address)) is automated
