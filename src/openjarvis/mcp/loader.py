@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
@@ -29,11 +30,33 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_MAX_SERVER_TIMEOUT = 3600.0
+
+
+def _server_timeout(raw: Any, name: str) -> Optional[float]:
+    """Validate a server's ``timeout_seconds``; ``None`` keeps the defaults."""
+    if raw is None:
+        return None
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        logger.warning(
+            "MCP server '%s': timeout_seconds must be a number; ignoring", name
+        )
+        return None
+    if not 0 < raw <= _MAX_SERVER_TIMEOUT:
+        logger.warning(
+            "MCP server '%s': timeout_seconds must be in (0, %d]; ignoring",
+            name,
+            int(_MAX_SERVER_TIMEOUT),
+        )
+        return None
+    return float(raw)
+
 
 def load_mcp_tools_from_config(
     mcp_cfg: Any,
     *,
     allowed_names: Optional[set[str]] = None,
+    config_dir: Optional[Path] = None,
 ) -> tuple[list["BaseTool"], list["MCPClient"]]:
     """Load tools from every server in ``mcp_cfg.servers``.
 
@@ -46,6 +69,10 @@ def load_mcp_tools_from_config(
     own include/exclude filter. Pass the caller's `--tools`/`enabled`
     list to honour CLI scoping; pass ``None`` to take every tool.
 
+    ``servers`` may be inline JSON or a path to a JSON file (relative paths
+    resolve inside ``config_dir``, default the OpenJarvis config directory),
+    as documented and as ``SystemBuilder`` already accepts.
+
     Returns ``([], [])`` when mcp is disabled or no servers are
     configured — no exception, no warning.
     """
@@ -57,10 +84,16 @@ def load_mcp_tools_from_config(
         return [], []
 
     try:
-        server_list = (
-            json.loads(servers_blob) if isinstance(servers_blob, str) else servers_blob
-        )
-    except (json.JSONDecodeError, TypeError) as exc:
+        if isinstance(servers_blob, str):
+            from openjarvis.core.config import resolve_json_or_file
+            from openjarvis.core.paths import get_config_dir
+
+            server_list = resolve_json_or_file(
+                servers_blob, config_dir or get_config_dir()
+            )
+        else:
+            server_list = servers_blob
+    except (json.JSONDecodeError, TypeError, ValueError, OSError) as exc:
         logger.warning("Failed to parse MCP servers config: %s", exc)
         return [], []
     if not isinstance(server_list, list):
@@ -88,9 +121,18 @@ def load_mcp_tools_from_config(
             token = cfg.get("token")
             command = cfg.get("command", "")
             args = cfg.get("args", [])
+            # Optional per-server ceiling for slow tools, e.g. a server that
+            # holds a call until a human approves it. Applies to the HTTP read
+            # timeout and to each discovered tool's executor timeout.
+            timeout = _server_timeout(cfg.get("timeout_seconds"), name)
 
             if url:
-                transport = StreamableHTTPTransport(url=url, token=token)
+                if timeout is None:
+                    transport = StreamableHTTPTransport(url=url, token=token)
+                else:
+                    transport = StreamableHTTPTransport(
+                        url=url, token=token, request_timeout=timeout
+                    )
             elif command:
                 transport = StdioTransport(command=[command] + args)
             else:
@@ -134,6 +176,9 @@ def load_mcp_tools_from_config(
                 discovered = [t for t in discovered if t.spec.name not in exclude_tools]
             if allowed_names:
                 discovered = [t for t in discovered if t.spec.name in allowed_names]
+            if timeout is not None:
+                for t in discovered:
+                    t.spec.timeout_seconds = timeout
 
             tools.extend(discovered)
             logger.info(

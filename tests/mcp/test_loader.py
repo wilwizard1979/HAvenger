@@ -280,3 +280,78 @@ class TestLoaderFailureIsolation:
             "Failed to discover MCP tools" in message and "handshake failed" in message
             for message in messages
         )
+
+
+class TestLoaderServerTimeout:
+    def test_timeout_raises_http_and_tool_limits(self, _mock_mcp_stack):
+        """Servers that hold calls (pending approval) need both limits raised."""
+        from openjarvis.mcp.loader import load_mcp_tools_from_config
+        from openjarvis.tools._stubs import ToolSpec
+
+        tool = MagicMock()
+        tool.spec = ToolSpec(name="ha_call_write_tool", description="")
+        _mock_mcp_stack["provider"].return_value.discover.return_value = [tool]
+        cfg = _make_mcp_cfg(
+            servers=[{"name": "ha", "url": "http://ha:9584/x", "timeout_seconds": 150}]
+        )
+
+        tools, _ = load_mcp_tools_from_config(cfg)
+
+        _mock_mcp_stack["http"].assert_called_once_with(
+            url="http://ha:9584/x", token=None, request_timeout=150.0
+        )
+        assert tools[0].spec.timeout_seconds == 150.0
+
+    @pytest.mark.parametrize("bad", [0, -5, 10_000, "150", True])
+    def test_invalid_timeout_is_ignored(self, _mock_mcp_stack, bad, caplog):
+        from openjarvis.mcp.loader import load_mcp_tools_from_config
+        from openjarvis.tools._stubs import ToolSpec
+
+        tool = MagicMock()
+        tool.spec = ToolSpec(name="t", description="")
+        _mock_mcp_stack["provider"].return_value.discover.return_value = [tool]
+        cfg = _make_mcp_cfg(
+            servers=[{"name": "ha", "url": "http://ha:9584/x", "timeout_seconds": bad}]
+        )
+
+        with caplog.at_level("WARNING"):
+            tools, _ = load_mcp_tools_from_config(cfg)
+
+        _mock_mcp_stack["http"].assert_called_once_with(
+            url="http://ha:9584/x", token=None
+        )
+        assert tools[0].spec.timeout_seconds == 30.0
+        assert any("timeout_seconds" in r.message for r in caplog.records)
+
+
+class TestLoaderServersFile:
+    def test_servers_may_be_a_file_in_the_config_dir(self, _mock_mcp_stack, tmp_path):
+        """Documented form `servers = "mcp-servers.json"` (keeps URLs out of TOML)."""
+        from openjarvis.mcp.loader import load_mcp_tools_from_config
+
+        (tmp_path / "mcp-servers.json").write_text(
+            json.dumps([{"name": "ha", "url": "http://ha:9584/secret"}])
+        )
+        cfg = MagicMock()
+        cfg.enabled = True
+        cfg.servers = "mcp-servers.json"
+
+        load_mcp_tools_from_config(cfg, config_dir=tmp_path)
+
+        _mock_mcp_stack["http"].assert_called_once_with(
+            url="http://ha:9584/secret", token=None
+        )
+
+    def test_missing_or_escaping_file_is_skipped(
+        self, _mock_mcp_stack, tmp_path, caplog
+    ):
+        from openjarvis.mcp.loader import load_mcp_tools_from_config
+
+        for ref in ("missing.json", "../outside.json"):
+            cfg = MagicMock()
+            cfg.enabled = True
+            cfg.servers = ref
+            with caplog.at_level("WARNING"):
+                assert load_mcp_tools_from_config(cfg, config_dir=tmp_path) == ([], [])
+        _mock_mcp_stack["http"].assert_not_called()
+        assert sum("parse MCP servers config" in r.message for r in caplog.records) == 2
