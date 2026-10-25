@@ -37,6 +37,7 @@ def team_overview(store: Store, watchdog: dict[str, Any]) -> dict[str, Any]:
         store.issues(), s, store.overrides(), store.triage_notes()
     )
     labels = {c["id"]: c["label"] for c in clusters}
+    members = {c["id"]: c["members_hash"] for c in clusters}
     notes = store.triage_notes()
     proposals = store.plan_proposals()
     report = store.latest_report()
@@ -62,6 +63,8 @@ def team_overview(store: Store, watchdog: dict[str, Any]) -> dict[str, Any]:
             "label": labels.get(cid, cid),
             "risk": p["body"].get("risk"),
             "summary": p["body"].get("summary"),
+            "proposal": p["body"],
+            "current": p["members_hash"] == members.get(cid),
             "cost_usd": p["cost_usd"],
             "model": p["model"],
             "updated": p["updated"],
@@ -73,6 +76,7 @@ def team_overview(store: Store, watchdog: dict[str, Any]) -> dict[str, Any]:
         "dry_run": client.is_dry_run(),
         "l0": {
             "role": "Python watchdog and report (deterministic, no model)",
+            "enabled": watchdog.get("enabled"),
             "interval_min": watchdog.get("interval_min"),
             "next_run": watchdog.get("next_run"),
             "last_tick": watchdog.get("last_tick"),

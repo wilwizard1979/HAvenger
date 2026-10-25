@@ -244,3 +244,75 @@ def test_readout_gets_one_correction_round_before_falling_back(store):
     assert "not in the report" in calls[1] and "3" in calls[1]
     r = store.latest_readout()
     assert r["text"] == "There are 41 issues." and r["tokens_in"] == 200
+
+
+def test_team_overview_carries_full_proposals_and_the_pilot_switch(store):
+    o = Observation("repair", "x/1", "Repair x", "warning", {"domain": "x"})
+    store.upsert_issue(
+        o.fingerprint,
+        category="repair",
+        source_id="x/1",
+        title="Repair x",
+        meta={"domain": "x"},
+        now=NOW - 3600,
+    )
+    from openjarvis.agents.clusters import build_clusters
+
+    h = build_clusters(store.issues(), store.settings())[0]["members_hash"]
+    body = {
+        "risk": "low",
+        "summary": "s",
+        "instruction": {"steps": [], "preconditions": [], "rollback_steps": []},
+    }
+    store.put_plan_proposal(
+        "integration:x", h, body, model="claude-sonnet-5-5", cost_usd=0.1
+    )
+    t = team_overview(store, {"enabled": False, "interval_min": 1440})
+    e = t["l3"]["escalated"][0]
+    assert e["proposal"]["instruction"]["steps"] == [] and e["current"] is True
+    assert t["l0"]["enabled"] is False and t["l0"]["interval_min"] == 1440
+    store.upsert_issue(
+        o.fingerprint,
+        category="repair",
+        source_id="x/2",
+        title="n",
+        meta={"domain": "x"},
+        now=NOW,
+    )
+    o2 = Observation("repair", "x/2", "Repair x2", "warning", {"domain": "x"})
+    store.upsert_issue(
+        o2.fingerprint,
+        category="repair",
+        source_id="x/2",
+        title="n",
+        meta={"domain": "x"},
+        now=NOW,
+    )
+    assert team_overview(store, {})["l3"]["escalated"][0]["current"] is False
+
+
+def test_a_disabled_watchdog_never_runs_by_itself(store, monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv("JARVIS_WATCHDOG", "1")
+    store.update_settings(
+        {
+            "watchdog": {
+                "enabled": False,
+                "interval_min": 1440,
+                "quiet_hours": {"enabled": False, "start": "22:00", "end": "07:00"},
+            }
+        }
+    )
+    calls = []
+    svc = WatchdogService(
+        store, SimpleNamespace(collect=lambda s: calls.append(1) or {})
+    )
+
+    async def go():
+        svc.start(first_delay=0.01)
+        await asyncio.sleep(0.1)
+        await svc.stop()
+
+    asyncio.run(go())
+    assert calls == [] and store.latest_report()["id"] == 1  # nothing new built

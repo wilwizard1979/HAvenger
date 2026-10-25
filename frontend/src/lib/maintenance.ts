@@ -143,6 +143,7 @@ export interface Team {
   dry_run: boolean;
   l0: {
     role: string;
+    enabled: boolean | null;
     interval_min: number | null;
     next_run: number | null;
     last_tick: {
@@ -182,7 +183,16 @@ export interface Team {
     role: string;
     model: string;
     auto_escalation: boolean;
-    escalated: { cluster_id: string; label: string; risk: string; summary: string; cost_usd: number; updated: number }[];
+    escalated: {
+      cluster_id: string;
+      label: string;
+      risk: string;
+      summary: string;
+      cost_usd: number;
+      updated: number;
+      current: boolean;
+      proposal: Proposal;
+    }[];
     runs: RunRow[];
   };
   l4: { role: string; model: string; runs: RunRow[] };
@@ -226,6 +236,10 @@ export const api = {
   team: () => call<Team>('/team'),
   runReadout: () => call<{ status: string; detail?: string }>('/readout/run', { method: 'POST' }),
   runTriage: () => call<{ status: string; estimated_cost_usd?: number; detail?: string }>('/triage/run', { method: 'POST' }),
+  settings: () => call<{ watchdog: { enabled: boolean; interval_min: number; quiet_hours: { enabled: boolean; start: string; end: string } } }>('/settings'),
+  setWatchdog: (w: { enabled: boolean; interval_min: number; quiet_hours: { enabled: boolean; start: string; end: string } }) =>
+    call('/settings', { method: 'PUT', body: JSON.stringify({ watchdog: w }) }),
+  runDigest: (triage: boolean) => call<ReportOut>(`/reports/run?triage=${triage}`, { method: 'POST' }),
   runWatchdog: () => call<unknown>('/watchdog/run', { method: 'POST' }),
 };
 

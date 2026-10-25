@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { ChevronDown, ChevronRight, RefreshCw, Play } from 'lucide-react';
 import {
   api,
@@ -11,6 +11,7 @@ import {
   type Effort,
   type EscalationMode,
   type Overview,
+  type Proposal,
   type Plan,
   type Severity,
   type RunRow,
@@ -18,12 +19,12 @@ import {
   type Team,
 } from '../lib/maintenance';
 
-type Tab = 'dashboard' | 'plan' | 'agents' | 'reports';
+type Tab = 'dashboard' | 'plan' | 'flow' | 'reports';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'plan', label: 'Plan' },
-  { id: 'agents', label: 'Agents' },
+  { id: 'flow', label: 'Flow' },
   { id: 'reports', label: 'Reports' },
 ];
 
@@ -278,6 +279,78 @@ function Estimates({ plan }: { plan: Plan }) {
   );
 }
 
+function ProposalView({ p }: { p: Proposal }) {
+  return (
+        <div className="text-xs flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+          <div>{p.summary}</div>
+          <div className="flex items-center gap-2">
+            <Chip text={`risk ${p.risk}`} color={p.risk === 'high' ? 'var(--color-error)' : p.risk === 'medium' ? 'var(--color-warning)' : 'var(--color-success)'} />
+            {p.needs_user && <Chip text="needs you" />}
+          </div>
+          {p.diagnosis && (
+            <div style={muted}>
+              <b>Diagnosis:</b> {p.diagnosis}
+            </div>
+          )}
+          {p.steps && p.steps.length > 0 && (
+            <ol className="list-decimal pl-5 space-y-0.5">
+              {p.steps.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ol>
+          )}
+          {p.instruction && (
+            <div className="flex flex-col gap-1">
+              {p.instruction.preconditions.length > 0 && (
+                <div style={muted}>
+                  <b>Before:</b> {p.instruction.preconditions.join(' · ')}
+                </div>
+              )}
+              <div className="hud-label">Instruction for the executor ({p.instruction.steps.length} steps, not run)</div>
+              {p.instruction.steps.length === 0 && <div style={faint}>No change in Home Assistant is needed.</div>}
+              <ol className="list-decimal pl-5 space-y-1">
+                {p.instruction.steps.map((st, i) => (
+                  <li key={i}>
+                    <span className="hud-mono">{st.tool}</span> <span style={faint}>{st.purpose}</span>
+                    <div className="hud-mono text-[10px] break-all" style={faint}>
+                      {JSON.stringify(st.args)}
+                    </div>
+                    {st.verify && <div style={faint}>check: {st.verify}</div>}
+                  </li>
+                ))}
+              </ol>
+              {p.instruction.rollback_steps.length > 0 && (
+                <div style={muted}>
+                  <b>Rollback:</b> {p.instruction.rollback_steps.map((r) => `${r.tool} ${JSON.stringify(r.args)}`).join(' → ')}
+                </div>
+              )}
+            </div>
+          )}
+          <div style={muted}>
+            <b>Breaking-change check:</b> {p.breaking_change_check}
+          </div>
+          {p.rollback && (
+            <div style={muted}>
+              <b>Rollback:</b> {p.rollback}
+            </div>
+          )}
+          {p.verification.length > 0 && (
+            <div style={muted}>
+              <b>Verify:</b> {p.verification.join(' · ')}
+            </div>
+          )}
+          {p.user_action && (
+            <div style={muted}>
+              <b>Your action:</b> {p.user_action}
+            </div>
+          )}
+          <div className="text-[11px]" style={faint}>
+            Proposal only. Nothing is applied before the approval step exists and you confirm it.
+          </div>
+        </div>
+  );
+}
+
 function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -397,75 +470,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
           {msg}
         </div>
       )}
-      {open && t.proposal && (
-        <div className="text-xs flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
-          <div>{t.proposal.summary}</div>
-          <div className="flex items-center gap-2">
-            <Chip text={`risk ${t.proposal.risk}`} color={t.proposal.risk === 'high' ? 'var(--color-error)' : t.proposal.risk === 'medium' ? 'var(--color-warning)' : 'var(--color-success)'} />
-            {t.proposal.needs_user && <Chip text="needs you" />}
-          </div>
-          {t.proposal.diagnosis && (
-            <div style={muted}>
-              <b>Diagnosis:</b> {t.proposal.diagnosis}
-            </div>
-          )}
-          {t.proposal.steps && t.proposal.steps.length > 0 && (
-            <ol className="list-decimal pl-5 space-y-0.5">
-              {t.proposal.steps.map((s, i) => (
-                <li key={i}>{s}</li>
-              ))}
-            </ol>
-          )}
-          {t.proposal.instruction && (
-            <div className="flex flex-col gap-1">
-              {t.proposal.instruction.preconditions.length > 0 && (
-                <div style={muted}>
-                  <b>Before:</b> {t.proposal.instruction.preconditions.join(' · ')}
-                </div>
-              )}
-              <div className="hud-label">Instruction for the executor ({t.proposal.instruction.steps.length} steps, not run)</div>
-              {t.proposal.instruction.steps.length === 0 && <div style={faint}>No change in Home Assistant is needed.</div>}
-              <ol className="list-decimal pl-5 space-y-1">
-                {t.proposal.instruction.steps.map((st, i) => (
-                  <li key={i}>
-                    <span className="hud-mono">{st.tool}</span> <span style={faint}>{st.purpose}</span>
-                    <div className="hud-mono text-[10px] break-all" style={faint}>
-                      {JSON.stringify(st.args)}
-                    </div>
-                    {st.verify && <div style={faint}>check: {st.verify}</div>}
-                  </li>
-                ))}
-              </ol>
-              {t.proposal.instruction.rollback_steps.length > 0 && (
-                <div style={muted}>
-                  <b>Rollback:</b> {t.proposal.instruction.rollback_steps.map((r) => `${r.tool} ${JSON.stringify(r.args)}`).join(' → ')}
-                </div>
-              )}
-            </div>
-          )}
-          <div style={muted}>
-            <b>Breaking-change check:</b> {t.proposal.breaking_change_check}
-          </div>
-          {t.proposal.rollback && (
-            <div style={muted}>
-              <b>Rollback:</b> {t.proposal.rollback}
-            </div>
-          )}
-          {t.proposal.verification.length > 0 && (
-            <div style={muted}>
-              <b>Verify:</b> {t.proposal.verification.join(' · ')}
-            </div>
-          )}
-          {t.proposal.user_action && (
-            <div style={muted}>
-              <b>Your action:</b> {t.proposal.user_action}
-            </div>
-          )}
-          <div className="text-[11px]" style={faint}>
-            Proposal only. Nothing is applied before the approval step exists and you confirm it.
-          </div>
-        </div>
-      )}
+      {open && t.proposal && <ProposalView p={t.proposal} />}
     </div>
   );
 }
@@ -506,40 +511,6 @@ function PlanTab({ plan, reload }: { plan: Plan; reload: () => void }) {
 
 // --- Agents ----------------------------------------------------------------------
 
-function Layer({
-  tag,
-  title,
-  role,
-  meta,
-  children,
-}: {
-  tag: string;
-  title: string;
-  role: string;
-  meta?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="hud-panel p-3 flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <Chip text={tag} color="var(--color-accent)" />
-        <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-          {title}
-        </span>
-        {meta && (
-          <span className="ml-auto text-[11px] hud-mono" style={faint}>
-            {meta}
-          </span>
-        )}
-      </div>
-      <div className="text-[11px]" style={faint}>
-        {role}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function Runs({ runs }: { runs: RunRow[] }) {
   if (runs.length === 0)
     return (
@@ -563,90 +534,261 @@ function Runs({ runs }: { runs: RunRow[] }) {
   );
 }
 
-function AgentsTab() {
-  const { data, reload } = usePolled(api.team, 30_000);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+type StepKey = 'check' | 'digest' | 'qwen' | 'haiku' | 'sonnet';
 
-  const act = async (what: 'readout' | 'triage') => {
-    setBusy(what);
-    setNote(null);
+function Step({
+  n,
+  tag,
+  title,
+  role,
+  status,
+  open,
+  onToggle,
+  action,
+  children,
+}: {
+  n: number;
+  tag: string;
+  title: string;
+  role: string;
+  status: string;
+  open: boolean;
+  onToggle: () => void;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="hud-panel">
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        <button onClick={onToggle} className="flex items-center gap-3 flex-1 min-w-0 text-left cursor-pointer" aria-expanded={open}>
+          {open ? <ChevronDown size={14} style={muted} /> : <ChevronRight size={14} style={muted} />}
+          <span className="hud-mono text-xs" style={faint}>
+            {n}
+          </span>
+          <Chip text={tag} color="var(--color-accent)" />
+          <div className="min-w-0">
+            <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+              {title}
+            </div>
+            <div className="text-[11px] truncate" style={faint}>
+              {role}
+            </div>
+          </div>
+        </button>
+        <span className="text-[11px] hud-mono shrink-0" style={muted}>
+          {status}
+        </span>
+        {action}
+      </div>
+      {open && (
+        <div className="px-3 pb-3 pt-2 flex flex-col gap-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function FlowTab({ plan }: { plan: Plan | null }) {
+  const navigate = useNavigate();
+  const { data, reload } = usePolled(api.team, 20_000);
+  const settings = usePolled(api.settings, 60_000);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [open, setOpen] = useState<Set<StepKey>>(new Set());
+  const [mode, setMode] = useState<EscalationMode>('quick');
+  const [confirm, setConfirm] = useState(false);
+
+  const say = (k: string, v: string) => setNotes((p) => ({ ...p, [k]: v }));
+  const toggle = (k: StepKey) =>
+    setOpen((p) => {
+      const n = new Set(p);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
+
+  const guarded = async (k: string, fn: () => Promise<string>) => {
+    setBusy(k);
+    say(k, '');
     try {
-      if (what === 'readout') {
-        const r = await api.runReadout();
-        setNote(`readout: ${r.status}`);
-      } else {
-        const r = await api.runTriage();
-        setNote(`triage: ${r.status}${r.estimated_cost_usd !== undefined ? ` (would cost about ${usd(r.estimated_cost_usd)})` : ''}`);
-      }
-      await reload();
+      say(k, await fn());
     } catch (e) {
-      setNote(e instanceof Error ? e.message : 'Failed');
+      say(k, e instanceof Error ? e.message : 'Failed');
     } finally {
       setBusy(null);
+      await reload();
     }
+  };
+
+  const runCheck = () =>
+    guarded('check', async () => {
+      const r = (await api.runWatchdog()) as { ok?: boolean; observed?: number; busy?: boolean };
+      return r.busy ? 'A check is already running.' : `done: ${r.observed ?? 0} findings`;
+    });
+  const runDigest = () =>
+    guarded('digest', async () => {
+      const r = await api.runDigest(false);
+      return `digest #${r.id} built (${r.status})`;
+    });
+  const runQwen = () =>
+    guarded('qwen', async () => {
+      const r = await api.runReadout();
+      return `read-out: ${r.status}${r.detail ? ` (${r.detail})` : ''}`;
+    });
+  const runHaiku = () =>
+    guarded('haiku', async () => {
+      const r = await api.runTriage();
+      return `triage: ${r.status}${r.estimated_cost_usd !== undefined ? ` (would cost about ${usd(r.estimated_cost_usd)})` : ''}`;
+    });
+  const runAll = async () => {
+    await runCheck();
+    await runDigest();
+    await runQwen();
+    await runHaiku();
+    await settings.reload();
+  };
+
+  const ticked = plan?.tasks.filter((t) => t.selected && !t.proposal) ?? [];
+  const estOf = (t: Task) => (mode === 'quick' ? t.estimate : mode === 'investigate' ? t.estimate_investigate : t.estimate_deep);
+  const total = ticked.reduce((a, t) => a + (estOf(t).usd ?? 0), 0);
+  const runSonnet = () =>
+    guarded('sonnet', async () => {
+      setConfirm(false);
+      let ok = 0;
+      let last = '';
+      for (const t of ticked) {
+        const r = await api.proposal(t.id, mode);
+        if (r.status === 'ok') ok += 1;
+        else last = r.status;
+        if (r.status === 'skipped_budget' || r.status === 'skipped_no_key') break;
+      }
+      return last === 'dry_run' ? `dry-run: nothing was sent (${ticked.length} tasks)` : `${ok} of ${ticked.length} proposals written${last ? ` (last: ${last})` : ''}`;
+    });
+
+  const toggleAuto = async () => {
+    const w = settings.data?.watchdog;
+    if (!w) return;
+    await api.setWatchdog({ ...w, enabled: !w.enabled, interval_min: !w.enabled ? 1440 : w.interval_min });
+    await Promise.all([settings.reload(), reload()]);
   };
 
   if (!data) return <Status error={null} />;
   const t: Team = data;
+  const auto = settings.data?.watchdog.enabled ?? t.l0.enabled ?? false;
   const risky = (r: string) => (r === 'high' ? 'var(--color-error)' : r === 'medium' ? 'var(--color-warning)' : 'var(--color-success)');
   const btn = { background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' } as const;
+  const run = (k: string, label: string, fn: () => void, extra?: string) => (
+    <button disabled={busy !== null} onClick={fn} className="px-2 py-1 rounded text-[11px] cursor-pointer shrink-0" style={btn} title={extra}>
+      {busy === k ? 'Working…' : label}
+    </button>
+  );
+  const note = (k: string) =>
+    notes[k] ? (
+      <div className="text-[11px]" style={muted}>
+        {notes[k]}
+      </div>
+    ) : null;
+  const lastTriage = t.l2.runs[0];
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs" style={muted}>
-        Who did what, in order. Only Python runs by itself. Haiku works once per report and only when dry-run is off. Sonnet and Opus run
-        only when you escalate a task. {t.dry_run ? 'Dry-run is ON: no cloud model has been called.' : 'Dry-run is OFF.'}
+      <div className="hud-panel p-3 flex flex-col gap-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="text-xs flex-1 min-w-[260px]" style={muted}>
+            Pilot mode: nothing runs by itself. You trigger each step here and review what each layer produced.{' '}
+            {t.dry_run ? 'Dry-run is ON: Haiku and Sonnet send nothing and cost nothing.' : 'Dry-run is OFF: Haiku and Sonnet calls are paid.'}
+          </div>
+          <label className="flex items-center gap-2 text-xs cursor-pointer" style={muted} title="Off = pilot (manual). On = one automatic run per day.">
+            <input type="checkbox" checked={auto} onChange={() => void toggleAuto()} />
+            Automatic daily run
+          </label>
+          {run('all', 'Run steps 1 to 4', () => void runAll(), 'Check, digest, Qwen read-out, Haiku triage. Never Sonnet.')}
+        </div>
+        <div className="text-[11px]" style={faint}>
+          {auto ? `Automatic: one run every ${Math.round((t.l0.interval_min ?? 1440) / 60)} h (digest at the schedule time).` : 'Automatic runs are OFF.'}
+        </div>
       </div>
 
-      <Layer tag="L0" title="Python watchdog and report" role={t.l0.role} meta={t.l0.interval_min ? `every ${t.l0.interval_min} min` : undefined}>
+      <Step
+        n={1}
+        tag="Python"
+        title="Check Home Assistant"
+        role="Read-only: issues, backups, integrations, entities. Free, no model."
+        status={t.l0.last_tick ? `${ago(t.l0.last_tick.started)} ago · ${t.l0.last_tick.observed} findings` : 'not run yet'}
+        open={open.has('check')}
+        onToggle={() => toggle('check')}
+        action={run('check', 'Run check', () => void runCheck())}
+      >
+        {note('check')}
         {t.l0.last_tick ? (
           <div className="text-xs" style={muted}>
-            Last check {ago(t.l0.last_tick.started)} ago · {t.l0.last_tick.duration_s}s · {t.l0.last_tick.observed} findings ·{' '}
-            {t.l0.last_tick.new.length} new · {t.l0.last_tick.resolved.length} resolved
-            {Object.keys(t.l0.last_tick.errors).length ? ` · errors: ${Object.keys(t.l0.last_tick.errors).join(', ')}` : ''}
+            Took {t.l0.last_tick.duration_s}s · {t.l0.last_tick.new.length} new · {t.l0.last_tick.resolved.length} resolved
+            {Object.keys(t.l0.last_tick.errors).length ? ` · could not read: ${Object.keys(t.l0.last_tick.errors).join(', ')}` : ''}
+            {t.l0.issues ? ` · ${t.l0.issues.active} open issues` : ''}
           </div>
         ) : (
           <div className="text-xs" style={faint}>No check yet.</div>
         )}
-        {t.l0.report ? (
-          <>
-            <div className="text-[11px]" style={faint}>
-              Last report #{t.l0.report.id} · {new Date(t.l0.report.created_at * 1000).toLocaleString()} · {t.l0.report.status}
-            </div>
-            <pre className="text-xs whitespace-pre-wrap hud-mono" style={{ color: 'var(--color-text)' }}>
-              {t.l0.report.text}
-            </pre>
-          </>
-        ) : (
-          <div className="text-xs" style={faint}>No report yet. Build one on the Reports tab.</div>
-        )}
-      </Layer>
+      </Step>
 
-      <Layer tag="L1" title="Qwen read-out job" role={t.l1.role} meta="local · free">
+      <Step
+        n={2}
+        tag="Python"
+        title="Build the digest"
+        role="Deterministic text from real data. No model writes it."
+        status={t.l0.report ? `#${t.l0.report.id} · ${ago(t.l0.report.created_at)} ago · ${t.l0.report.status}` : 'not built yet'}
+        open={open.has('digest')}
+        onToggle={() => toggle('digest')}
+        action={run('digest', 'Build digest', () => void runDigest())}
+      >
+        {note('digest')}
+        {t.l0.report ? (
+          <pre className="text-xs whitespace-pre-wrap hud-mono" style={{ color: 'var(--color-text)' }}>
+            {t.l0.report.text}
+          </pre>
+        ) : (
+          <div className="text-xs" style={faint}>No digest yet.</div>
+        )}
+      </Step>
+
+      <Step
+        n={3}
+        tag="Qwen"
+        title="Read-out"
+        role="Local and free. Reads the digest aloud; every number is checked against it."
+        status={t.l1.latest ? `${ago(t.l1.latest.created_at)} ago · ${t.l1.latest.guard_ok ? 'numbers verified' : 'fallback used'}` : 'not run yet'}
+        open={open.has('qwen')}
+        onToggle={() => toggle('qwen')}
+        action={run('qwen', 'Run read-out', () => void runQwen())}
+      >
+        {note('qwen')}
         {t.l1.latest ? (
           <>
-            <div className="text-[11px]" style={faint}>
-              {new Date(t.l1.latest.created_at * 1000).toLocaleString()} · {t.l1.latest.model} · {t.l1.latest.tokens_in} in /{' '}
-              {t.l1.latest.tokens_out} out · {t.l1.latest.seconds.toFixed(1)}s
-              {t.l1.latest.guard_ok ? ' · numbers verified' : ' · fallback: report text used'}
-            </div>
             <div className="text-xs" style={{ color: 'var(--color-text)' }}>{t.l1.latest.text}</div>
+            <div className="text-[11px] hud-mono" style={faint}>
+              {t.l1.latest.model} · {t.l1.latest.tokens_in} in / {t.l1.latest.tokens_out} out · {t.l1.latest.seconds.toFixed(1)}s
+            </div>
             {t.l1.latest.note && <div className="text-[11px]" style={{ color: 'var(--color-warning)' }}>{t.l1.latest.note}</div>}
           </>
         ) : (
           <div className="text-xs" style={faint}>No read-out yet.</div>
         )}
-        <div>
-          <button disabled={busy !== null} onClick={() => void act('readout')} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}>
-            {busy === 'readout' ? 'Reading…' : 'Run read-out now (local)'}
-          </button>
-        </div>
-      </Layer>
+      </Step>
 
-      <Layer tag="L2" title={`Haiku triage · ${t.l2.model}`} role={t.l2.role} meta={t.l2.mode}>
+      <Step
+        n={4}
+        tag="Haiku"
+        title={`Triage notes · ${t.l2.model}`}
+        role="A short note, suspected cause and effort per cluster. Never diagnoses."
+        status={lastTriage ? `${ago(lastTriage.started)} ago · ${lastTriage.outcome}` : t.dry_run ? 'dry-run' : 'not run yet'}
+        open={open.has('haiku')}
+        onToggle={() => toggle('haiku')}
+        action={run('haiku', t.dry_run ? 'Estimate' : 'Run triage', () => void runHaiku())}
+      >
+        {note('haiku')}
         {t.l2.reasoning.length === 0 ? (
-          <div className="text-xs" style={faint}>No reasoning stored yet (dry-run, or nothing new to triage).</div>
+          <div className="text-xs" style={faint}>No notes stored yet (dry-run, or nothing new to triage).</div>
         ) : (
           <ul className="flex flex-col gap-1.5">
             {t.l2.reasoning.map((r) => (
@@ -661,34 +803,110 @@ function AgentsTab() {
           </ul>
         )}
         <Runs runs={t.l2.runs} />
-        <div>
-          <button disabled={busy !== null} onClick={() => void act('triage')} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}>
-            {busy === 'triage' ? 'Working…' : t.dry_run ? 'Estimate triage (dry-run)' : 'Run triage now (paid)'}
-          </button>
-        </div>
-      </Layer>
+      </Step>
 
-      <Layer tag="L3" title={`Sonnet supervision · ${t.l3.model}`} role={t.l3.role} meta={t.l3.auto_escalation ? 'auto-escalation ON' : 'escalated by you only'}>
+      <Step
+        n={5}
+        tag="You"
+        title="Choose the tasks"
+        role="Tick the tasks you want planned. Quick wins first."
+        status={plan ? `${plan.tasks.length} tasks · ${plan.tasks.filter((x) => x.selected).length} ticked` : '—'}
+        open={false}
+        onToggle={() => undefined}
+        action={
+          <button onClick={() => navigate('/maintenance?tab=plan')} className="px-2 py-1 rounded text-[11px] cursor-pointer shrink-0" style={btn}>
+            Open the plan
+          </button>
+        }
+      >
+        <span />
+      </Step>
+
+      <Step
+        n={6}
+        tag="Sonnet"
+        title={`Proposals · ${t.l3.model}`}
+        role="Plans the ticked tasks and writes the instruction for the executor. Only when you start it."
+        status={`${t.l3.escalated.length} proposals`}
+        open={open.has('sonnet')}
+        onToggle={() => toggle('sonnet')}
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value as EscalationMode)}
+            className="text-[11px] rounded px-1 py-1 cursor-pointer"
+            style={btn}
+            aria-label="Escalation mode"
+          >
+            <option value="quick">Propose (Sonnet)</option>
+            <option value="investigate">Investigate (Sonnet, read-only lookups)</option>
+            <option value="deep">Deep (Opus)</option>
+          </select>
+          {!confirm ? (
+            <button
+              disabled={busy !== null || ticked.length === 0}
+              onClick={() => setConfirm(true)}
+              className="px-2 py-1 rounded text-[11px] cursor-pointer"
+              style={btn}
+            >
+              Plan {ticked.length} ticked task{ticked.length === 1 ? '' : 's'}
+            </button>
+          ) : (
+            <>
+              <span className="text-[11px]" style={muted}>
+                {t.dry_run ? 'Dry-run: nothing is sent.' : `Up to ${usd(total)} will be spent.`} Start?
+              </span>
+              <button onClick={() => void runSonnet()} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={{ ...btn, border: '1px solid var(--color-accent)' }}>
+                Yes, start
+              </button>
+              <button onClick={() => setConfirm(false)} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}>
+                Cancel
+              </button>
+            </>
+          )}
+          {ticked.length === 0 && (
+            <span className="text-[11px]" style={faint}>
+              Tick tasks in the plan first (tasks that already have a proposal are skipped).
+            </span>
+          )}
+        </div>
+        {note('sonnet')}
         {t.l3.escalated.length === 0 ? (
-          <div className="text-xs" style={faint}>Nothing escalated. Request a proposal on a task in the Plan tab.</div>
+          <div className="text-xs" style={faint}>Nothing escalated yet.</div>
         ) : (
-          <ul className="flex flex-col gap-1.5">
-            {t.l3.escalated.map((p) => (
-              <li key={p.cluster_id} className="text-xs">
-                <span style={{ color: 'var(--color-text)' }}>{p.label}</span>
-                <span className="ml-2"><Chip text={`risk ${p.risk}`} color={risky(p.risk)} /></span>
-                <span className="ml-2 hud-mono" style={faint}>{usd(p.cost_usd)}</span>
-                <div style={muted}>{p.summary}</div>
-              </li>
-            ))}
-          </ul>
+          t.l3.escalated.map((p) => (
+            <div key={p.cluster_id} className="flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <div className="flex items-center gap-2 text-xs flex-wrap">
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{p.label}</span>
+                <Chip text={`risk ${p.risk}`} color={risky(p.risk)} />
+                {!p.current && <Chip text="out of date" color="var(--color-warning)" />}
+                <span className="hud-mono" style={faint}>{p.proposal.mode ?? 'quick'} · {usd(p.cost_usd)}</span>
+              </div>
+              <ProposalView p={p.proposal} />
+            </div>
+          ))
         )}
         <Runs runs={t.l3.runs} />
-      </Layer>
+        {t.l4.runs.length > 0 && (
+          <>
+            <div className="hud-label">Opus runs</div>
+            <Runs runs={t.l4.runs} />
+          </>
+        )}
+      </Step>
 
-      <Layer tag="L4" title={`Opus · ${t.l4.model}`} role={t.l4.role}>
-        <Runs runs={t.l4.runs} />
-      </Layer>
+      <Step
+        n={7}
+        tag="Haiku"
+        title="Approval and execution"
+        role="You approve a proposal, then Haiku runs exactly its steps. Not built yet (Phase 5)."
+        status="locked"
+        open={false}
+        onToggle={() => undefined}
+      >
+        <span />
+      </Step>
 
       <div className="hud-panel p-3">
         <div className="hud-label mb-1">This month (paid)</div>
@@ -703,7 +921,6 @@ function AgentsTab() {
           ))
         )}
       </div>
-      {note && <div className="text-xs" style={muted}>{note}</div>}
     </div>
   );
 }
@@ -770,7 +987,8 @@ function ReportsTab() {
 
 export function MaintenancePage() {
   const [params, setParams] = useSearchParams();
-  const tab: Tab = (TABS.find((t) => t.id === params.get('tab'))?.id ?? 'dashboard') as Tab;
+  const rawTab = params.get('tab') === 'agents' ? 'flow' : params.get('tab');
+  const tab: Tab = (TABS.find((t) => t.id === rawTab)?.id ?? 'dashboard') as Tab;
   const section = params.get('section');
   const overview = usePolled(api.overview, 60_000);
   const plan = usePolled(api.plan, 60_000);
@@ -838,7 +1056,7 @@ export function MaintenancePage() {
           ))}
         {tab === 'plan' &&
           (plan.data ? <PlanTab plan={plan.data} reload={() => void plan.reload()} /> : <Status error={plan.error} />)}
-        {tab === 'agents' && <AgentsTab />}
+        {tab === 'flow' && <FlowTab plan={plan.data} />}
         {tab === 'reports' && <ReportsTab />}
       </div>
     </div>
