@@ -199,12 +199,17 @@ def plan_select(body: dict[str, Any]) -> dict[str, Any]:
 
 @ha_agents_router.post("/plan/proposal")
 def plan_proposal(body: dict[str, Any]) -> dict[str, Any]:
-    """Ask for the proposal of one task (a cloud call unless dry-run)."""
-    tid = body.get("id")
+    """Escalate one task: a proposal (quick), with read-only lookups (investigate)
+    or with Opus (deep). Always started by the user; a cloud call unless dry-run."""
+    tid, mode = body.get("id"), body.get("mode", "quick")
     if not isinstance(tid, str) or not tid:
         raise HTTPException(status_code=422, detail="id is required")
+    if mode not in ("quick", "investigate", "deep"):
+        raise HTTPException(
+            status_code=422, detail="mode must be quick, investigate or deep"
+        )
     store = get_store()
-    out = generate_proposal(store, CloudClient(store), tid)
+    out = generate_proposal(store, CloudClient(store), tid, mode)
     if out["status"] == "unknown_task":
         raise HTTPException(status_code=404, detail="unknown task")
     return out

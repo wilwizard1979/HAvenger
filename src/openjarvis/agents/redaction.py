@@ -125,6 +125,16 @@ class Redactor:
             text = text.replace(ph, self._reverse[ph])
         return text
 
+    def restore_obj(self, obj: Any) -> Any:
+        """``restore`` for every string in a JSON-like structure (tool inputs)."""
+        if isinstance(obj, str):
+            return self.restore(obj)
+        if isinstance(obj, list):
+            return [self.restore_obj(v) for v in obj]
+        if isinstance(obj, dict):
+            return {k: self.restore_obj(v) for k, v in obj.items()}
+        return obj
+
     # -- text -------------------------------------------------------------
     def redact(self, text: str) -> str:
         if not isinstance(text, str):

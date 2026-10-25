@@ -35,21 +35,35 @@ export interface Overview {
   ha_version: string | null;
 }
 
+export interface InstructionStep {
+  tool: string;
+  args: Record<string, unknown>;
+  purpose: string;
+  verify: string;
+}
+
 export interface Proposal {
   summary: string;
-  steps: string[];
+  mode?: 'quick' | 'investigate' | 'deep';
+  tool_calls?: number;
+  diagnosis?: string;
+  instruction?: { preconditions: string[]; steps: InstructionStep[]; rollback_steps: InstructionStep[] };
+  steps?: string[];
   risk: 'low' | 'medium' | 'high';
   breaking_change_check: string;
-  rollback: string;
+  rollback?: string;
   verification: string[];
   needs_user: boolean;
   user_action: string;
 }
 
+export type EscalationMode = 'quick' | 'investigate' | 'deep';
+
 export interface Estimate {
   tokens_in: number;
   tokens_out: number;
   usd: number | null;
+  rounds?: number;
 }
 
 export interface Task {
@@ -70,6 +84,8 @@ export interface Task {
   proposal: Proposal | null;
   proposal_stale: boolean;
   estimate: Estimate;
+  estimate_investigate: Estimate;
+  estimate_deep: Estimate;
 }
 
 interface Sum {
@@ -200,10 +216,10 @@ export const api = {
     call<Plan>('/plan/select', { method: 'PUT', body: JSON.stringify({ id, selected }) }),
   override: (id: string, effort: Effort | null) =>
     call('/clusters/override', { method: 'PUT', body: JSON.stringify({ id, effort }) }),
-  proposal: (id: string) =>
-    call<{ status: string; estimate?: Estimate; cost_usd?: number; detail?: string }>('/plan/proposal', {
+  proposal: (id: string, mode: EscalationMode) =>
+    call<{ status: string; estimate?: Estimate; cost_usd?: number; detail?: string; tool_calls?: number }>('/plan/proposal', {
       method: 'POST',
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, mode }),
     }),
   latestReport: () => call<LatestReport>('/reports/latest'),
   runReport: () => call<ReportOut>('/reports/run?triage=true', { method: 'POST' }),

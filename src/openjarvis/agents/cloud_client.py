@@ -301,7 +301,12 @@ class CloudClient:
                 blocks.append({"type": "text", "text": t})
             elif getattr(b, "type", "") == "tool_use":
                 blocks.append(
-                    {"type": "tool_use", "id": b.id, "name": b.name, "input": b.input}
+                    {
+                        "type": "tool_use",
+                        "id": b.id,
+                        "name": b.name,
+                        "input": redactor.restore_obj(b.input),
+                    }
                 )
         return CloudResult(
             "".join(text_parts),

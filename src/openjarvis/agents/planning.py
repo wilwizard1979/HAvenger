@@ -22,6 +22,7 @@ from openjarvis.agents.cloud_client import (
     cost_usd,
 )
 from openjarvis.agents.clusters import build_clusters, matrix_counts
+from openjarvis.agents.escalation import ReadOnlyHA, escalate, estimate_investigation
 from openjarvis.agents.redaction import RedactionError
 from openjarvis.agents.reporting import TRIAGE_MAX_TOKENS, _loads_json
 from openjarvis.agents.store import RISKS, Store
@@ -248,6 +249,13 @@ def estimate_task(
     }
 
 
+def investigate_estimate(
+    prices: dict[str, Any] | None, cluster: dict[str, Any], rounds: int
+) -> dict[str, Any]:
+    base = estimate_task(prices, cluster)["tokens_in"]
+    return estimate_investigation(prices, base, rounds)
+
+
 def _sum(rows: list[dict[str, Any]]) -> dict[str, Any]:
     usd = [r["usd"] for r in rows]
     return {
@@ -302,6 +310,14 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
                 "proposal": prop["body"] if current else None,
                 "proposal_stale": bool(prop) and not current,
                 "estimate": estimate_task(prices, c),
+                "estimate_investigate": investigate_estimate(
+                    prices, c, settings["escalation"]["max_rounds"]
+                ),
+                "estimate_deep": investigate_estimate(
+                    settings["prices"].get(client.model_for("deep")),
+                    c,
+                    settings["escalation"]["max_rounds"],
+                ),
             }
         )
 
@@ -349,8 +365,14 @@ def select_task(store: Store, cluster_id: str, selected: bool) -> None:
 
 # -- proposals (on request only) ---
 def generate_proposal(
-    store: Store, client: CloudClient, cluster_id: str
+    store: Store,
+    client: CloudClient,
+    cluster_id: str,
+    mode: str = "quick",
+    ha: ReadOnlyHA | None = None,
 ) -> dict[str, Any]:
+    """``quick`` = one Sonnet call; ``investigate`` = Sonnet with read-only
+    lookups; ``deep`` = the same with Opus. All three are started by the user."""
     cluster = next((c for c in plan_clusters(store) if c["id"] == cluster_id), None)
     if cluster is None:
         return {"status": "unknown_task"}
@@ -372,6 +394,35 @@ def generate_proposal(
             for m in members[:15]
         ],
     }
+    if mode not in ("quick", "investigate", "deep"):
+        return {"status": "bad_mode"}
+    if mode != "quick":
+        tier = "deep" if mode == "deep" else "diagnose"
+        out = escalate(store, client, payload, tier=tier, ha=ha)
+        if out["status"] == "dry_run":
+            prices_t = settings["prices"].get(client.model_for(tier))
+            return {
+                "status": "dry_run",
+                "estimate": investigate_estimate(
+                    prices_t, cluster, settings["escalation"]["max_rounds"]
+                ),
+            }
+        if out["status"] != "ok":
+            return {**out, "estimate": estimate}
+        body = {**out["proposal"], "mode": mode, "tool_calls": out["tool_calls"]}
+        store.put_plan_proposal(
+            cluster_id,
+            cluster["members_hash"],
+            body,
+            model=out["model"],
+            cost_usd=out["spent_usd"],
+        )
+        return {
+            "status": "ok",
+            "proposal": body,
+            "cost_usd": out["spent_usd"],
+            "tool_calls": out["tool_calls"],
+        }
     try:
         res = client.complete(
             "diagnose",

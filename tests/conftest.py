@@ -32,6 +32,7 @@ os.environ["OPENJARVIS_HOME"] = str(_TEST_HOME)
 os.environ.pop("OPENJARVIS_CONFIG", None)
 # The Janitor watchdog polls Home Assistant; never start it from test apps.
 os.environ["JARVIS_WATCHDOG"] = "0"
+os.environ["JARVIS_JANITOR_DIR"] = str(_TEST_HOME / "janitor")
 
 from openjarvis.core.config import GpuInfo, HardwareInfo, load_config  # noqa: E402
 from openjarvis.core.events import EventBus, reset_event_bus  # noqa: E402

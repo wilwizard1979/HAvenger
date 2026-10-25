@@ -87,7 +87,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "log_error_min": 3,
         "automation_fail_runs_24h": 3,
         "breaking_change_days": 30,
-        "stale_unavailable_days": 30,
+        "stale_unavailable_days": 10,
     },
     # L0 watchdog: read-only polling of Home Assistant, no cloud calls.
     "watchdog": {
@@ -112,6 +112,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "chore_categories": ["battery"],
         "default_effort": "medium",
     },
+    # One escalation (Sonnet or Opus) may look around read-only, within these limits.
+    "escalation": {"max_rounds": 6, "max_usd": 0.5, "opus_max_usd": 2.0},
     "critical_entities": [],
     # Empty = automatic: every binary_sensor with device_class "motion".
     "motion_sensors": [],
@@ -330,6 +332,19 @@ def _validate_group(key: str, value: Any) -> Any:
             "effort_defaults": dict(eff),
             "chore_categories": list(chores),
             "default_effort": value["default_effort"],
+        }
+    if key == "escalation":
+        keys = {"max_rounds", "max_usd", "opus_max_usd"}
+        if not isinstance(value, dict) or set(value) != keys:
+            raise SettingsError("escalation needs: max_rounds, max_usd, opus_max_usd")
+        return {
+            "max_rounds": int(
+                _num(value["max_rounds"], "escalation.max_rounds", 0, 12)
+            ),
+            "max_usd": _num(value["max_usd"], "escalation.max_usd", 0, 50),
+            "opus_max_usd": _num(
+                value["opus_max_usd"], "escalation.opus_max_usd", 0, 100
+            ),
         }
     if key == "features":
         if not isinstance(value, dict) or not all(

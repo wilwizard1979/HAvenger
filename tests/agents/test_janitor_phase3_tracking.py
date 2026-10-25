@@ -48,12 +48,12 @@ def test_overview_cards_for_stale_and_restart(store):
     )
     store.record_boot(NOW - 5 * 3600, NOW, False)
     o = planning.overview(store, NOW)
-    assert o["cards"]["stale_unavailable"] == {"value": 2, "days": 30, "tone": "warn"}
+    assert o["cards"]["stale_unavailable"] == {"value": 2, "days": 10, "tone": "warn"}
     assert o["cards"]["last_restart"]["value"] == 5.0
     sec = o["sections"]["stale_unavailable"]
     assert [i["title"] for i in sec["items"]] == ["SENSOR.OLDER", "SENSOR.OLD"]
     assert "unavailable about 90 days" in sec["items"][0]["detail"]
-    assert sec["reliable_from"] == pytest.approx(NOW - 90 * DAY + 30 * DAY)
+    assert sec["reliable_from"] == pytest.approx(NOW - 90 * DAY + 10 * DAY)
     assert o["sections"]["last_restart"]["total"] == 1
 
 
@@ -167,3 +167,35 @@ def test_collector_since_uses_last_changed_and_estimates_the_boot(store):
     ).timestamp()
     assert snapshot["facts"]["boot_estimate"] == pytest.approx(boot)
     assert "sun.sun" in ha.asked[0] and "zone.home" in ha.asked[0]
+
+
+def test_markdown_export_is_rewritten_and_drops_recovered_entities(
+    store, tmp_path, monkeypatch
+):
+    from openjarvis.agents.watchdog import export_unavailable_md
+
+    monkeypatch.setenv("JARVIS_JANITOR_DIR", str(tmp_path / "out"))
+    store.track_unavailable(
+        rows(**{"sensor.a": 40, "light.b": 12, "sensor.fresh": 2}), NOW
+    )
+    path = export_unavailable_md(store, NOW)
+    text = path.read_text()
+    assert path.name == "unavailable-long.md"
+    assert "more than 10 days" in text and "2 of 3" in text
+    assert "| sensor.a | SENSOR.A |" in text and "| 40 |" in text
+    assert "sensor.fresh" not in text
+    # sensor.a comes back: next export no longer lists it
+    store.track_unavailable(rows(**{"light.b": 12}), NOW + 900)
+    assert "sensor.a" not in export_unavailable_md(store, NOW + 900).read_text()
+
+
+def test_threshold_is_a_setting(store):
+    th = {**store.settings()["thresholds"], "stale_unavailable_days": 20}
+    assert (
+        store.update_settings({"thresholds": th})["thresholds"][
+            "stale_unavailable_days"
+        ]
+        == 20
+    )
+    store.track_unavailable(rows(**{"sensor.a": 15}), NOW)
+    assert planning.overview(store, NOW)["cards"]["stale_unavailable"]["value"] == 0

@@ -9,6 +9,7 @@ import {
   TONE_COLOR,
   SEVERITY_COLOR,
   type Effort,
+  type EscalationMode,
   type Overview,
   type Plan,
   type Severity,
@@ -61,7 +62,7 @@ const SECTIONS: { key: string; title: string; hint: string }[] = [
   { key: 'updates_pending', title: 'Updates pending', hint: 'Install after a backup and a breaking-change check' },
   { key: 'deprecations', title: 'Deprecations and breaking changes', hint: 'Will stop working in a coming release' },
   { key: 'log_critical', title: 'Critical errors in the log', hint: 'Last 400 log lines' },
-  { key: 'stale_unavailable', title: 'Unavailable for more than 30 days', hint: 'Oldest first. Likely orphaned or dead devices' },
+  { key: 'stale_unavailable', title: 'Unavailable for a long time', hint: 'Oldest first. Likely orphaned or dead devices' },
   { key: 'last_restart', title: 'Home Assistant restarts', hint: 'When Home Assistant last started, as seen by the watchdog' },
 ];
 
@@ -145,7 +146,7 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
                 {key === 'stale_unavailable' && sec && (
                   <div className="text-[11px] mt-2" style={faint}>
                     Home Assistant resets its change time at every restart, so the Janitor counts from {sec.counting_since ? new Date(sec.counting_since * 1000).toLocaleDateString() : 'its first check'} on
-                    {sec.reliable_from ? `; the 30-day result is complete from ${new Date(sec.reliable_from * 1000).toLocaleDateString()}` : ''}.
+                    {sec.reliable_from ? `; the result is complete from ${new Date(sec.reliable_from * 1000).toLocaleDateString()}` : ''}.
                     {sec.tracked !== undefined ? ` Entities tracked: ${sec.tracked}.` : ''}
                   </div>
                 )}
@@ -295,10 +296,12 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
     }
   };
 
-  const requestProposal = () =>
+  const escalate = (mode: EscalationMode) =>
     run(async () => {
-      const r = await api.proposal(t.id);
-      if (r.status === 'dry_run') setMsg(`Dry-run: would use about ${tokens(t.estimate.tokens_in + t.estimate.tokens_out)} tokens (${usd(t.estimate.usd)}). Nothing was sent.`);
+      const est = mode === 'quick' ? t.estimate : mode === 'investigate' ? t.estimate_investigate : t.estimate_deep;
+      const r = await api.proposal(t.id, mode);
+      if (r.status === 'dry_run')
+        setMsg(`Dry-run: would use up to ${tokens(est.tokens_in + est.tokens_out)} tokens (${usd(est.usd)}). Nothing was sent.`);
       else if (r.status !== 'ok') setMsg(`${r.status}${r.detail ? `: ${r.detail}` : ''}`);
       else setOpen(true);
     });
@@ -339,7 +342,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span className="text-[11px] hud-mono" style={faint}>
-            proposal ≈ {tokens(t.estimate.tokens_in + t.estimate.tokens_out)} tok · {usd(t.estimate.usd)}
+            propose ≈ {tokens(t.estimate.tokens_in + t.estimate.tokens_out)} tok · {usd(t.estimate.usd)}
           </span>
           <div className="flex items-center gap-1.5">
             <select
@@ -365,17 +368,27 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               >
                 {open ? 'Hide proposal' : 'Show proposal'}
               </button>
-            ) : (
+            ) : null}
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            {(
+              [
+                ['quick', 'Propose', t.estimate, 'Sonnet writes a plan from what the Janitor already knows'],
+                ['investigate', 'Investigate', t.estimate_investigate, 'Sonnet may also look at Home Assistant (read-only) before it writes the plan'],
+                ['deep', 'Deep (Opus)', t.estimate_deep, 'Opus, read-only lookups, for hard cases'],
+              ] as [EscalationMode, string, { usd: number | null }, string][]
+            ).map(([mode, label, est, tip]) => (
               <button
+                key={mode}
                 disabled={busy}
-                onClick={() => void requestProposal()}
+                onClick={() => void escalate(mode)}
                 className="text-[11px] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
                 style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-                title="Ask Sonnet for a proposed resolution and risk check (read-only, changes nothing)"
+                title={`${tip}. Started by you only. Up to ${usd(est.usd)}.`}
               >
-                <Play size={10} /> {t.proposal_stale ? 'Refresh proposal' : 'Request proposal'}
+                <Play size={10} /> {label} ≤{usd(est.usd)}
               </button>
-            )}
+            ))}
           </div>
         </div>
       </div>
@@ -391,17 +404,53 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
             <Chip text={`risk ${t.proposal.risk}`} color={t.proposal.risk === 'high' ? 'var(--color-error)' : t.proposal.risk === 'medium' ? 'var(--color-warning)' : 'var(--color-success)'} />
             {t.proposal.needs_user && <Chip text="needs you" />}
           </div>
-          <ol className="list-decimal pl-5 space-y-0.5">
-            {t.proposal.steps.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ol>
+          {t.proposal.diagnosis && (
+            <div style={muted}>
+              <b>Diagnosis:</b> {t.proposal.diagnosis}
+            </div>
+          )}
+          {t.proposal.steps && t.proposal.steps.length > 0 && (
+            <ol className="list-decimal pl-5 space-y-0.5">
+              {t.proposal.steps.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ol>
+          )}
+          {t.proposal.instruction && (
+            <div className="flex flex-col gap-1">
+              {t.proposal.instruction.preconditions.length > 0 && (
+                <div style={muted}>
+                  <b>Before:</b> {t.proposal.instruction.preconditions.join(' · ')}
+                </div>
+              )}
+              <div className="hud-label">Instruction for the executor ({t.proposal.instruction.steps.length} steps, not run)</div>
+              {t.proposal.instruction.steps.length === 0 && <div style={faint}>No change in Home Assistant is needed.</div>}
+              <ol className="list-decimal pl-5 space-y-1">
+                {t.proposal.instruction.steps.map((st, i) => (
+                  <li key={i}>
+                    <span className="hud-mono">{st.tool}</span> <span style={faint}>{st.purpose}</span>
+                    <div className="hud-mono text-[10px] break-all" style={faint}>
+                      {JSON.stringify(st.args)}
+                    </div>
+                    {st.verify && <div style={faint}>check: {st.verify}</div>}
+                  </li>
+                ))}
+              </ol>
+              {t.proposal.instruction.rollback_steps.length > 0 && (
+                <div style={muted}>
+                  <b>Rollback:</b> {t.proposal.instruction.rollback_steps.map((r) => `${r.tool} ${JSON.stringify(r.args)}`).join(' → ')}
+                </div>
+              )}
+            </div>
+          )}
           <div style={muted}>
             <b>Breaking-change check:</b> {t.proposal.breaking_change_check}
           </div>
-          <div style={muted}>
-            <b>Rollback:</b> {t.proposal.rollback}
-          </div>
+          {t.proposal.rollback && (
+            <div style={muted}>
+              <b>Rollback:</b> {t.proposal.rollback}
+            </div>
+          )}
           {t.proposal.verification.length > 0 && (
             <div style={muted}>
               <b>Verify:</b> {t.proposal.verification.join(' · ')}
