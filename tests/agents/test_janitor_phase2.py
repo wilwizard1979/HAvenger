@@ -437,6 +437,14 @@ class FakeHA:
                 if i in table
             }
             return {"data": {"success": True, "count": len(states), "states": states}}
+        if name == "ha_get_entity":
+            dev = {"binary_sensor.pir": "d1", "sensor.k_battery": "d1"}
+            return {
+                "entity_entries": [
+                    {"entity_id": i, "device_id": dev.get(i), "area": "Hall"}
+                    for i in args["entity_id"]
+                ]
+            }
         if name == "ha_get_logs":
             return {"log": "2026-10-25 10:00:03.1 CRITICAL (MainThread) [x.y] boom\n"}
         raise AssertionError(f"unexpected call {name}")
@@ -456,6 +464,7 @@ def test_collector_builds_snapshot_from_read_calls_only(store):
         "ha_get_integration",
         "ha_search",
         "ha_get_state",
+        "ha_get_entity",
         "ha_get_logs",
     }
     assert snapshot["motion"].keys() == {"binary_sensor.pir"}  # device_class only
@@ -466,6 +475,18 @@ def test_collector_builds_snapshot_from_read_calls_only(store):
     assert snapshot["unavailable"] == {
         "sensor": [{"entity_id": "sensor.a", "name": ""}]
     }
+    assert snapshot["facts"]["motion_batteries"] == [
+        {
+            "entity_id": "binary_sensor.pir",
+            "name": "binary_sensor.pir",
+            "state": "unavailable",
+            "area": "Hall",
+            "battery": 9.0,
+            "low_flag": False,
+            "battery_offline": False,
+            "has_battery": True,
+        }
+    ]
     assert snapshot["backup"]["last_success"].startswith("2026-10-25")
     assert snapshot["logs"]["x"]["critical"] == 1
     obs, _ = observe(snapshot, s, 1_793_000_000.0)

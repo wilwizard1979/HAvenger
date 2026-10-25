@@ -21,6 +21,7 @@ export interface Overview {
     last_restart: { value: number | null; unit: string; tone: Tone };
     backup_failed: { value: number; tone: Tone };
     log_levels: { value: number; tone: Tone };
+    motion_batteries: { value: number | null; total: number; with_battery: number; tone: Tone };
     last_backup: { value: number | null; unit: string; at: string | null; limit_hours: number; tone: Tone };
     integrations_failed: { value: number; tone: Tone };
     automation_errors: { value: number; tone: Tone };

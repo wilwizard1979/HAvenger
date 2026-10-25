@@ -131,7 +131,31 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
     boots = store.boots(SECTION_LIMIT)
     since_h = round((now - boots[0]["boot_at"]) / 3600, 1) if boots else None
 
+    mb = facts.get("motion_batteries")
+    limit_pct = s["thresholds"]["battery_low_pct"]
+
+    def mb_low(r: dict[str, Any]) -> bool:
+        return bool(r.get("low_flag")) or (
+            r.get("battery") is not None and r["battery"] <= limit_pct
+        )
+
+    mb_rows = sorted(
+        mb or [],
+        key=lambda r: (
+            r.get("battery") is None and not r.get("low_flag"),
+            r["battery"] if r.get("battery") is not None else 101,
+            r["name"],
+        ),
+    )
+    mb_low_n = sum(1 for r in mb_rows if mb_low(r))
+
     cards = {
+        "motion_batteries": {
+            "value": None if mb is None else mb_low_n,
+            "total": len(mb_rows),
+            "with_battery": sum(1 for r in mb_rows if r.get("has_battery")),
+            "tone": "idle" if mb is None else "bad" if mb_low_n else "ok",
+        },
         "stale_unavailable": {
             "value": stale["count"],
             "days": days,
@@ -189,6 +213,32 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
     }
     counting = stale["counting_since"]
     sections = {
+        "motion_batteries": {
+            "total": len(mb_rows),
+            "items": [
+                {
+                    "title": r["name"] + (f" ({r['area']})" if r.get("area") else ""),
+                    "severity": "warning"
+                    if mb_low(r) or r.get("state") in ("unavailable", "unknown")
+                    else "info",
+                    "detail": (
+                        f"battery {r['battery']:g}%"
+                        if r.get("battery") is not None
+                        else "battery low"
+                        if r.get("low_flag")
+                        else "battery unknown (its sensor is offline)"
+                        if r.get("battery_offline")
+                        else "no battery sensor (mains powered or a camera)"
+                    )
+                    + (
+                        " · sensor offline"
+                        if r.get("state") in ("unavailable", "unknown")
+                        else ""
+                    ),
+                }
+                for r in mb_rows
+            ],
+        },
         "log_levels": {
             "total": len(facts.get("log_levels") or []),
             "items": [

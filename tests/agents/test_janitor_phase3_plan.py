@@ -294,3 +294,108 @@ def test_plan_endpoints(tmp_path, monkeypatch):
             404,
             405,
         )
+
+
+def test_motion_battery_card_and_full_list(store):
+    rows = [
+        {
+            "entity_id": "b.a",
+            "name": "Hall",
+            "state": "off",
+            "area": "Hall",
+            "battery": 8.0,
+            "low_flag": False,
+            "has_battery": True,
+        },
+        {
+            "entity_id": "b.b",
+            "name": "Kitchen",
+            "state": "off",
+            "area": None,
+            "battery": 64.0,
+            "low_flag": False,
+            "has_battery": True,
+        },
+        {
+            "entity_id": "b.c",
+            "name": "Doorbell",
+            "state": "off",
+            "area": None,
+            "battery": None,
+            "low_flag": False,
+            "has_battery": False,
+        },
+        {
+            "entity_id": "b.d",
+            "name": "Garage",
+            "state": "unavailable",
+            "area": None,
+            "battery": None,
+            "low_flag": True,
+            "has_battery": True,
+        },
+        {
+            "entity_id": "b.e",
+            "name": "Office",
+            "state": "off",
+            "area": "Office",
+            "battery": 20.0,
+            "low_flag": False,
+            "has_battery": True,
+        },
+    ]
+    store.set_facts({"motion_batteries": rows})
+    o = planning.overview(store, NOW)
+    assert o["cards"]["motion_batteries"] == {
+        "value": 3,
+        "total": 5,
+        "with_battery": 4,
+        "tone": "bad",
+    }
+    items = o["sections"]["motion_batteries"]["items"]
+    assert len(items) == 5  # all of them, not just ten
+    assert [i["title"] for i in items][:2] == [
+        "Hall (Hall)",
+        "Office (Office)",
+    ]  # lowest first
+    assert (
+        items[-1]["title"] == "Doorbell" and "no battery sensor" in items[-1]["detail"]
+    )
+    garage = next(i for i in items if i["title"] == "Garage")
+    assert (
+        garage["severity"] == "warning"
+        and "battery low" in garage["detail"]
+        and "offline" in garage["detail"]
+    )
+    from openjarvis.agents.house import build_house_status
+
+    assert (
+        "Motion sensor batteries: 3 low out of 4 that report a battery."
+        in build_house_status(store, NOW)
+    )
+
+
+def test_offline_battery_sensor_is_not_called_mains_powered(store):
+    store.set_facts(
+        {
+            "motion_batteries": [
+                {
+                    "entity_id": "b.k",
+                    "name": "Kitchen",
+                    "state": "unavailable",
+                    "area": None,
+                    "battery": None,
+                    "low_flag": False,
+                    "battery_offline": True,
+                    "has_battery": True,
+                }
+            ]
+        }
+    )
+    item = planning.overview(store, NOW)["sections"]["motion_batteries"]["items"][0]
+    assert "its sensor is offline" in item["detail"] and "mains" not in item["detail"]
+
+
+def test_motion_battery_card_without_data_is_idle(store):
+    c = planning.overview(store, NOW)["cards"]["motion_batteries"]
+    assert c["value"] is None and c["tone"] == "idle"

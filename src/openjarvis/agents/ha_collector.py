@@ -341,13 +341,73 @@ class HaCollector:
                 try:
                     level = float(s["state"])
                 except (TypeError, ValueError):
-                    continue  # unavailable is the entity group's job
+                    # offline battery sensor: no level (the entity group reports
+                    # it), but the device does have a battery
+                    out.append(
+                        {"entity_id": eid, "level": None, "low": False, "offline": True}
+                    )
+                    continue
                 out.append({"entity_id": eid, "level": level, "low": False})
             return out
 
         lows = guarded("batteries", sensors)
         if lows is not None and res is not None:
             snap["batteries"] = lows + low_binary
+            snap["facts"]["motion_batteries"] = guarded(
+                "motion_batteries",
+                lambda: self._motion_batteries(ha, snap["motion"], lows, low_binary),
+            )
+
+    @staticmethod
+    def _entries(ha: Any, ids: list[str]) -> dict[str, dict[str, Any]]:
+        """Entity registry rows (device id, area) in small batches."""
+        out: dict[str, dict[str, Any]] = {}
+        for n in range(0, len(ids), 40):
+            r = ha.read("ha_get_entity", {"entity_id": ids[n : n + 40]})
+            for e in r.get("entity_entries", []):
+                out[e["entity_id"]] = e
+        return out
+
+    def _motion_batteries(
+        self,
+        ha: Any,
+        motion: dict[str, Any],
+        sensors: list[dict[str, Any]],
+        low_binary: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """One row per motion sensor: the battery of the same physical device.
+
+        A battery on the same device is found through the device registry; a
+        sensor with no battery entity (camera, mains powered) has ``battery`` None.
+        """
+        if not motion:
+            return []
+        motion_rows = self._entries(ha, list(motion))
+        batt_ids = [b["entity_id"] for b in sensors + low_binary]
+        batt_rows = self._entries(ha, batt_ids)
+        by_device: dict[str, list[dict[str, Any]]] = {}
+        for b in sensors + low_binary:
+            dev = (batt_rows.get(b["entity_id"]) or {}).get("device_id")
+            if dev:
+                by_device.setdefault(dev, []).append(b)
+        rows = []
+        for eid, st in motion.items():
+            reg = motion_rows.get(eid) or {}
+            found = by_device.get(reg.get("device_id") or "", [])
+            levels = [b["level"] for b in found if b.get("level") is not None]
+            rows.append(
+                {
+                    "entity_id": eid,
+                    "name": (st.get("attributes") or {}).get("friendly_name", eid),
+                    "state": st.get("state"),
+                    "area": reg.get("area"),
+                    "battery": min(levels) if levels else None,
+                    "low_flag": any(b.get("low") for b in found),
+                    "battery_offline": any(b.get("offline") for b in found),
+                    "has_battery": bool(found),
+                }
+            )
+        return rows
 
     # -- proposals for the user to confirm -------------------------------------------
     def suggest(self) -> dict[str, Any]:

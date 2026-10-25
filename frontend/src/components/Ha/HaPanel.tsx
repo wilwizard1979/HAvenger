@@ -9,6 +9,7 @@ import {
   CalendarClock,
   Terminal,
   Hourglass,
+  BatteryLow,
   Power,
   MessageSquareText,
   Volume2,
@@ -135,6 +136,14 @@ export function HaPanel({ onAsk }: HaPanelProps) {
               section="deprecations"
             />
             <Card icon={Terminal} label="Critical log errors" value={c.log_critical.value} tone={c.log_critical.tone} section="log_critical" />
+            <Card
+              icon={BatteryLow}
+              label="Motion batteries low"
+              value={c.motion_batteries.value}
+              unit={c.motion_batteries.value === null ? undefined : `of ${c.motion_batteries.with_battery}`}
+              tone={c.motion_batteries.tone}
+              section="motion_batteries"
+            />
             <Card
               icon={Hourglass}
               label={`Unavailable > ${c.stale_unavailable.days} d`}

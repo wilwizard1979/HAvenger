@@ -40,6 +40,7 @@ _READ_CALLS = frozenset(
         "ha_get_logs",
         "ha_search",
         "ha_get_state",
+        "ha_get_entity",
     }
 )
 

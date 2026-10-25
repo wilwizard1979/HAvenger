@@ -65,6 +65,7 @@ const SECTIONS: { key: string; title: string; hint: string }[] = [
   { key: 'updates_pending', title: 'Updates pending', hint: 'Install after a backup and a breaking-change check' },
   { key: 'deprecations', title: 'Deprecations and breaking changes', hint: 'Will stop working in a coming release' },
   { key: 'log_critical', title: 'Critical errors in the log', hint: 'Last 400 log lines' },
+  { key: 'motion_batteries', title: 'Motion sensor batteries', hint: 'Every motion sensor, lowest battery first' },
   { key: 'log_levels', title: 'Log: warnings, errors and critical', hint: 'Only these levels, grouped by component. Newest 400 lines' },
   { key: 'stale_unavailable', title: 'Unavailable for a long time', hint: 'Oldest first. Likely orphaned or dead devices' },
   { key: 'last_restart', title: 'Home Assistant restarts', hint: 'When Home Assistant last started, as seen by the watchdog' },
