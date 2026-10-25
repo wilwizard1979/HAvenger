@@ -26,8 +26,8 @@ type Tab = 'dashboard' | 'plan' | 'flow' | 'reports' | 'settings';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'plan', label: 'Plan' },
   { id: 'flow', label: 'Flow' },
+  { id: 'plan', label: 'Plan' },
   { id: 'reports', label: 'Reports' },
   { id: 'settings', label: 'Settings' },
 ];
@@ -375,6 +375,12 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
     }
   };
 
+  // Plan tab ladder: Propose first; once a proposal exists the next step up
+  // (Investigate, then Deep). The Flow tab keeps every mode for debugging.
+  const have: EscalationMode | null = t.proposal ? (t.proposal.mode ?? 'quick') : null;
+  const nextMode: EscalationMode | null =
+    t.proposal_stale || have === null ? 'quick' : have === 'quick' ? 'investigate' : have === 'investigate' ? 'deep' : null;
+
   const escalate = (mode: EscalationMode) =>
     run(async () => {
       const est = mode === 'quick' ? t.estimate : mode === 'investigate' ? t.estimate_investigate : t.estimate_deep;
@@ -453,21 +459,23 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
             {(
               [
                 ['quick', 'Propose', t.estimate, 'Sonnet writes a plan from what the Janitor already knows'],
-                ['investigate', 'Investigate', t.estimate_investigate, 'Sonnet may also look at Home Assistant (read-only) before it writes the plan'],
+                ['investigate', 'Investigate', t.estimate_investigate, 'Sonnet also looks at Home Assistant (read-only) and writes the steps to run'],
                 ['deep', 'Deep (Opus)', t.estimate_deep, 'Opus, read-only lookups, for hard cases'],
               ] as [EscalationMode, string, { usd: number | null }, string][]
-            ).map(([mode, label, est, tip]) => (
-              <button
-                key={mode}
-                disabled={busy}
-                onClick={() => void escalate(mode)}
-                className="text-[11px] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
-                style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-                title={`${tip}. Started by you only. Up to ${usd(est.usd)}.`}
-              >
-                <Play size={10} /> {label} ≤{usd(est.usd)}
-              </button>
-            ))}
+            )
+              .filter(([mode]) => mode === nextMode)
+              .map(([mode, label, est, tip]) => (
+                <button
+                  key={mode}
+                  disabled={busy}
+                  onClick={() => void escalate(mode)}
+                  className="text-[11px] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
+                  style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+                  title={`${tip}. Started by you only. Up to ${usd(est.usd)}.`}
+                >
+                  <Play size={10} /> {t.proposal_stale ? 'Refresh' : label} ≤{usd(est.usd)}
+                </button>
+              ))}
           </div>
         </div>
       </div>
@@ -659,7 +667,14 @@ function FlowTab({ plan }: { plan: Plan | null }) {
     await settings.reload();
   };
 
-  const ticked = plan?.tasks.filter((t) => t.selected && !t.proposal) ?? [];
+  const RANK: Record<EscalationMode, number> = { quick: 1, investigate: 2, deep: 3 };
+  const [redo, setRedo] = useState(false);
+  const selectedAll = plan?.tasks.filter((t) => t.selected) ?? [];
+  // a ticked task is skipped only when it already has a current proposal of this
+  // mode or a deeper one (so Investigate still picks up a task that only has Propose)
+  const ticked = selectedAll.filter(
+    (t) => redo || !t.proposal || t.proposal_stale || RANK[t.proposal.mode ?? 'quick'] < RANK[mode],
+  );
   const estOf = (t: Task) => (mode === 'quick' ? t.estimate : mode === 'investigate' ? t.estimate_investigate : t.estimate_deep);
   const total = ticked.reduce((a, t) => a + (estOf(t).usd ?? 0), 0);
   const runSonnet = () =>
@@ -928,7 +943,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
               className="px-2 py-1 rounded text-[11px] cursor-pointer"
               style={btn}
             >
-              {t.dry_run ? 'Estimate' : 'Plan'} {ticked.length} ticked task{ticked.length === 1 ? '' : 's'}
+              {t.dry_run ? 'Estimate' : 'Run'} {mode === 'quick' ? 'Propose' : mode === 'investigate' ? 'Investigate' : 'Deep'} on {ticked.length} of {selectedAll.length} ticked task{selectedAll.length === 1 ? '' : 's'}
             </button>
           ) : (
             <>
@@ -943,9 +958,15 @@ function FlowTab({ plan }: { plan: Plan | null }) {
               </button>
             </>
           )}
+          <label className="flex items-center gap-1 text-[11px]" style={faint} title="Run again even if the task already has a proposal of this mode">
+            <input type="checkbox" checked={redo} onChange={(e) => setRedo(e.target.checked)} />
+            redo existing
+          </label>
           {ticked.length === 0 && (
             <span className="text-[11px]" style={faint}>
-              Tick tasks in the plan first (tasks that already have a proposal are skipped).
+              {selectedAll.length === 0
+                ? 'Tick tasks in the Plan tab first.'
+                : `The ${selectedAll.length} ticked task${selectedAll.length === 1 ? ' already has' : 's already have'} a proposal of this mode or deeper. Pick a deeper mode, or tick "redo existing".`}
             </span>
           )}
         </div>
