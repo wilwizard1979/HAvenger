@@ -34,3 +34,11 @@ Plan: `jarvis-ha-agents-plan.md` (same Drive folder). Updated 2026-10-25.
 
 ## Working files (§9 of the plan)
 Reports, proposals, logs and phase summaries go to Drive → Jarvis project → Working files. Everything written there must pass the same redaction as cloud payloads.
+
+
+## Status 2026-10-26
+Phases 0-7 built (watchdog, clusters and matrix, plan and estimates, Haiku notes, Sonnet/Opus escalation, Telegram approval bot, executor in simulation, Settings tab, Qwen house status and read-aloud).
+
+Next: "edit with diff" step for automation fixes (read config in investigations, small change applied by Python, before/after diff in the approval), then the first real approval test.
+
+Open: automatic daily run and Telegram alerts (off), Option B approvals, LaunchAgent, Tailscale, weekly Friday report, merge to the main line, per-issue investigation, automation traces.
