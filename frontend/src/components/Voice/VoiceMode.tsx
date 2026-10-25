@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Mic, MicOff, X } from 'lucide-react';
-import { ParticleOrb, type OrbMode } from './ParticleOrb';
+import { Mic, MicOff } from 'lucide-react';
+import type { OrbMode } from './ParticleOrb';
+import { voiceLevelRef } from './voiceLevel';
 import { transcribeAudio } from '../../lib/api';
 import { useAppStore } from '../../lib/store';
 import { getTtsAudioElement, useTtsStore } from '../../lib/tts';
@@ -31,7 +32,7 @@ const PHASE_LABEL: Record<Phase, string> = {
   transcribing: 'Transcribing…',
   thinking: 'Thinking…',
   speaking: 'Speaking',
-  paused: 'Paused — tap the orb to resume',
+  paused: 'Paused — press the mic to resume',
   error: 'Microphone unavailable',
 };
 
@@ -68,7 +69,7 @@ export default function VoiceMode({ onSend, onClose }: VoiceModeProps) {
 
   const phaseRef = useRef<Phase>('starting');
   const closedRef = useRef(false);
-  const levelRef = useRef(0);
+  const levelRef = voiceLevelRef;
   const ctxRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const micAnalyserRef = useRef<AnalyserNode | null>(null);
@@ -83,6 +84,7 @@ export default function VoiceMode({ onSend, onClose }: VoiceModeProps) {
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next;
     setPhaseState(next);
+    useAppStore.getState().setVoiceOrbMode(ORB_MODE[next]);
   }, []);
 
   const startRecorder = useCallback(() => {
@@ -293,6 +295,8 @@ export default function VoiceMode({ onSend, onClose }: VoiceModeProps) {
     return () => {
       closedRef.current = true;
       cancelAnimationFrame(raf);
+      levelRef.current = 0;
+      useAppStore.getState().setVoiceOrbMode('idle');
       const recorder = recorderRef.current;
       recorderRef.current = null;
       if (recorder && recorder.state !== 'inactive') recorder.stop();
@@ -318,6 +322,12 @@ export default function VoiceMode({ onSend, onClose }: VoiceModeProps) {
     }
   }, [startListening]);
 
+  // Tapping the sidebar orb interrupts a spoken reply or resumes a paused session.
+  useEffect(() => {
+    window.addEventListener('jarvis-voice-orb-click', handleOrbClick);
+    return () => window.removeEventListener('jarvis-voice-orb-click', handleOrbClick);
+  }, [handleOrbClick]);
+
   const togglePause = useCallback(() => {
     const current = phaseRef.current;
     if (current === 'listening' || current === 'hearing') {
@@ -339,79 +349,48 @@ export default function VoiceMode({ onSend, onClose }: VoiceModeProps) {
 
   const canPause = phase === 'listening' || phase === 'hearing' || phase === 'paused';
 
+  // The orb itself lives in the sidebar dock; this adds the live captions beside it.
+  const slot = typeof document !== 'undefined' ? document.getElementById('voice-dock-captions') : null;
+  if (!slot) return null;
   return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Voice mode"
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{
-        background: 'radial-gradient(ellipse at center, #0b1a2e 0%, #050a14 60%, #02040a 100%)',
-        color: '#d6e6ff',
-      }}
-    >
-      <div className="flex items-center justify-between px-5 pt-4 text-xs" style={{ color: '#7f9bc4' }}>
-        <span>{selectedModel ? `Model: ${selectedModel}` : 'No model selected'}</span>
-        <button
-          type="button"
-          onClick={onClose}
-          className="p-2 rounded-full cursor-pointer transition-colors hover:bg-white/10"
-          title="Close voice mode (Esc)"
-          aria-label="Close voice mode"
-        >
-          <X size={20} />
-        </button>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleOrbClick}
-        className="relative flex-1 min-h-0 w-full cursor-pointer outline-none"
-        title={phase === 'speaking' ? 'Tap to interrupt' : phase === 'paused' ? 'Tap to resume' : undefined}
-        aria-label={PHASE_LABEL[phase]}
-      >
-        <ParticleOrb levelRef={levelRef} mode={ORB_MODE[phase]} />
-      </button>
-
-      <div className="px-6 pb-8 flex flex-col items-center gap-3 text-center">
-        <div
-          className="text-sm tracking-[0.3em] uppercase"
-          style={{ color: phase === 'error' ? '#ff8a8a' : '#8fc4ff' }}
-          aria-live="polite"
+    <div className="flex flex-col gap-1.5 text-[11px] leading-snug" aria-live="polite">
+      <div className="flex items-center gap-2">
+        <span
+          className="uppercase tracking-[0.18em] text-[10px]"
+          style={{ color: phase === 'error' ? 'var(--color-error)' : 'var(--color-accent)' }}
         >
           {PHASE_LABEL[phase]}
-        </div>
-        <div className="max-w-2xl w-full min-h-[4.5rem] text-sm leading-relaxed space-y-1">
-          {youSaid && (
-            <p style={{ color: '#9fb3d1' }}>
-              <span style={{ color: '#5f7ca6' }}>You: </span>
-              {youSaid}
-            </p>
-          )}
-          {jarvisSaid && (
-            <p className="line-clamp-3" style={{ color: '#e3eeff' }}>
-              <span style={{ color: '#5f9be0' }}>Jarvis: </span>
-              {jarvisSaid}
-            </p>
-          )}
-          {notice && <p style={{ color: '#ffb86b' }}>{notice}</p>}
-        </div>
+        </span>
         <button
           type="button"
           onClick={togglePause}
           disabled={!canPause}
-          className="p-3 rounded-full cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default"
+          className="ml-auto p-1.5 rounded-full cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-default"
           style={{
-            background: phase === 'paused' ? 'rgba(255,138,138,0.15)' : 'rgba(143,196,255,0.12)',
-            border: `1px solid ${phase === 'paused' ? 'rgba(255,138,138,0.5)' : 'rgba(143,196,255,0.35)'}`,
+            background: phase === 'paused' ? 'color-mix(in srgb, var(--color-error) 15%, transparent)' : 'var(--color-accent-subtle)',
+            color: phase === 'paused' ? 'var(--color-error)' : 'var(--color-accent)',
           }}
           title={phase === 'paused' ? 'Resume listening' : 'Pause listening'}
           aria-label={phase === 'paused' ? 'Resume listening' : 'Pause listening'}
         >
-          {phase === 'paused' ? <MicOff size={20} /> : <Mic size={20} />}
+          {phase === 'paused' ? <MicOff size={13} /> : <Mic size={13} />}
         </button>
       </div>
+      {youSaid && (
+        <p className="line-clamp-2" style={{ color: 'var(--color-text-secondary)' }}>
+          <span style={{ color: 'var(--color-text-tertiary)' }}>You: </span>
+          {youSaid}
+        </p>
+      )}
+      {jarvisSaid && (
+        <p className="line-clamp-3" style={{ color: 'var(--color-text)' }}>
+          <span style={{ color: 'var(--color-accent)' }}>Jarvis: </span>
+          {jarvisSaid}
+        </p>
+      )}
+      {notice && <p style={{ color: 'var(--color-warning, #ffb86b)' }}>{notice}</p>}
+      {selectedModel ? null : <p style={{ color: 'var(--color-warning, #ffb86b)' }}>No model selected.</p>}
     </div>,
-    document.body,
+    slot,
   );
 }

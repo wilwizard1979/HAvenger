@@ -66,12 +66,33 @@ export default function App() {
 
   // Fetch models on mount
   useEffect(() => {
-    fetchModels()
-      .then((m) => {
-        setModels(m);
-      })
-      .catch(() => setModels([]))
-      .finally(() => setModelsLoading(false));
+    // Retry: right after a server restart the first call can fail or come back empty.
+    let cancelled = false;
+    const load = (attempt: number) => {
+      fetchModels()
+        .then((m) => {
+          if (cancelled) return;
+          if (m.length === 0 && attempt < 10) {
+            setTimeout(() => load(attempt + 1), 2000);
+            return;
+          }
+          setModels(m);
+          setModelsLoading(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          if (attempt < 10) {
+            setTimeout(() => load(attempt + 1), 2000);
+            return;
+          }
+          setModels([]);
+          setModelsLoading(false);
+        });
+    };
+    load(0);
+    return () => {
+      cancelled = true;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch server info

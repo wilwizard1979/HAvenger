@@ -83,6 +83,14 @@ def _default_num_ctx() -> int:
         return 16384
 
 
+def _default_keep_alive() -> str:
+    """How long Ollama keeps the model loaded after a request.
+
+    Override with ``JARVIS_KEEP_ALIVE`` (e.g. ``5m``, ``1h``, ``-1`` = never).
+    """
+    return os.environ.get("JARVIS_KEEP_ALIVE", "15m")
+
+
 def _ollama_request_options(
     *,
     temperature: float,
@@ -162,6 +170,7 @@ class OllamaEngine(AsyncHTTPEngineMixin, InferenceEngine):
             "model": model,
             "messages": msg_dicts,
             "stream": False,
+            "keep_alive": _default_keep_alive(),
             "options": _ollama_request_options(
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -284,6 +293,7 @@ class OllamaEngine(AsyncHTTPEngineMixin, InferenceEngine):
             "model": model,
             "messages": messages_to_dicts(messages),
             "stream": True,
+            "keep_alive": _default_keep_alive(),
             "options": _ollama_request_options(
                 temperature=temperature,
                 max_tokens=max_tokens,
@@ -383,6 +393,7 @@ class OllamaEngine(AsyncHTTPEngineMixin, InferenceEngine):
             "model": model,
             "messages": msg_dicts,
             "stream": True,
+            "keep_alive": _default_keep_alive(),
             "options": _ollama_request_options(
                 temperature=temperature,
                 max_tokens=max_tokens,

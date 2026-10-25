@@ -174,6 +174,10 @@ interface AppState {
   // System panel
   systemPanelOpen: boolean;
 
+  // Hands-free voice (shared by the sidebar orb and the input bar)
+  voiceActive: boolean;
+  voiceOrbMode: 'idle' | 'listening' | 'thinking' | 'speaking';
+
   // Opt-in sharing
   optInEnabled: boolean;
   optInDisplayName: string;
@@ -230,6 +234,8 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   toggleSystemPanel: () => void;
   setSystemPanelOpen: (open: boolean) => void;
+  setVoiceActive: (active: boolean) => void;
+  setVoiceOrbMode: (mode: 'idle' | 'listening' | 'thinking' | 'speaking') => void;
 
   // Data sources (cached between visits to avoid empty-state flicker)
   cachedConnectors: CachedConnector[] | null;
@@ -291,6 +297,8 @@ export const useAppStore = create<AppState>((set, get) => {
     commandPaletteOpen: false,
     sidebarOpen: true,
     systemPanelOpen: true,
+    voiceActive: false,
+    voiceOrbMode: 'idle',
 
     optInEnabled: localStorage.getItem(OPTIN_KEY) === 'true',
     optInDisplayName: localStorage.getItem(OPTIN_NAME_KEY) || '',
@@ -555,6 +563,8 @@ export const useAppStore = create<AppState>((set, get) => {
     setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
     toggleSystemPanel: () => set((s) => ({ systemPanelOpen: !s.systemPanelOpen })),
     setSystemPanelOpen: (open: boolean) => set({ systemPanelOpen: open }),
+    setVoiceActive: (active: boolean) => set({ voiceActive: active, voiceOrbMode: 'idle' }),
+    setVoiceOrbMode: (mode) => set({ voiceOrbMode: mode }),
 
     // ── Agents ─────────────────────────────────────────────────────
 

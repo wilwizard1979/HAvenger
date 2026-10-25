@@ -9,16 +9,15 @@ import {
   PanelLeftClose,
   PanelLeft,
   Cpu,
-  Rocket,
-  Bot,
   Sun,
   Moon,
   Monitor,
   Loader2,
   ScrollText,
-  Database,
 } from 'lucide-react';
 import { ConversationList } from './ConversationList';
+import { SessionPanel } from './SessionPanel';
+import { VoiceDock } from '../Voice/VoiceDock';
 import { useAppStore } from '../../lib/store';
 
 export function Sidebar() {
@@ -55,11 +54,8 @@ export function Sidebar() {
   const navItems = [
     { path: '/', icon: MessageSquare, label: 'Chat' },
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
-    { path: '/data-sources', icon: Database, label: 'Data Sources' },
-    { path: '/agents', icon: Bot, label: 'Agents' },
     { path: '/logs', icon: ScrollText, label: 'Logs' },
     { path: '/settings', icon: Settings, label: 'Settings' },
-    { path: '/get-started', icon: Rocket, label: 'Get Started' },
   ];
 
   return (
@@ -191,8 +187,11 @@ export function Sidebar() {
             <ConversationList searchQuery={searchQuery} />
           </div>
 
+          {/* Session data: latest speed, usage, cost vs cloud */}
+          <SessionPanel />
+
           {/* Bottom nav */}
-          <nav className="px-2 pb-3 pt-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--color-border)' }}>
+          <nav className="px-2 pb-2 pt-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--color-border)' }}>
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -228,6 +227,9 @@ export function Sidebar() {
               );
             })}
           </nav>
+
+          {/* Voice sphere (bottom left) */}
+          <VoiceDock />
         </div>
       </aside>
     </>

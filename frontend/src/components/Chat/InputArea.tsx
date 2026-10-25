@@ -560,11 +560,22 @@ export function InputArea() {
 
   // Voice mode outlives many renders; route it through a ref so each turn uses
   // the current sendMessage (and so the conversation the first turn created).
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voiceOpen = useAppStore((st) => st.voiceActive);
+  const setVoiceActive = useAppStore((st) => st.setVoiceActive);
   const sendMessageRef = useRef(sendMessage);
   sendMessageRef.current = sendMessage;
   const sendSpoken = useCallback((text: string) => sendMessageRef.current(text), []);
-  const closeVoice = useCallback(() => setVoiceOpen(false), []);
+
+  // Other panels (e.g. the Home Assistant cards) can hand a prompt to the chat.
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const text = (e as CustomEvent<string>).detail;
+      if (typeof text === 'string' && text.trim()) void sendMessageRef.current(text);
+    };
+    window.addEventListener('jarvis-ask', onAsk);
+    return () => window.removeEventListener('jarvis-ask', onAsk);
+  }, []);
+  const closeVoice = useCallback(() => useAppStore.getState().setVoiceActive(false), []);
   const voiceDisabled = !speechAvailable || streamState.isStreaming;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -646,10 +657,10 @@ export function InputArea() {
             />
             <button
               type="button"
-              onClick={() => setVoiceOpen(true)}
-              disabled={voiceDisabled}
+              onClick={() => setVoiceActive(!voiceOpen)}
+              disabled={voiceDisabled && !voiceOpen}
               title={speechAvailable ? 'Voice mode (hands-free conversation)' : 'Voice mode needs a speech-to-text backend'}
-              aria-label="Open voice mode"
+              aria-label={voiceOpen ? 'Stop voice mode' : 'Start voice mode'}
               className="p-2 rounded-xl transition-colors shrink-0 cursor-pointer disabled:opacity-30 disabled:cursor-default"
               style={{ color: 'var(--color-text-secondary)' }}
             >

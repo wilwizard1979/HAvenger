@@ -7,6 +7,8 @@ interface ParticleOrbProps {
   /** Live audio level 0..1, read every frame so level changes never re-render. */
   levelRef: RefObject<number>;
   mode: OrbMode;
+  /** Static, solid sphere: no motion, no per-frame particle updates. */
+  frozen?: boolean;
 }
 
 const POINT_COUNT = 1800;
@@ -79,14 +81,19 @@ function radialTexture(size: number, stops: Array<[number, string]>): THREE.Canv
  * neighbours, displaced along their normals by the voice level. Colour, spin and ripple ease between modes so state
  * changes read as one continuous motion rather than a cut.
  */
-export function ParticleOrb({ levelRef, mode }: ParticleOrbProps) {
+export function ParticleOrb({ levelRef, mode, frozen = false }: ParticleOrbProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const modeRef = useRef<OrbMode>(mode);
+  const frozenRef = useRef(frozen);
   const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
     modeRef.current = mode;
   }, [mode]);
+
+  useEffect(() => {
+    frozenRef.current = frozen;
+  }, [frozen]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -188,12 +195,47 @@ export function ParticleOrb({ levelRef, mode }: ParticleOrbProps) {
     let ripple = MODE_STYLES.idle.ripple;
     let level = 0;
     let raf = 0;
+    let settled = false;
 
     const frame = () => {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(clock.getDelta(), 0.1);
       const t = clock.elapsedTime;
       const style = MODE_STYLES[modeRef.current];
+
+      if (frozenRef.current) {
+        // Solid and still: draw a perfect sphere once, then only re-present it.
+        if (!settled) {
+          for (let i = 0; i < POINT_COUNT; i++) {
+            positions[i * 3] = dirs[i * 3];
+            positions[i * 3 + 1] = dirs[i * 3 + 1];
+            positions[i * 3 + 2] = dirs[i * 3 + 2];
+          }
+          for (let k = 0; k < links.length; k++) {
+            const src = links[k] * 3;
+            linePositions[k * 3] = positions[src];
+            linePositions[k * 3 + 1] = positions[src + 1];
+            linePositions[k * 3 + 2] = positions[src + 2];
+          }
+          pointGeo.attributes.position.needsUpdate = true;
+          lineGeo.attributes.position.needsUpdate = true;
+          color.copy(MODE_STYLES.idle.color);
+          pointMat.color.copy(color);
+          lineMat.color.copy(color);
+          glowMat.color.copy(color);
+          pointMat.size = 0.05;
+          lineMat.opacity = 0.2;
+          glowMat.opacity = 0.3;
+          glow.scale.setScalar(2.4);
+          level = 0;
+          spin = 0;
+          ripple = 0;
+          settled = true;
+        }
+        renderer.render(scene, camera);
+        return;
+      }
+      settled = false;
 
       // Fast attack, slow release: syllables pop, pauses fade out gently.
       const target = Math.max(0, Math.min(1, levelRef.current ?? 0));
@@ -268,8 +310,10 @@ export function ParticleOrb({ levelRef, mode }: ParticleOrbProps) {
         <div
           className="rounded-full"
           style={{
-            width: 'min(50vmin, 320px)',
-            height: 'min(50vmin, 320px)',
+            width: '70%',
+            height: '70%',
+            maxWidth: 320,
+            maxHeight: 320,
             background: 'radial-gradient(circle, rgba(92,184,255,0.55) 0%, rgba(47,143,255,0.15) 55%, transparent 70%)',
             animation: 'pulse 2s ease-in-out infinite',
           }}

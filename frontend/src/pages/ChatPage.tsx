@@ -1,5 +1,5 @@
 import { ChatArea } from '../components/Chat/ChatArea';
-import { SystemPanel } from '../components/Chat/SystemPanel';
+import { HaPanel } from '../components/Ha/HaPanel';
 import { useAppStore } from '../lib/store';
 
 export function ChatPage() {
@@ -10,7 +10,9 @@ export function ChatPage() {
       <div className="flex-1 min-w-0">
         <ChatArea />
       </div>
-      {systemPanelOpen && <SystemPanel />}
+      {systemPanelOpen && (
+        <HaPanel onAsk={(prompt) => window.dispatchEvent(new CustomEvent('jarvis-ask', { detail: prompt }))} />
+      )}
     </div>
   );
 }
