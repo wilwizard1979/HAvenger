@@ -81,14 +81,22 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "thresholds": {
         "entities_amber_pct": 2,
         "entities_red_pct": 10,
-        "critical_unavailable_min": 30,
-        "backup_age_red_days": 3,
+        "backup_age_hours": 36,
         "battery_low_pct": 20,
         "persist_min": 10,
+        "log_error_min": 3,
         "automation_fail_runs_24h": 3,
         "breaking_change_days": 30,
     },
+    # L0 watchdog: read-only polling of Home Assistant, no cloud calls.
+    "watchdog": {
+        "enabled": True,
+        "interval_min": 15,
+        # Quiet hours always win, critical alerts included.
+        "quiet_hours": {"enabled": True, "start": "22:00", "end": "07:00"},
+    },
     "critical_entities": [],
+    # Empty = automatic: every binary_sensor with device_class "motion".
     "motion_sensors": [],
     "ignore_patterns": ["device_tracker.*", "button.*", "*alexa*", "*echo*"],
     "extra_redaction_terms": [],
@@ -124,6 +132,9 @@ CREATE TABLE IF NOT EXISTS ledger (
   PRIMARY KEY (month, model)
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS watch_state (
+  fingerprint TEXT PRIMARY KEY, category TEXT NOT NULL, first_seen REAL NOT NULL, misses INTEGER NOT NULL DEFAULT 0
+);
 """
 
 ISSUE_STATES = ("open", "acknowledged", "ignored", "resolved")
@@ -229,6 +240,29 @@ def _validate_group(key: str, value: Any) -> Any:
         if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
             raise SettingsError(f"{key} must be a list of strings")
         return [v.strip() for v in value if v.strip()]
+    if key == "watchdog":
+        if not isinstance(value, dict) or set(value) != {
+            "enabled",
+            "interval_min",
+            "quiet_hours",
+        }:
+            raise SettingsError("watchdog needs: enabled, interval_min, quiet_hours")
+        if not isinstance(value["enabled"], bool):
+            raise SettingsError("watchdog.enabled must be true or false")
+        interval = _num(value["interval_min"], "watchdog.interval_min", 1, 1440)
+        qh = value["quiet_hours"]
+        if not isinstance(qh, dict) or set(qh) != {"enabled", "start", "end"}:
+            raise SettingsError("watchdog.quiet_hours needs: enabled, start, end")
+        if not isinstance(qh["enabled"], bool):
+            raise SettingsError("watchdog.quiet_hours.enabled must be true or false")
+        for f in ("start", "end"):
+            if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", str(qh[f])):
+                raise SettingsError(f"watchdog.quiet_hours.{f} must be HH:MM (24 h)")
+        return {
+            "enabled": value["enabled"],
+            "interval_min": interval,
+            "quiet_hours": dict(qh),
+        }
     if key == "features":
         if not isinstance(value, dict) or not all(
             isinstance(v, bool) for v in value.values()
@@ -419,6 +453,36 @@ class Store:
         if state not in ISSUE_STATES:
             raise ValueError(f"issue state must be one of {ISSUE_STATES}")
         self._run("UPDATE issues SET state=? WHERE fingerprint=?", (state, fingerprint))
+
+    # -- watchdog bookkeeping ---------------------------------------------
+    def watch_states(self) -> dict[str, dict[str, Any]]:
+        rows = self._all("SELECT * FROM watch_state")
+        return {r["fingerprint"]: r for r in rows}
+
+    def watch_seen(self, fingerprint: str, category: str, now: float) -> float:
+        """Mark seen this tick (misses reset); return when it was first seen."""
+        self._run(
+            "INSERT INTO watch_state(fingerprint,category,first_seen,misses) VALUES(?,?,?,0) "
+            "ON CONFLICT(fingerprint) DO UPDATE SET misses=0",
+            (fingerprint, category, now),
+        )
+        return float(
+            self._all(
+                "SELECT first_seen FROM watch_state WHERE fingerprint=?", (fingerprint,)
+            )[0]["first_seen"]
+        )
+
+    def watch_miss(self, fingerprint: str) -> int:
+        self._run(
+            "UPDATE watch_state SET misses=misses+1 WHERE fingerprint=?", (fingerprint,)
+        )
+        rows = self._all(
+            "SELECT misses FROM watch_state WHERE fingerprint=?", (fingerprint,)
+        )
+        return int(rows[0]["misses"]) if rows else 0
+
+    def watch_forget(self, fingerprint: str) -> None:
+        self._run("DELETE FROM watch_state WHERE fingerprint=?", (fingerprint,))
 
     # -- reports ----------------------------------------------------------
     def add_report(self, status: str, summary_text: str, body: dict[str, Any]) -> int:

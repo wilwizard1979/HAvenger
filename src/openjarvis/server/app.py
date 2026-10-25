@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from openjarvis.agents.watchdog import get_watchdog
 from openjarvis.server.analytics_routes import router as analytics_router
 from openjarvis.server.api_routes import include_all_routes
 from openjarvis.server.comparison import comparison_router
@@ -500,6 +501,17 @@ def create_app(
     app.include_router(create_digest_router())
     app.include_router(ha_router)
     app.include_router(ha_agents_router)
+
+    @app.on_event("startup")
+    async def _start_janitor_watchdog() -> None:
+        # L0 only: read-only polling of Home Assistant, no cloud calls.
+        # JARVIS_WATCHDOG=0 or settings.watchdog.enabled=false turn it off.
+        get_watchdog().start()
+
+    @app.on_event("shutdown")
+    async def _stop_janitor_watchdog() -> None:
+        await get_watchdog().stop()
+
     app.include_router(upload_router)
     app.include_router(research_router)
     app.include_router(analytics_router)

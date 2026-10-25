@@ -1,7 +1,8 @@
-"""Jarvis the Janitor: settings and status (``/v1/ha/agents``).
+"""Jarvis the Janitor: settings, status and the L0 watchdog (``/v1/ha/agents``).
 
-Phase 1 exposes only what the UI needs to show and edit the configuration and
-the month's spend. Approvals are deliberately NOT available over HTTP.
+Everything here is read-only towards Home Assistant. Issue state changes
+(acknowledge / ignore / reopen) only touch the Janitor's own database. Approvals
+are deliberately NOT available over HTTP.
 """
 
 from __future__ import annotations
@@ -11,7 +12,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from openjarvis.agents.cloud_client import KEYCHAIN_SERVICE, CloudClient
-from openjarvis.agents.store import SettingsError, get_store
+from openjarvis.agents.store import ISSUE_STATES, SettingsError, get_store
+from openjarvis.agents.watchdog import get_watchdog
 
 ha_agents_router = APIRouter(prefix="/v1/ha/agents", tags=["home-assistant-agents"])
 
@@ -61,3 +63,48 @@ def put_settings(patch: dict[str, Any]) -> dict[str, Any]:
         return get_store().update_settings(patch)
     except SettingsError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@ha_agents_router.get("/watchdog")
+def watchdog_status() -> dict[str, Any]:
+    return get_watchdog().status()
+
+
+@ha_agents_router.post("/watchdog/run")
+def watchdog_run() -> dict[str, Any]:
+    """Run one read-only check now (no cloud call, no change in Home Assistant)."""
+    return get_watchdog().tick(wait=False)
+
+
+@ha_agents_router.get("/issues")
+def list_issues(state: str | None = None) -> dict[str, Any]:
+    if state and state not in ISSUE_STATES:
+        raise HTTPException(
+            status_code=422, detail=f"state must be one of {ISSUE_STATES}"
+        )
+    return {"issues": get_store().issues(state)}
+
+
+@ha_agents_router.post("/issues/{fingerprint}/state")
+def set_issue_state(fingerprint: str, body: dict[str, Any]) -> dict[str, Any]:
+    new = body.get("state")
+    if new not in ("open", "acknowledged", "ignored"):
+        raise HTTPException(
+            status_code=422, detail="state must be open, acknowledged or ignored"
+        )
+    store = get_store()
+    if store.issue(fingerprint) is None:
+        raise HTTPException(status_code=404, detail="unknown issue")
+    store.set_issue_state(fingerprint, new)
+    return store.issue(fingerprint) or {}
+
+
+@ha_agents_router.get("/suggestions")
+def suggestions() -> dict[str, Any]:
+    """Critical-entity and motion-sensor lists proposed from HA device classes."""
+    from openjarvis.agents.ha_collector import HaCollector
+
+    try:
+        return HaCollector().suggest()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=str(exc)[:200]) from exc
