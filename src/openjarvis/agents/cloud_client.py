@@ -68,6 +68,25 @@ class CloudResult:
     dry_run: bool
     stop_reason: str | None = None
     request: dict[str, Any] | None = field(default=None, repr=False)
+    # every block as the API returned it (thinking blocks included, text and tool
+    # inputs restored): send these back unchanged as the assistant turn of a loop
+    raw_blocks: list[dict[str, Any]] = field(default_factory=list, repr=False)
+
+
+def default_thinking(model: str) -> tuple[dict[str, Any] | None, str | None]:
+    """(thinking, effort) that keep thinking from eating the output budget.
+
+    Haiku 5.5 may switch thinking off; Sonnet 5.5 rejects ``disabled`` and uses
+    ``between_tools`` instead; Opus 5.5 cannot switch it off, so its effort is
+    set to ``medium``. Other models keep the API defaults.
+    """
+    if model.startswith("claude-haiku-5"):
+        return {"type": "disabled"}, None
+    if model.startswith("claude-sonnet-5-5"):
+        return {"type": "between_tools"}, None
+    if model.startswith("claude-opus-5-5"):
+        return None, "medium"
+    return None, None
 
 
 def _truthy(value: str | None) -> bool:
@@ -199,6 +218,8 @@ class CloudClient:
         tools: list[dict[str, Any]] | None = None,
         manual: bool = False,
         purpose: str = "",
+        thinking: dict[str, Any] | None = None,
+        effort: str | None = None,
     ) -> CloudResult:
         model = self.model_for(tier)
         settings = self.store.settings()
@@ -240,6 +261,15 @@ class CloudClient:
             ],
             "messages": safe_messages,
         }
+        # Claude 5 models think by default, and thinking tokens count against
+        # max_tokens: callers pick the thinking mode and effort per job.
+        d_thinking, d_effort = default_thinking(model)
+        thinking = thinking if thinking is not None else d_thinking
+        effort = effort if effort is not None else d_effort
+        if thinking is not None:
+            request["thinking"] = thinking
+        if effort is not None:
+            request["output_config"] = {"effort": effort}
         if tools:
             cached_tools = copy.deepcopy(tools)
             cached_tools[-1]["cache_control"] = {"type": "ephemeral"}
@@ -293,21 +323,31 @@ class CloudClient:
         )
 
         blocks: list[dict[str, Any]] = []
+        raw: list[dict[str, Any]] = []
         text_parts: list[str] = []
         for b in resp.content:
-            if getattr(b, "type", "") == "text":
+            kind = getattr(b, "type", "")
+            dumped = (
+                b.model_dump(exclude_none=True)
+                if hasattr(b, "model_dump")
+                else {"type": kind}
+            )
+            if kind == "text":
                 t = redactor.restore(b.text)
                 text_parts.append(t)
                 blocks.append({"type": "text", "text": t})
-            elif getattr(b, "type", "") == "tool_use":
-                blocks.append(
-                    {
-                        "type": "tool_use",
-                        "id": b.id,
-                        "name": b.name,
-                        "input": redactor.restore_obj(b.input),
-                    }
-                )
+                raw.append({**dumped, "text": t})
+            elif kind == "tool_use":
+                use = {
+                    "type": "tool_use",
+                    "id": b.id,
+                    "name": b.name,
+                    "input": redactor.restore_obj(b.input),
+                }
+                blocks.append(use)
+                raw.append(use)
+            else:  # thinking / redacted_thinking: keep exactly as returned
+                raw.append(dumped)
         return CloudResult(
             "".join(text_parts),
             blocks,
@@ -317,6 +357,7 @@ class CloudClient:
             cost,
             False,
             stop_reason=getattr(resp, "stop_reason", None),
+            raw_blocks=raw,
         )
 
     def _client(self) -> Any:

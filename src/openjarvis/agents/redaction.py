@@ -218,6 +218,11 @@ class Redactor:
             return [self.redact_obj(v) for v in obj]
         if isinstance(obj, tuple):
             return [self.redact_obj(v) for v in obj]
+        if isinstance(obj, dict) and obj.get("type") in (
+            "thinking",
+            "redacted_thinking",
+        ):
+            return obj  # opaque, signed by the API: must go back unchanged
         if isinstance(obj, dict):
             out: dict[str, Any] = {}
             for k, v in obj.items():

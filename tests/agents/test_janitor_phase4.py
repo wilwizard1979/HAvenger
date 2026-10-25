@@ -374,3 +374,86 @@ def test_api_modes(tmp_path, monkeypatch):
         ).json()["status"]
         == "dry_run"
     )
+
+
+# --- thinking mode per model, robust replies ---
+
+
+def test_each_model_gets_a_thinking_mode_that_cannot_eat_the_answer():
+    from openjarvis.agents.cloud_client import default_thinking
+
+    assert default_thinking("claude-haiku-5-5") == ({"type": "disabled"}, None)
+    assert default_thinking("claude-sonnet-5-5") == ({"type": "between_tools"}, None)
+    assert default_thinking("claude-opus-5-5") == (None, "medium")
+    assert default_thinking("claude-haiku-4-5") == (None, None)
+
+
+def test_the_request_carries_thinking_and_effort(store):
+    sdk = ScriptSDK(text("{}"))
+    client = live(store, sdk)
+    client.complete("triage", system="s", messages=[{"role": "user", "content": "x"}])
+    client.complete("diagnose", system="s", messages=[{"role": "user", "content": "x"}])
+    client.complete("deep", system="s", messages=[{"role": "user", "content": "x"}])
+    haiku, sonnet, opus = sdk.requests
+    assert haiku["thinking"] == {"type": "disabled"} and "output_config" not in haiku
+    assert sonnet["thinking"] == {"type": "between_tools"}
+    assert "thinking" not in opus and opus["output_config"] == {"effort": "medium"}
+
+
+def test_a_reply_with_a_preface_or_fence_still_parses():
+    from openjarvis.agents.reporting import _loads_json
+
+    assert _loads_json('{"a": 1}') == {"a": 1}
+    assert _loads_json('```json\n{"a": 1}\n```') == {"a": 1}
+    assert _loads_json('Here is the plan:\n```json\n{"a": 1}\n```\nDone.') == {"a": 1}
+    with pytest.raises(ValueError):
+        _loads_json("no json at all")
+
+
+def test_thinking_blocks_are_sent_back_unchanged_and_never_redacted(store):
+    from openjarvis.agents.redaction import Redactor
+
+    block = {
+        "type": "thinking",
+        "thinking": "",
+        "signature": "AKIA" + "A" * 16 + "password: x",
+    }
+    assert (
+        Redactor().redact_obj([{"role": "assistant", "content": [block]}])[0][
+            "content"
+        ][0]
+        == block
+    )
+
+
+def test_a_reply_that_was_cut_off_by_thinking_is_reported_as_truncated(store):
+    from types import SimpleNamespace as NS
+
+    from openjarvis.agents import reporting
+    from openjarvis.agents.watchdog import Observation
+
+    o = Observation("repair", "x/1", "t", "warning", {"domain": "x"})
+    store.upsert_issue(
+        o.fingerprint,
+        category="repair",
+        source_id="x/1",
+        title="t",
+        meta={"domain": "x"},
+        now=1.0,
+    )
+
+    class Cut:
+        def __init__(self):
+            self.messages = NS(create=self._c)
+
+        def _c(self, **req):
+            return NS(
+                usage=usage(),
+                content=[NS(type="thinking", thinking="", signature="sig")],
+                stop_reason="max_tokens",
+            )
+
+    out = reporting.run_triage(
+        store, live(store, Cut()), planning.plan_clusters(store), manual=True
+    )
+    assert out["status"] == "truncated" and "output tokens" in out["detail"]

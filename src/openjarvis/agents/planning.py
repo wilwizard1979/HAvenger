@@ -29,7 +29,7 @@ from openjarvis.agents.store import RISKS, Store
 
 SECTION_LIMIT = 10
 CHARS_PER_TOKEN = 3.5
-PROPOSAL_MAX_TOKENS = 1400
+PROPOSAL_MAX_TOKENS = 3000
 SYSTEM_TOKENS = 900
 CONTEXT_TOKENS = 2500  # allowance for what Sonnet is told about the cluster
 HARD_FACTOR = 1.6

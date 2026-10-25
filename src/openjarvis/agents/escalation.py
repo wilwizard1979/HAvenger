@@ -235,7 +235,7 @@ def escalate(
                 tier,
                 system=SYSTEM,
                 messages=messages,
-                max_tokens=2200,
+                max_tokens=6000,
                 tools=None if final else tools,
                 manual=True,
                 purpose=f"escalate:{payload['id']}",
@@ -247,7 +247,8 @@ def escalate(
             uses = [b for b in res.blocks if b["type"] == "tool_use"]
             if not uses or final:
                 break
-            messages.append({"role": "assistant", "content": res.blocks})
+            # the assistant turn goes back exactly as returned (thinking blocks too)
+            messages.append({"role": "assistant", "content": res.raw_blocks})
             results = []
             for u in uses:
                 calls += 1

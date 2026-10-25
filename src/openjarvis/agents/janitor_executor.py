@@ -408,7 +408,7 @@ def _operate_with_haiku(
         uses = [b for b in res.blocks if b["type"] == "tool_use"]
         if not uses:
             break
-        messages.append({"role": "assistant", "content": res.blocks})
+        messages.append({"role": "assistant", "content": res.raw_blocks})
         results, done = [], False
         for u in uses:
             name, inp = u["name"], u["input"] or {}

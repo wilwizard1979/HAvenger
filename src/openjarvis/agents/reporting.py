@@ -30,7 +30,7 @@ from openjarvis.agents.store import EFFORTS, Store
 logger = logging.getLogger(__name__)
 
 TRIAGE_BATCH = 25
-TRIAGE_MAX_TOKENS = 1500
+TRIAGE_MAX_TOKENS = 4000
 CRITICAL_CATEGORIES = ("critical_entity", "backup", "log")
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
@@ -70,9 +70,16 @@ def report_due(store: Store, now: float) -> bool:
 
 # -- triage ------------------------------------------------------------------------
 def _loads_json(text: str) -> Any:
+    """JSON from a model reply: plain, in a code fence, or after a short preface."""
     t = text.strip()
     t = re.sub(r"^```(?:json)?\s*|\s*```$", "", t)
-    return json.loads(t)
+    try:
+        return json.loads(t)
+    except ValueError:
+        a, b = t.find("{"), t.rfind("}")
+        if a < 0 or b <= a:
+            raise
+        return json.loads(t[a : b + 1])
 
 
 def run_triage(
@@ -111,6 +118,13 @@ def run_triage(
             "status": "blocked_redaction",
             "detail": str(exc),
             "clusters": len(todo),
+        }
+    if res.stop_reason == "max_tokens" and not res.text.strip():
+        return {
+            "status": "truncated",
+            "detail": "the model used all its output tokens before answering",
+            "clusters": len(todo),
+            "cost_usd": res.cost_usd,
         }
     if res.dry_run:
         return {
