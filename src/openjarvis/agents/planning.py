@@ -549,14 +549,14 @@ def generate_proposal(
         if risk not in RISKS:
             raise ValueError("risk")
         clean = {
-            "summary": str(body.get("summary", ""))[:600],
-            "steps": [str(x)[:300] for x in body.get("steps", [])][:12],
+            "summary": str(body.get("summary", ""))[:2000],
+            "steps": [str(x)[:600] for x in body.get("steps", [])][:12],
             "risk": risk,
-            "breaking_change_check": str(body.get("breaking_change_check", ""))[:500],
-            "rollback": str(body.get("rollback", ""))[:400],
+            "breaking_change_check": str(body.get("breaking_change_check", ""))[:3000],
+            "rollback": str(body.get("rollback", ""))[:2000],
             "verification": [str(x)[:200] for x in body.get("verification", [])][:8],
             "needs_user": bool(body.get("needs_user", False)),
-            "user_action": str(body.get("user_action", ""))[:300],
+            "user_action": str(body.get("user_action", ""))[:3000],
         }
     except (ValueError, KeyError, TypeError, AttributeError):
         return {"status": "bad_reply", "cost_usd": res.cost_usd, "estimate": estimate}

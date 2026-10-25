@@ -508,3 +508,14 @@ def test_a_second_click_on_the_same_task_never_pays_twice(tmp_path, monkeypatch)
         ).json()["status"]
         == "dry_run"
     )
+
+
+def test_long_diagnoses_are_kept_whole_not_cut_mid_word():
+    from openjarvis.agents.escalation import clean_proposal
+
+    long = "word " * 700  # 3500 characters
+    out = clean_proposal(
+        {"risk": "low", "diagnosis": long, "user_action": long, "summary": long}
+    )
+    assert len(out["diagnosis"]) == 3500 and len(out["user_action"]) == 3000
+    assert out["summary"] == long[:2000]

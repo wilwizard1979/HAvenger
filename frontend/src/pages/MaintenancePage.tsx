@@ -286,6 +286,9 @@ function Estimates({ plan }: { plan: Plan }) {
   );
 }
 
+/** "1) a 2) b" -> one item per line, so long answers stay readable. */
+const lines = (text: string) => text.replace(/\s+(?=\d+\)\s)/g, '\n');
+
 function ProposalView({ p }: { p: Proposal }) {
   return (
         <div className="text-xs flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
@@ -296,7 +299,8 @@ function ProposalView({ p }: { p: Proposal }) {
           </div>
           {p.diagnosis && (
             <div style={muted}>
-              <b>Diagnosis:</b> {p.diagnosis}
+              <b>Diagnosis:</b>
+              <span className="whitespace-pre-line block">{lines(p.diagnosis)}</span>
             </div>
           )}
           {p.steps && p.steps.length > 0 && (
@@ -334,7 +338,8 @@ function ProposalView({ p }: { p: Proposal }) {
             </div>
           )}
           <div style={muted}>
-            <b>Breaking-change check:</b> {p.breaking_change_check}
+            <b>Breaking-change check:</b>
+              <span className="whitespace-pre-line block">{lines(p.breaking_change_check)}</span>
           </div>
           {p.rollback && (
             <div style={muted}>
@@ -348,7 +353,8 @@ function ProposalView({ p }: { p: Proposal }) {
           )}
           {p.user_action && (
             <div style={muted}>
-              <b>Your action:</b> {p.user_action}
+              <b>Your action:</b>
+              <span className="whitespace-pre-line block">{lines(p.user_action)}</span>
             </div>
           )}
           <div className="text-[11px]" style={faint}>
@@ -359,7 +365,7 @@ function ProposalView({ p }: { p: Proposal }) {
 }
 
 function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(t.proposal?.mode && t.proposal.mode !== 'quick'));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -433,6 +439,17 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
           <div className="text-[11px] mt-1 truncate" style={faint} title={t.examples.join(' | ')}>
             {t.examples.join(' · ')}
           </div>
+          {t.proposal && (
+            <div className="text-[11px] mt-1" style={{ color: 'var(--color-accent)' }}>
+              ✓ {{ quick: 'Proposed', investigate: 'Investigated', deep: 'Deep analysis done' }[t.proposal.mode ?? 'quick']} · risk {t.proposal.risk} ·{' '}
+              {t.proposal.instruction?.steps.length
+                ? `${t.proposal.instruction.steps.length} executable step${t.proposal.instruction.steps.length === 1 ? '' : 's'}`
+                : t.proposal.needs_user
+                  ? 'manual work for you'
+                  : 'no change in Home Assistant needed'}
+              {t.proposal.tool_calls ? ` · ${t.proposal.tool_calls} lookups` : ''}
+            </div>
+          )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span className="text-[11px] hud-mono" style={faint}>
@@ -455,13 +472,25 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               ))}
             </select>
             {t.proposal ? (
-              <button
-                onClick={() => setOpen(!open)}
-                className="text-[11px] px-2 py-1 rounded cursor-pointer"
-                style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
-              >
-                {open ? 'Hide proposal' : 'Show proposal'}
-              </button>
+              <>
+                <button
+                  onClick={() => escalate(have ?? 'quick')}
+                  disabled={running}
+                  className="text-[11px] px-1.5 py-1 rounded cursor-pointer"
+                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+                  title="Run this step again (a paid call)"
+                  aria-label="Run this step again"
+                >
+                  ↻
+                </button>
+                <button
+                  onClick={() => setOpen(!open)}
+                  className="text-[11px] px-2 py-1 rounded cursor-pointer"
+                  style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
+                >
+                  {open ? 'Hide result' : 'Show result'}
+                </button>
+              </>
             ) : null}
           </div>
           <div className="flex items-center gap-1.5 flex-wrap justify-end">

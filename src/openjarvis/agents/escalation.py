@@ -173,7 +173,7 @@ def validate_instruction(raw: Any) -> dict[str, Any]:
         return out
 
     return {
-        "preconditions": [str(x)[:200] for x in raw.get("preconditions", [])][:8],
+        "preconditions": [str(x)[:500] for x in raw.get("preconditions", [])][:12],
         "steps": steps(raw.get("steps")),
         "rollback_steps": steps(raw.get("rollback_steps")),
     }
@@ -184,14 +184,14 @@ def clean_proposal(body: dict[str, Any]) -> dict[str, Any]:
     if risk not in RISKS:
         raise ValueError("risk")
     return {
-        "summary": str(body.get("summary", ""))[:600],
-        "diagnosis": str(body.get("diagnosis", ""))[:800],
+        "summary": str(body.get("summary", ""))[:2000],
+        "diagnosis": str(body.get("diagnosis", ""))[:6000],
         "risk": risk,
-        "breaking_change_check": str(body.get("breaking_change_check", ""))[:500],
+        "breaking_change_check": str(body.get("breaking_change_check", ""))[:3000],
         "needs_user": bool(body.get("needs_user", False)),
-        "user_action": str(body.get("user_action", ""))[:300],
+        "user_action": str(body.get("user_action", ""))[:3000],
         "instruction": validate_instruction(body.get("instruction")),
-        "verification": [str(x)[:200] for x in body.get("verification", [])][:8],
+        "verification": [str(x)[:500] for x in body.get("verification", [])][:12],
     }
 
 
