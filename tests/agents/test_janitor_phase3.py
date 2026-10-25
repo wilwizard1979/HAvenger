@@ -145,11 +145,14 @@ def test_quadrants_and_matrix_counts(store):
 
 def test_matrix_settings_validation_and_defaults(store):
     s = store.settings()["matrix"]
-    assert s["batch_size"] == 5 and s["chore_categories"] == ["battery"]
-    good = {**s, "batch_size": 8, "chore_categories": ["battery", "motion"]}
-    assert store.update_settings({"matrix": good})["matrix"]["batch_size"] == 8
+    assert "batch_size" not in s and s["chore_categories"] == ["battery"]
+    good = {**s, "chore_categories": ["battery", "motion"]}
+    assert store.update_settings({"matrix": good})["matrix"]["chore_categories"] == [
+        "battery",
+        "motion",
+    ]
     for bad in (
-        {**s, "batch_size": 0},
+        {**s, "batch_size": 5},
         {**s, "default_effort": "auto"},
         {**s, "effort_defaults": {"repair": "easy"}},
         {**s, "chore_categories": "battery"},
@@ -388,7 +391,7 @@ def test_cluster_and_report_endpoints(tmp_path, monkeypatch):
 
     data = http.get("/v1/ha/agents/clusters").json()
     assert {c["id"] for c in data["clusters"]} == {"chore:batteries", "integration:x"}
-    assert data["matrix"]["chores"] == ["chore:batteries"] and data["batch_size"] == 5
+    assert data["matrix"]["chores"] == ["chore:batteries"]
 
     ov = http.put(
         "/v1/ha/agents/clusters/override",

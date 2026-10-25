@@ -13,6 +13,12 @@ from fastapi import APIRouter, HTTPException
 
 from openjarvis.agents.cloud_client import KEYCHAIN_SERVICE, CloudClient
 from openjarvis.agents.clusters import build_clusters, matrix_counts
+from openjarvis.agents.planning import (
+    build_plan,
+    generate_proposal,
+    overview,
+    select_task,
+)
 from openjarvis.agents.reporting import generate_report, run_triage
 from openjarvis.agents.store import (
     CLUSTER_KINDS,
@@ -132,7 +138,6 @@ def clusters() -> dict[str, Any]:
     return {
         "clusters": found,
         "matrix": matrix_counts(found),
-        "batch_size": get_store().settings()["matrix"]["batch_size"],
     }
 
 
@@ -166,3 +171,38 @@ def run_report(triage: bool = True) -> dict[str, Any]:
 @ha_agents_router.post("/triage/run")
 def run_triage_now() -> dict[str, Any]:
     return run_triage(get_store(), CloudClient(get_store()), _clusters(), manual=True)
+
+
+@ha_agents_router.get("/overview")
+def agents_overview() -> dict[str, Any]:
+    """Totals for the main-page cards and the top 10 per dashboard section."""
+    return overview(get_store())
+
+
+@ha_agents_router.get("/plan")
+def agents_plan() -> dict[str, Any]:
+    """Tasks, severity x effort matrix and token / dollar estimates (read-only)."""
+    return build_plan(get_store())
+
+
+@ha_agents_router.put("/plan/select")
+def plan_select(body: dict[str, Any]) -> dict[str, Any]:
+    """Tick or untick a task. A decision about priority, never an approval."""
+    tid, selected = body.get("id"), body.get("selected")
+    if not isinstance(tid, str) or not isinstance(selected, bool):
+        raise HTTPException(status_code=422, detail="id (string) and selected (bool)")
+    select_task(get_store(), tid, selected)
+    return build_plan(get_store())
+
+
+@ha_agents_router.post("/plan/proposal")
+def plan_proposal(body: dict[str, Any]) -> dict[str, Any]:
+    """Ask for the proposal of one task (a cloud call unless dry-run)."""
+    tid = body.get("id")
+    if not isinstance(tid, str) or not tid:
+        raise HTTPException(status_code=422, detail="id is required")
+    store = get_store()
+    out = generate_proposal(store, CloudClient(store), tid)
+    if out["status"] == "unknown_task":
+        raise HTTPException(status_code=404, detail="unknown task")
+    return out

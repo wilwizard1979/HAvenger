@@ -415,6 +415,8 @@ def run_tick(
         result.observed = len(observations)
         result.quiet_hours = is_quiet_hours(now, settings)
         apply_observations(store, observations, ok_cats, now, result)
+        if snap.get("facts"):
+            store.set_facts({**snap["facts"], "checked_at": now})
         result.ok = bool(ok_cats)
     except Exception as exc:  # noqa: BLE001 - a tick must never take the server down
         logger.warning("Janitor watchdog tick failed: %s", exc)

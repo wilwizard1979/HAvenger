@@ -129,6 +129,7 @@ class HaCollector:
             "batteries": None,
             "backup": None,
             "logs": None,
+            "facts": {},
             "errors": errors,
         }
 
@@ -150,6 +151,7 @@ class HaCollector:
                         "unavailable": int(
                             (v.get("states_summary") or {}).get("unavailable", 0) or 0
                         ),
+                        "on": int((v.get("states_summary") or {}).get("on", 0) or 0),
                     }
                     for d, v in domains.items()
                 }
@@ -172,6 +174,22 @@ class HaCollector:
 
             snap["backup"] = guarded("backup", lambda: self._backup(ha))
 
+            facts = snap["facts"]
+            if snap["domain_totals"] is not None:
+                facts["updates_pending"] = (
+                    snap["domain_totals"].get("update", {}).get("on", 0)
+                )
+                if facts["updates_pending"]:
+                    facts["updates_list"] = (
+                        guarded("updates", lambda: self._updates(ha)) or []
+                    )
+            if snap["backup"] is not None:
+                facts["backup_last_success"] = snap["backup"]["last_success"]
+            if overview:
+                facts["ha_version"] = (overview.get("system_summary") or {}).get(
+                    "version"
+                )
+
             def _logs() -> dict[str, dict[str, Any]]:
                 lg = ha.read(
                     "ha_get_logs",
@@ -180,9 +198,20 @@ class HaCollector:
                 return parse_log_groups(str(lg.get("log", "")))
 
             snap["logs"] = guarded("logs", _logs)
+            if snap["logs"] is not None:
+                facts["log_critical_lines"] = sum(
+                    g["critical"] for g in snap["logs"].values()
+                )
         finally:
             ha.close()
         return snap
+
+    def _updates(self, ha: Any) -> list[dict[str, str]]:
+        return [
+            {"entity_id": e["entity_id"], "name": e.get("friendly_name", "")}
+            for e in self._list_domain(ha, "update")
+            if e.get("state") == "on"
+        ][:10]
 
     def _backup(self, ha: Any) -> dict[str, Any]:
         info = self._states(ha, [BACKUP_SENSOR])[BACKUP_SENSOR] or {}

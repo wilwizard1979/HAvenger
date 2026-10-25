@@ -14,6 +14,7 @@ import {
   Monitor,
   Loader2,
   ScrollText,
+  Wrench,
 } from 'lucide-react';
 import { ConversationList } from './ConversationList';
 import { SessionPanel } from './SessionPanel';
@@ -53,6 +54,7 @@ export function Sidebar() {
 
   const navItems = [
     { path: '/', icon: MessageSquare, label: 'Chat' },
+    { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/logs', icon: ScrollText, label: 'Logs' },
     { path: '/settings', icon: Settings, label: 'Settings' },

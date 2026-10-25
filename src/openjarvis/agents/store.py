@@ -110,7 +110,6 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         # Needs no change in Home Assistant (e.g. replace a battery): a chore.
         "chore_categories": ["battery"],
         "default_effort": "medium",
-        "batch_size": 5,
     },
     "critical_entities": [],
     # Empty = automatic: every binary_sensor with device_class "motion".
@@ -155,6 +154,16 @@ CREATE TABLE IF NOT EXISTS cluster_overrides (
 CREATE TABLE IF NOT EXISTS triage_notes (
   cluster_id TEXT PRIMARY KEY, members_hash TEXT NOT NULL, effort TEXT, note TEXT, cause TEXT,
   model TEXT, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS task_selection (
+  cluster_id TEXT PRIMARY KEY, selected INTEGER NOT NULL, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS plan_proposals (
+  cluster_id TEXT PRIMARY KEY, members_hash TEXT NOT NULL, body TEXT NOT NULL, model TEXT,
+  cost_usd REAL DEFAULT 0, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS facts (
+  key TEXT PRIMARY KEY, value TEXT NOT NULL, updated REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS watch_state (
   fingerprint TEXT PRIMARY KEY, category TEXT NOT NULL, first_seen REAL NOT NULL, misses INTEGER NOT NULL DEFAULT 0
@@ -290,7 +299,7 @@ def _validate_group(key: str, value: Any) -> Any:
             "quiet_hours": dict(qh),
         }
     if key == "matrix":
-        keys = {"effort_defaults", "chore_categories", "default_effort", "batch_size"}
+        keys = {"effort_defaults", "chore_categories", "default_effort"}
         if not isinstance(value, dict) or set(value) != keys:
             raise SettingsError(f"matrix needs: {', '.join(sorted(keys))}")
         eff = value["effort_defaults"]
@@ -309,7 +318,6 @@ def _validate_group(key: str, value: Any) -> Any:
             "effort_defaults": dict(eff),
             "chore_categories": list(chores),
             "default_effort": value["default_effort"],
-            "batch_size": int(_num(value["batch_size"], "matrix.batch_size", 1, 50)),
         }
     if key == "features":
         if not isinstance(value, dict) or not all(
@@ -544,6 +552,54 @@ class Store:
 
     def triage_notes(self) -> dict[str, dict[str, Any]]:
         return {r["cluster_id"]: r for r in self._all("SELECT * FROM triage_notes")}
+
+    # -- plan: the user's task selection and on-demand proposals --------------
+    def set_selected(self, cluster_id: str, selected: bool) -> None:
+        self._run(
+            "INSERT INTO task_selection(cluster_id,selected,updated) VALUES(?,?,?) "
+            "ON CONFLICT(cluster_id) DO UPDATE SET selected=excluded.selected, updated=excluded.updated",
+            (cluster_id, int(selected), time.time()),
+        )
+
+    def selected_tasks(self) -> set[str]:
+        rows = self._all("SELECT cluster_id FROM task_selection WHERE selected=1")
+        return {r["cluster_id"] for r in rows}
+
+    def put_plan_proposal(
+        self,
+        cluster_id: str,
+        members_hash: str,
+        body: dict[str, Any],
+        *,
+        model: str,
+        cost_usd: float,
+    ) -> None:
+        self._run(
+            "INSERT INTO plan_proposals(cluster_id,members_hash,body,model,cost_usd,updated) VALUES(?,?,?,?,?,?) "
+            "ON CONFLICT(cluster_id) DO UPDATE SET members_hash=excluded.members_hash, body=excluded.body,"
+            " model=excluded.model, cost_usd=excluded.cost_usd, updated=excluded.updated",
+            (cluster_id, members_hash, json.dumps(body), model, cost_usd, time.time()),
+        )
+
+    def plan_proposals(self) -> dict[str, dict[str, Any]]:
+        rows = self._all("SELECT * FROM plan_proposals")
+        return {r["cluster_id"]: {**r, "body": json.loads(r["body"])} for r in rows}
+
+    # -- facts: latest values the watchdog read (backup time, updates, ...) -----
+    def set_facts(self, facts: dict[str, Any]) -> None:
+        now = time.time()
+        with self._lock, self._conn() as c:
+            for k, v in facts.items():
+                c.execute(
+                    "INSERT INTO facts(key,value,updated) VALUES(?,?,?) "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated=excluded.updated",
+                    (k, json.dumps(v), now),
+                )
+
+    def facts(self) -> dict[str, Any]:
+        return {
+            r["key"]: json.loads(r["value"]) for r in self._all("SELECT * FROM facts")
+        }
 
     # -- watchdog bookkeeping ---------------------------------------------
     def watch_states(self) -> dict[str, dict[str, Any]]:
