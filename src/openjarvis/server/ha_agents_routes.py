@@ -19,6 +19,7 @@ from openjarvis.agents.planning import (
     overview,
     select_task,
 )
+from openjarvis.agents.readout import run_readout
 from openjarvis.agents.reporting import generate_report, run_triage
 from openjarvis.agents.store import (
     CLUSTER_KINDS,
@@ -27,6 +28,7 @@ from openjarvis.agents.store import (
     SettingsError,
     get_store,
 )
+from openjarvis.agents.team import team_overview
 from openjarvis.agents.watchdog import get_watchdog
 
 ha_agents_router = APIRouter(prefix="/v1/ha/agents", tags=["home-assistant-agents"])
@@ -206,3 +208,15 @@ def plan_proposal(body: dict[str, Any]) -> dict[str, Any]:
     if out["status"] == "unknown_task":
         raise HTTPException(status_code=404, detail="unknown task")
     return out
+
+
+@ha_agents_router.get("/team")
+def agents_team() -> dict[str, Any]:
+    """What each layer of the team did last (read-only)."""
+    return team_overview(get_store(), get_watchdog().status())
+
+
+@ha_agents_router.post("/readout/run")
+def readout_run() -> dict[str, Any]:
+    """Qwen (local, free) reads the latest report aloud."""
+    return run_readout(get_store())

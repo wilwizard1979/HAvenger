@@ -12,14 +12,17 @@ import {
   type Overview,
   type Plan,
   type Severity,
+  type RunRow,
   type Task,
+  type Team,
 } from '../lib/maintenance';
 
-type Tab = 'dashboard' | 'plan' | 'reports';
+type Tab = 'dashboard' | 'plan' | 'agents' | 'reports';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'plan', label: 'Plan' },
+  { id: 'agents', label: 'Agents' },
   { id: 'reports', label: 'Reports' },
 ];
 
@@ -452,6 +455,210 @@ function PlanTab({ plan, reload }: { plan: Plan; reload: () => void }) {
   );
 }
 
+// --- Agents ----------------------------------------------------------------------
+
+function Layer({
+  tag,
+  title,
+  role,
+  meta,
+  children,
+}: {
+  tag: string;
+  title: string;
+  role: string;
+  meta?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="hud-panel p-3 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Chip text={tag} color="var(--color-accent)" />
+        <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+          {title}
+        </span>
+        {meta && (
+          <span className="ml-auto text-[11px] hud-mono" style={faint}>
+            {meta}
+          </span>
+        )}
+      </div>
+      <div className="text-[11px]" style={faint}>
+        {role}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Runs({ runs }: { runs: RunRow[] }) {
+  if (runs.length === 0)
+    return (
+      <div className="text-xs" style={faint}>
+        No runs yet.
+      </div>
+    );
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {runs.map((r) => (
+        <li key={r.id} className="text-[11px] hud-mono flex gap-2" style={muted}>
+          <span style={faint}>{new Date(r.started * 1000).toLocaleString()}</span>
+          <span>{r.outcome}</span>
+          {r.purpose && <span className="truncate" style={faint}>{r.purpose}</span>}
+          <span className="ml-auto shrink-0">
+            {tokens(r.input_tokens)} in · {tokens(r.output_tokens)} out · {usd(r.cost_usd)}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function AgentsTab() {
+  const { data, reload } = usePolled(api.team, 30_000);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+
+  const act = async (what: 'readout' | 'triage') => {
+    setBusy(what);
+    setNote(null);
+    try {
+      if (what === 'readout') {
+        const r = await api.runReadout();
+        setNote(`readout: ${r.status}`);
+      } else {
+        const r = await api.runTriage();
+        setNote(`triage: ${r.status}${r.estimated_cost_usd !== undefined ? ` (would cost about ${usd(r.estimated_cost_usd)})` : ''}`);
+      }
+      await reload();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (!data) return <Status error={null} />;
+  const t: Team = data;
+  const risky = (r: string) => (r === 'high' ? 'var(--color-error)' : r === 'medium' ? 'var(--color-warning)' : 'var(--color-success)');
+  const btn = { background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' } as const;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="text-xs" style={muted}>
+        Who did what, in order. Only Python runs by itself. Haiku works once per report and only when dry-run is off. Sonnet and Opus run
+        only when you escalate a task. {t.dry_run ? 'Dry-run is ON: no cloud model has been called.' : 'Dry-run is OFF.'}
+      </div>
+
+      <Layer tag="L0" title="Python watchdog and report" role={t.l0.role} meta={t.l0.interval_min ? `every ${t.l0.interval_min} min` : undefined}>
+        {t.l0.last_tick ? (
+          <div className="text-xs" style={muted}>
+            Last check {ago(t.l0.last_tick.started)} ago · {t.l0.last_tick.duration_s}s · {t.l0.last_tick.observed} findings ·{' '}
+            {t.l0.last_tick.new.length} new · {t.l0.last_tick.resolved.length} resolved
+            {Object.keys(t.l0.last_tick.errors).length ? ` · errors: ${Object.keys(t.l0.last_tick.errors).join(', ')}` : ''}
+          </div>
+        ) : (
+          <div className="text-xs" style={faint}>No check yet.</div>
+        )}
+        {t.l0.report ? (
+          <>
+            <div className="text-[11px]" style={faint}>
+              Last report #{t.l0.report.id} · {new Date(t.l0.report.created_at * 1000).toLocaleString()} · {t.l0.report.status}
+            </div>
+            <pre className="text-xs whitespace-pre-wrap hud-mono" style={{ color: 'var(--color-text)' }}>
+              {t.l0.report.text}
+            </pre>
+          </>
+        ) : (
+          <div className="text-xs" style={faint}>No report yet. Build one on the Reports tab.</div>
+        )}
+      </Layer>
+
+      <Layer tag="L1" title="Qwen read-out job" role={t.l1.role} meta="local · free">
+        {t.l1.latest ? (
+          <>
+            <div className="text-[11px]" style={faint}>
+              {new Date(t.l1.latest.created_at * 1000).toLocaleString()} · {t.l1.latest.model} · {t.l1.latest.tokens_in} in /{' '}
+              {t.l1.latest.tokens_out} out · {t.l1.latest.seconds.toFixed(1)}s
+              {t.l1.latest.guard_ok ? ' · numbers verified' : ' · fallback: report text used'}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--color-text)' }}>{t.l1.latest.text}</div>
+            {t.l1.latest.note && <div className="text-[11px]" style={{ color: 'var(--color-warning)' }}>{t.l1.latest.note}</div>}
+          </>
+        ) : (
+          <div className="text-xs" style={faint}>No read-out yet.</div>
+        )}
+        <div>
+          <button disabled={busy !== null} onClick={() => void act('readout')} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}>
+            {busy === 'readout' ? 'Reading…' : 'Run read-out now (local)'}
+          </button>
+        </div>
+      </Layer>
+
+      <Layer tag="L2" title={`Haiku triage · ${t.l2.model}`} role={t.l2.role} meta={t.l2.mode}>
+        {t.l2.reasoning.length === 0 ? (
+          <div className="text-xs" style={faint}>No reasoning stored yet (dry-run, or nothing new to triage).</div>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {t.l2.reasoning.map((r) => (
+              <li key={r.cluster_id} className="text-xs">
+                <span style={{ color: 'var(--color-text)' }}>{r.label}</span>
+                {r.effort && <span className="ml-2"><Chip text={r.effort} /></span>}
+                <div style={muted}>
+                  {r.note} {r.cause ? `· likely cause: ${r.cause}` : ''}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Runs runs={t.l2.runs} />
+        <div>
+          <button disabled={busy !== null} onClick={() => void act('triage')} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}>
+            {busy === 'triage' ? 'Working…' : t.dry_run ? 'Estimate triage (dry-run)' : 'Run triage now (paid)'}
+          </button>
+        </div>
+      </Layer>
+
+      <Layer tag="L3" title={`Sonnet supervision · ${t.l3.model}`} role={t.l3.role} meta={t.l3.auto_escalation ? 'auto-escalation ON' : 'escalated by you only'}>
+        {t.l3.escalated.length === 0 ? (
+          <div className="text-xs" style={faint}>Nothing escalated. Request a proposal on a task in the Plan tab.</div>
+        ) : (
+          <ul className="flex flex-col gap-1.5">
+            {t.l3.escalated.map((p) => (
+              <li key={p.cluster_id} className="text-xs">
+                <span style={{ color: 'var(--color-text)' }}>{p.label}</span>
+                <span className="ml-2"><Chip text={`risk ${p.risk}`} color={risky(p.risk)} /></span>
+                <span className="ml-2 hud-mono" style={faint}>{usd(p.cost_usd)}</span>
+                <div style={muted}>{p.summary}</div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Runs runs={t.l3.runs} />
+      </Layer>
+
+      <Layer tag="L4" title={`Opus · ${t.l4.model}`} role={t.l4.role}>
+        <Runs runs={t.l4.runs} />
+      </Layer>
+
+      <div className="hud-panel p-3">
+        <div className="hud-label mb-1">This month (paid)</div>
+        {t.month.length === 0 ? (
+          <div className="text-xs" style={faint}>No paid calls yet.</div>
+        ) : (
+          t.month.map((m) => (
+            <div key={m.model} className="flex justify-between text-xs py-0.5" style={muted}>
+              <span>{m.model} · {m.calls} calls</span>
+              <span className="hud-mono">{tokens(m.tokens_in)} in · {tokens(m.tokens_out)} out · {usd(m.cost_usd)}</span>
+            </div>
+          ))
+        )}
+      </div>
+      {note && <div className="text-xs" style={muted}>{note}</div>}
+    </div>
+  );
+}
+
 // --- Reports ---------------------------------------------------------------------
 
 function ReportsTab() {
@@ -582,6 +789,7 @@ export function MaintenancePage() {
           ))}
         {tab === 'plan' &&
           (plan.data ? <PlanTab plan={plan.data} reload={() => void plan.reload()} /> : <Status error={plan.error} />)}
+        {tab === 'agents' && <AgentsTab />}
         {tab === 'reports' && <ReportsTab />}
       </div>
     </div>

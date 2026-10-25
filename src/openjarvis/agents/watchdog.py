@@ -529,6 +529,9 @@ class WatchdogService:
             return
         try:
             generate_report(self.store, now=now)
+            from openjarvis.agents.readout import run_readout
+
+            run_readout(self.store, now=now)  # local Qwen, free; never raises
         except Exception:  # noqa: BLE001
             logger.warning("Janitor report failed", exc_info=True)
 

@@ -77,7 +77,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "source": "platform.claude.com/docs/en/about-claude/pricing",
     },
     "dry_run": True,
-    "auto_escalation": True,
+    "auto_escalation": False,  # Sonnet / Opus only when the user escalates
     "thresholds": {
         "entities_amber_pct": 2,
         "entities_red_pct": 10,
@@ -165,6 +165,11 @@ CREATE TABLE IF NOT EXISTS plan_proposals (
 );
 CREATE TABLE IF NOT EXISTS facts (
   key TEXT PRIMARY KEY, value TEXT NOT NULL, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS readouts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, report_id INTEGER, model TEXT,
+  tokens_in INTEGER DEFAULT 0, tokens_out INTEGER DEFAULT 0, seconds REAL DEFAULT 0,
+  text TEXT NOT NULL, guard_ok INTEGER NOT NULL DEFAULT 1, note TEXT
 );
 CREATE TABLE IF NOT EXISTS unavail_track (
   entity_id TEXT PRIMARY KEY, name TEXT, since REAL NOT NULL, last_seen REAL NOT NULL
@@ -456,6 +461,11 @@ class Store:
     def runs(self, limit: int = 50) -> list[dict[str, Any]]:
         return self._all("SELECT * FROM runs ORDER BY id DESC LIMIT ?", (limit,))
 
+    def runs_by_layer(self, layer: str, limit: int = 5) -> list[dict[str, Any]]:
+        return self._all(
+            "SELECT * FROM runs WHERE layer=? ORDER BY id DESC LIMIT ?", (layer, limit)
+        )
+
     # -- issues -----------------------------------------------------------
     def upsert_issue(
         self,
@@ -591,6 +601,41 @@ class Store:
     def plan_proposals(self) -> dict[str, dict[str, Any]]:
         rows = self._all("SELECT * FROM plan_proposals")
         return {r["cluster_id"]: {**r, "body": json.loads(r["body"])} for r in rows}
+
+    # -- Qwen read-outs ----------------------------------------------------
+    def add_readout(
+        self,
+        *,
+        report_id: int | None,
+        model: str,
+        tokens_in: int,
+        tokens_out: int,
+        seconds: float,
+        text: str,
+        guard_ok: bool,
+        note: str,
+        ts: float | None = None,
+    ) -> int:
+        cur = self._run(
+            "INSERT INTO readouts(created_at,report_id,model,tokens_in,tokens_out,seconds,text,guard_ok,note) "
+            "VALUES(?,?,?,?,?,?,?,?,?)",
+            (
+                ts if ts is not None else time.time(),
+                report_id,
+                model,
+                tokens_in,
+                tokens_out,
+                seconds,
+                text,
+                int(guard_ok),
+                note,
+            ),
+        )
+        return int(cur.lastrowid or 0)
+
+    def latest_readout(self) -> dict[str, Any] | None:
+        rows = self._all("SELECT * FROM readouts ORDER BY id DESC LIMIT 1")
+        return rows[0] if rows else None
 
     # -- unavailable-for-long tracking and Home Assistant restarts ------------
     def track_unavailable(self, rows: dict[str, dict[str, Any]], now: float) -> None:

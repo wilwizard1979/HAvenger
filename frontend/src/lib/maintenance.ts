@@ -111,6 +111,68 @@ export interface LatestReport {
   report: { id: number; created_at: number; status: string; summary_text: string } | null;
 }
 
+export interface RunRow {
+  id: number;
+  model: string | null;
+  started: number;
+  outcome: string | null;
+  purpose: string | null;
+  input_tokens: number;
+  output_tokens: number;
+  cost_usd: number;
+  dry_run: number;
+}
+
+export interface Team {
+  dry_run: boolean;
+  l0: {
+    role: string;
+    interval_min: number | null;
+    next_run: number | null;
+    last_tick: {
+      ok: boolean;
+      started: number;
+      duration_s: number;
+      observed: number;
+      new: unknown[];
+      resolved: unknown[];
+      errors: Record<string, string>;
+    } | null;
+    issues: { active: number; by_severity: Record<string, number> } | null;
+    report: { id: number; created_at: number; status: string; text: string } | null;
+  };
+  l1: {
+    role: string;
+    latest: {
+      created_at: number;
+      model: string;
+      tokens_in: number;
+      tokens_out: number;
+      seconds: number;
+      text: string;
+      guard_ok: number;
+      note: string;
+    } | null;
+    runs: RunRow[];
+  };
+  l2: {
+    role: string;
+    model: string;
+    mode: string;
+    runs: RunRow[];
+    reasoning: { cluster_id: string; label: string; note: string; cause: string; effort: string | null; updated: number }[];
+  };
+  l3: {
+    role: string;
+    model: string;
+    auto_escalation: boolean;
+    escalated: { cluster_id: string; label: string; risk: string; summary: string; cost_usd: number; updated: number }[];
+    runs: RunRow[];
+  };
+  l4: { role: string; model: string; runs: RunRow[] };
+  month: { model: string; calls: number; tokens_in: number; tokens_out: number; cost_usd: number }[];
+}
+
 const BASE = () => `${getBase()}/v1/ha/agents`;
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
@@ -145,6 +207,9 @@ export const api = {
     }),
   latestReport: () => call<LatestReport>('/reports/latest'),
   runReport: () => call<ReportOut>('/reports/run?triage=true', { method: 'POST' }),
+  team: () => call<Team>('/team'),
+  runReadout: () => call<{ status: string; detail?: string }>('/readout/run', { method: 'POST' }),
+  runTriage: () => call<{ status: string; estimated_cost_usd?: number; detail?: string }>('/triage/run', { method: 'POST' }),
   runWatchdog: () => call<unknown>('/watchdog/run', { method: 'POST' }),
 };
 
