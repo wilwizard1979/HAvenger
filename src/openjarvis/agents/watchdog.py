@@ -401,6 +401,20 @@ def apply_observations(
             )
 
 
+def track_long_unavailable(store: Store, snap: dict[str, Any], now: float) -> None:
+    """Keep ``since`` per unavailable entity and note Home Assistant restarts."""
+    since = snap.get("unavailable_since")
+    if since is not None:
+        store.track_unavailable(since, now)
+    boot = (snap.get("facts") or {}).get("boot_estimate")
+    if boot:
+        last = store.runs(1)
+        outage = (
+            bool(last) and last[0]["layer"] == "L0" and last[0]["outcome"] == "error"
+        )
+        store.record_boot(boot, now, outage)
+
+
 def run_tick(
     store: Store, collector: Collector, *, now: float | None = None
 ) -> TickResult:
@@ -415,6 +429,7 @@ def run_tick(
         result.observed = len(observations)
         result.quiet_hours = is_quiet_hours(now, settings)
         apply_observations(store, observations, ok_cats, now, result)
+        track_long_unavailable(store, snap, now)
         if snap.get("facts"):
             store.set_facts({**snap["facts"], "checked_at": now})
         result.ok = bool(ok_cats)

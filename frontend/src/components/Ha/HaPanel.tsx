@@ -8,6 +8,8 @@ import {
   Download,
   CalendarClock,
   Terminal,
+  Hourglass,
+  Power,
   MessageSquareText,
   type LucideIcon,
 } from 'lucide-react';
@@ -129,6 +131,22 @@ export function HaPanel({ onAsk }: HaPanelProps) {
               section="deprecations"
             />
             <Card icon={Terminal} label="Critical log errors" value={c.log_critical.value} tone={c.log_critical.tone} section="log_critical" />
+            <Card
+              icon={Hourglass}
+              label={`Unavailable > ${c.stale_unavailable.days} d`}
+              value={c.stale_unavailable.value}
+              unit="entities"
+              tone={c.stale_unavailable.tone}
+              section="stale_unavailable"
+            />
+            <Card
+              icon={Power}
+              label="Last HA restart"
+              value={c.last_restart.value === null ? null : Math.round(c.last_restart.value)}
+              unit={c.last_restart.value === null ? undefined : 'h ago'}
+              tone={c.last_restart.tone}
+              section="last_restart"
+            />
           </div>
         )}
         {!data && loading && (

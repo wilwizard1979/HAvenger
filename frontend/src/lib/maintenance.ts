@@ -17,6 +17,8 @@ export interface SectionItem {
 
 export interface Overview {
   cards: {
+    stale_unavailable: { value: number; days: number; tone: Tone };
+    last_restart: { value: number | null; unit: string; tone: Tone };
     backup_failed: { value: number; tone: Tone };
     last_backup: { value: number | null; unit: string; at: string | null; limit_hours: number; tone: Tone };
     integrations_failed: { value: number; tone: Tone };
@@ -25,7 +27,10 @@ export interface Overview {
     deprecations: { value: number; next_version: string | null; tone: Tone };
     log_critical: { value: number | null; tone: Tone };
   };
-  sections: Record<string, { total: number; items: SectionItem[] }>;
+  sections: Record<
+    string,
+    { total: number; items: SectionItem[]; counting_since?: number | null; reliable_from?: number | null; tracked?: number }
+  >;
   checked_at: number | null;
   ha_version: string | null;
 }

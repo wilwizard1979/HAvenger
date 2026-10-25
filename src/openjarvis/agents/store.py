@@ -87,6 +87,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "log_error_min": 3,
         "automation_fail_runs_24h": 3,
         "breaking_change_days": 30,
+        "stale_unavailable_days": 30,
     },
     # L0 watchdog: read-only polling of Home Assistant, no cloud calls.
     "watchdog": {
@@ -164,6 +165,12 @@ CREATE TABLE IF NOT EXISTS plan_proposals (
 );
 CREATE TABLE IF NOT EXISTS facts (
   key TEXT PRIMARY KEY, value TEXT NOT NULL, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS unavail_track (
+  entity_id TEXT PRIMARY KEY, name TEXT, since REAL NOT NULL, last_seen REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ha_boots (
+  boot_at REAL PRIMARY KEY, detected REAL NOT NULL, after_outage INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS watch_state (
   fingerprint TEXT PRIMARY KEY, category TEXT NOT NULL, first_seen REAL NOT NULL, misses INTEGER NOT NULL DEFAULT 0
@@ -584,6 +591,62 @@ class Store:
     def plan_proposals(self) -> dict[str, dict[str, Any]]:
         rows = self._all("SELECT * FROM plan_proposals")
         return {r["cluster_id"]: {**r, "body": json.loads(r["body"])} for r in rows}
+
+    # -- unavailable-for-long tracking and Home Assistant restarts ------------
+    def track_unavailable(self, rows: dict[str, dict[str, Any]], now: float) -> None:
+        """Keep the oldest known ``since`` per entity; drop the ones that came back."""
+        with self._lock, self._conn() as c:
+            old = {
+                r["entity_id"]: r["since"]
+                for r in c.execute("SELECT entity_id, since FROM unavail_track")
+            }
+            c.executemany(
+                "INSERT INTO unavail_track(entity_id,name,since,last_seen) VALUES(?,?,?,?) "
+                "ON CONFLICT(entity_id) DO UPDATE SET name=excluded.name, since=excluded.since, last_seen=excluded.last_seen",
+                [
+                    (
+                        eid,
+                        r.get("name", ""),
+                        min(old.get(eid, now), r.get("since") or now, now),
+                        now,
+                    )
+                    for eid, r in rows.items()
+                ],
+            )
+            gone = [e for e in old if e not in rows]
+            c.executemany(
+                "DELETE FROM unavail_track WHERE entity_id=?", [(e,) for e in gone]
+            )
+
+    def unavailable_longer_than(self, days: float, now: float) -> dict[str, Any]:
+        cut = now - days * 86400
+        rows = self._all(
+            "SELECT entity_id, name, since FROM unavail_track WHERE since<=? ORDER BY since ASC",
+            (cut,),
+        )
+        first = self._all("SELECT MIN(since) AS m, COUNT(*) AS n FROM unavail_track")[0]
+        return {
+            "count": len(rows),
+            "items": rows,
+            "tracked": int(first["n"]),
+            "counting_since": first["m"],
+        }
+
+    def record_boot(self, boot_at: float, now: float, after_outage: bool) -> bool:
+        """Remember a Home Assistant start; True when it is a new one."""
+        last = self._all("SELECT MAX(boot_at) AS m FROM ha_boots")[0]["m"]
+        if last is not None and boot_at <= last + 300:
+            return False
+        self._run(
+            "INSERT OR IGNORE INTO ha_boots(boot_at,detected,after_outage) VALUES(?,?,?)",
+            (boot_at, now, int(after_outage)),
+        )
+        return True
+
+    def boots(self, limit: int = 10) -> list[dict[str, Any]]:
+        return self._all(
+            "SELECT * FROM ha_boots ORDER BY boot_at DESC LIMIT ?", (limit,)
+        )
 
     # -- facts: latest values the watchdog read (backup time, updates, ...) -----
     def set_facts(self, facts: dict[str, Any]) -> None:

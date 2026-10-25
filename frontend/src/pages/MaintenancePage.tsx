@@ -58,6 +58,8 @@ const SECTIONS: { key: string; title: string; hint: string }[] = [
   { key: 'updates_pending', title: 'Updates pending', hint: 'Install after a backup and a breaking-change check' },
   { key: 'deprecations', title: 'Deprecations and breaking changes', hint: 'Will stop working in a coming release' },
   { key: 'log_critical', title: 'Critical errors in the log', hint: 'Last 400 log lines' },
+  { key: 'stale_unavailable', title: 'Unavailable for more than 30 days', hint: 'Oldest first. Likely orphaned or dead devices' },
+  { key: 'last_restart', title: 'Home Assistant restarts', hint: 'When Home Assistant last started, as seen by the watchdog' },
 ];
 
 function cardOf(o: Overview, key: string) {
@@ -81,7 +83,7 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
         const sec = o.sections[key];
         const isOpen = open.has(key);
         const lb = o.cards.last_backup;
-        const value = key === 'last_backup' ? (lb.value === null ? '—' : `${Math.round(lb.value)} h ago`) : (card.value ?? '—');
+        const value = key === 'last_restart' ? (o.cards.last_restart.value === null ? '—' : `${Math.round(o.cards.last_restart.value)} h ago`) : key === 'last_backup' ? (lb.value === null ? '—' : `${Math.round(lb.value)} h ago`) : (card.value ?? '—');
         return (
           <div key={key} id={key} className="hud-panel" style={{ borderLeft: `2px solid ${TONE_COLOR[card.tone]}` }}>
             <button
@@ -137,7 +139,19 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
                     ))}
                   </ul>
                 )}
-                {sec && sec.total > sec.items.length && (
+                {key === 'stale_unavailable' && sec && (
+                  <div className="text-[11px] mt-2" style={faint}>
+                    Home Assistant resets its change time at every restart, so the Janitor counts from {sec.counting_since ? new Date(sec.counting_since * 1000).toLocaleDateString() : 'its first check'} on
+                    {sec.reliable_from ? `; the 30-day result is complete from ${new Date(sec.reliable_from * 1000).toLocaleDateString()}` : ''}.
+                    {sec.tracked !== undefined ? ` Entities tracked: ${sec.tracked}.` : ''}
+                  </div>
+                )}
+                {key === 'last_restart' && (
+                  <div className="text-[11px] mt-2" style={faint}>
+                    Home Assistant does not say whether a start was a crash or planned; a start right after an unreachable check is flagged.
+                  </div>
+                )}
+                {sec && key !== 'stale_unavailable' && sec.total > sec.items.length && (
                   <div className="text-[11px] mt-2" style={faint}>
                     Showing the top {sec.items.length} of {sec.total}.
                   </div>

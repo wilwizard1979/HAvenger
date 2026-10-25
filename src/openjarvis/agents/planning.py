@@ -125,7 +125,22 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
     updates = facts.get("updates_pending")
     crit_lines = facts.get("log_critical_lines")
 
+    days = int(s["thresholds"].get("stale_unavailable_days", 30))
+    stale = store.unavailable_longer_than(days, now)
+    boots = store.boots(SECTION_LIMIT)
+    since_h = round((now - boots[0]["boot_at"]) / 3600, 1) if boots else None
+
     cards = {
+        "stale_unavailable": {
+            "value": stale["count"],
+            "days": days,
+            "tone": "warn" if stale["count"] else "ok",
+        },
+        "last_restart": {
+            "value": since_h,
+            "unit": "h ago",
+            "tone": "idle" if since_h is None else "warn" if since_h < 24 else "ok",
+        },
         "backup_failed": {"value": len(backup), "tone": "bad" if backup else "ok"},
         "last_backup": {
             "value": age_h,
@@ -160,7 +175,39 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
             "tone": "idle" if crit_lines is None else "bad" if crit_lines else "ok",
         },
     }
+    counting = stale["counting_since"]
     sections = {
+        "stale_unavailable": {
+            "total": stale["count"],
+            "items": [
+                {
+                    "title": r["name"] or r["entity_id"],
+                    "detail": f"{r['entity_id']} · unavailable about "
+                    f"{int((now - r['since']) // 86400)} days",
+                    "severity": "info",
+                }
+                for r in stale["items"][:SECTION_LIMIT]
+            ],
+            "counting_since": counting,
+            "reliable_from": counting + days * 86400 if counting else None,
+            "tracked": stale["tracked"],
+        },
+        "last_restart": {
+            "total": len(boots),
+            "items": [
+                {
+                    "title": time.strftime(
+                        "%Y-%m-%d %H:%M", time.localtime(b["boot_at"])
+                    ),
+                    "detail": "preceded by an unreachable check (possible crash)"
+                    if b["after_outage"]
+                    else "restart seen by the watchdog",
+                    "severity": "warning" if b["after_outage"] else "info",
+                    "first_seen": b["boot_at"],
+                }
+                for b in boots
+            ],
+        },
         "backup_failed": _top(backup),
         "integrations_failed": _top(integrations),
         "automation_errors": _top(automations),
