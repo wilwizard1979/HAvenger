@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { SettingsTab } from './MaintenanceSettings';
+import { MODE_NAME, dismissJob, markSeen, onJobFinished, startEscalation, useElapsed, useJobs, type Job } from '../lib/jobs';
 import { ChevronDown, ChevronRight, RefreshCw, Play, Volume2, Square } from 'lucide-react';
 import { useReadAloud } from '../lib/janitorSpeech';
 import {
@@ -381,15 +382,23 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
   const nextMode: EscalationMode | null =
     t.proposal_stale || have === null ? 'quick' : have === 'quick' ? 'investigate' : have === 'investigate' ? 'deep' : null;
 
-  const escalate = (mode: EscalationMode) =>
-    run(async () => {
-      const est = mode === 'quick' ? t.estimate : mode === 'investigate' ? t.estimate_investigate : t.estimate_deep;
-      const r = await api.proposal(t.id, mode);
-      if (r.status === 'dry_run')
-        setMsg(`Dry-run: would use up to ${tokens(est.tokens_in + est.tokens_out)} tokens (${usd(est.usd)}). Nothing was sent.`);
-      else if (r.status !== 'ok') setMsg(`${r.status}${r.detail ? `: ${r.detail}` : ''}`);
-      else setOpen(true);
-    });
+  const jobs = useJobs();
+  const mine = jobs.find((j) => j.taskId === t.id);
+  const running = mine?.state === 'running';
+  const secs = useElapsed(running ? mine!.startedAt : null);
+  const escalate = (mode: EscalationMode) => void startEscalation({ id: t.id, label: t.label }, mode);
+
+  // when this task's job finishes, reload the plan and show the result right here
+  useEffect(
+    () =>
+      onJobFinished((j) => {
+        if (j.taskId !== t.id) return;
+        onChange();
+        if (j.state === 'done') setOpen(true);
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t.id],
+  );
 
   return (
     <div className="hud-panel p-3 flex flex-col gap-2" style={{ borderLeft: `2px solid ${SEVERITY_COLOR[t.severity]}` }}>
@@ -467,18 +476,36 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               .map(([mode, label, est, tip]) => (
                 <button
                   key={mode}
-                  disabled={busy}
-                  onClick={() => void escalate(mode)}
+                  disabled={busy || running}
+                  onClick={() => escalate(mode)}
                   className="text-[11px] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
-                  style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+                  style={{
+                    background: running ? 'var(--color-accent-subtle)' : 'var(--color-bg-secondary)',
+                    border: `1px solid ${running ? 'var(--color-accent)' : 'var(--color-border)'}`,
+                    color: 'var(--color-text)',
+                    opacity: running ? 0.9 : 1,
+                  }}
                   title={`${tip}. Started by you only. Up to ${usd(est.usd)}.`}
                 >
-                  <Play size={10} /> {t.proposal_stale ? 'Refresh' : label} ≤{usd(est.usd)}
+                  {running ? (
+                    <>
+                      <RefreshCw size={10} className="animate-spin" /> Working… {secs}s
+                    </>
+                  ) : (
+                    <>
+                      <Play size={10} /> {t.proposal_stale ? 'Refresh' : label} ≤{usd(est.usd)}
+                    </>
+                  )}
                 </button>
               ))}
           </div>
         </div>
       </div>
+      {running && (
+        <div className="h-0.5 rounded overflow-hidden" style={{ background: 'var(--color-bg-tertiary)' }}>
+          <div className="h-full animate-pulse" style={{ width: `${Math.min(95, 8 + secs * 1.2)}%`, background: 'var(--color-accent)', transition: 'width 1s linear' }} />
+        </div>
+      )}
       {msg && (
         <div className="text-[11px]" style={muted}>
           {msg}
@@ -684,16 +711,12 @@ function FlowTab({ plan }: { plan: Plan | null }) {
       let ok = 0;
       let last = '';
       for (const t of ticked) {
-        const r = await api.proposal(t.id, mode);
-        if (r.status === 'ok') ok += 1;
-        else last = r.status;
-        if (r.status === 'skipped_budget' || r.status === 'skipped_no_key') break;
+        const j = await startEscalation({ id: t.id, label: t.label }, mode);
+        if (j?.state === 'done') ok += 1;
+        else if (j) last = j.message;
+        if (j && /budget|Keychain/.test(j.message)) break;
       }
-      if (last === 'dry_run')
-        return `Dry-run is ON, so Sonnet was NOT called and no proposal was written (${ticked.length} tasks checked). If it were live it would cost up to ${usd(total)}. Switch dry-run off in Settings to get real proposals.`;
-      if (last === 'skipped_no_key') return 'No Anthropic key found in the Keychain (jarvis-the-janitor).';
-      if (last === 'skipped_budget') return 'The monthly budget guard stopped the call.';
-      return `${ok} of ${ticked.length} proposals written${last ? ` (last: ${last})` : ''}`;
+      return ok === ticked.length ? `${ok} of ${ticked.length} proposals written.` : `${ok} of ${ticked.length} proposals written. ${last}`;
     });
 
   const requestApproval = (clusterId: string) =>
@@ -1181,6 +1204,71 @@ function ReportsTab() {
   );
 }
 
+
+// --- progress that stays visible on every tab -------------------------------------
+
+function JobLine({ job, onOpen }: { job: Job; onOpen: () => void }) {
+  const secs = useElapsed(job.state === 'running' ? job.startedAt : null);
+  const color = job.state === 'running' ? 'var(--color-accent)' : job.state === 'done' ? 'var(--color-success)' : 'var(--color-error)';
+  return (
+    <div
+      className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs"
+      style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, border: `1px solid ${color}` }}
+      role="status"
+    >
+      {job.state === 'running' ? (
+        <RefreshCw size={13} className="animate-spin shrink-0" style={{ color }} />
+      ) : (
+        <span className="shrink-0" style={{ color }}>
+          {job.state === 'done' ? '✓' : '!'}
+        </span>
+      )}
+      <div className="flex-1 min-w-0" style={{ color: 'var(--color-text)' }}>
+        {job.state === 'running' ? (
+          <>
+            {MODE_NAME[job.mode]} <b>{job.label}</b>… {secs}s
+            <span style={faint}> · this takes 30 to 90 seconds, nothing else to click, you can switch tabs</span>
+          </>
+        ) : (
+          <>
+            <b>{job.label}</b>: {job.message}
+          </>
+        )}
+      </div>
+      {job.state !== 'running' && (
+        <>
+          <button onClick={onOpen} className="px-2 py-0.5 rounded text-[11px] cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+            Show
+          </button>
+          <button onClick={() => dismissJob(job.key)} className="px-1.5 text-[13px] cursor-pointer" style={faint} aria-label="Dismiss">
+            ✕
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function JobsBar() {
+  const jobs = useJobs();
+  const navigate = useNavigate();
+  if (jobs.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      {jobs.map((j) => (
+        <JobLine
+          key={j.key}
+          job={j}
+          onOpen={() => {
+            markSeen(j.key);
+            navigate('/maintenance?tab=plan');
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 // --- Page ------------------------------------------------------------------------
 
 export function MaintenancePage() {
@@ -1229,6 +1317,8 @@ export function MaintenancePage() {
             <RefreshCw size={12} className={checking ? 'animate-spin' : ''} /> Check now
           </button>
         </header>
+
+        <JobsBar />
 
         <nav className="flex gap-1" style={{ borderBottom: '1px solid var(--color-border)' }}>
           {TABS.map((t) => (

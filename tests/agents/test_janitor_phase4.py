@@ -457,3 +457,54 @@ def test_a_reply_that_was_cut_off_by_thinking_is_reported_as_truncated(store):
         store, live(store, Cut()), planning.plan_clusters(store), manual=True
     )
     assert out["status"] == "truncated" and "output tokens" in out["detail"]
+
+
+def test_a_second_click_on_the_same_task_never_pays_twice(tmp_path, monkeypatch):
+    import threading
+    import time as _t
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from openjarvis.agents import store as store_mod
+    from openjarvis.server import ha_agents_routes as routes
+
+    monkeypatch.setenv("JARVIS_JANITOR_DB", str(tmp_path / "api.db"))
+    store_mod.reset_store_for_tests()
+    seed(store_mod.get_store())
+    calls = []
+
+    def slow(store, client, tid, mode="quick", ha=None):
+        calls.append(tid)
+        _t.sleep(0.4)
+        return {"status": "dry_run", "estimate": {}}
+
+    monkeypatch.setattr(routes, "generate_proposal", slow)
+    app = FastAPI()
+    app.include_router(routes.ha_agents_router)
+    http = TestClient(app)
+    first = {}
+    th = threading.Thread(
+        target=lambda: first.update(
+            http.post(
+                "/v1/ha/agents/plan/proposal",
+                json={"id": "integration:fritz", "mode": "investigate"},
+            ).json()
+        )
+    )
+    th.start()
+    _t.sleep(0.1)
+    second = http.post(
+        "/v1/ha/agents/plan/proposal",
+        json={"id": "integration:fritz", "mode": "investigate"},
+    ).json()
+    th.join()
+    assert second == {"status": "already_running"} and first["status"] == "dry_run"
+    assert calls == ["integration:fritz"]
+    # and it is free again afterwards
+    assert (
+        http.post(
+            "/v1/ha/agents/plan/proposal", json={"id": "integration:fritz"}
+        ).json()["status"]
+        == "dry_run"
+    )

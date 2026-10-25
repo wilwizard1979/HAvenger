@@ -7,6 +7,7 @@ are deliberately NOT available over HTTP.
 
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -38,6 +39,9 @@ from openjarvis.agents.store import (
 from openjarvis.agents.team import team_overview
 from openjarvis.agents.telegram_bot import TelegramError, get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
+
+_inflight: set[str] = set()
+_inflight_lock = threading.Lock()
 
 ha_agents_router = APIRouter(prefix="/v1/ha/agents", tags=["home-assistant-agents"])
 
@@ -217,7 +221,16 @@ def plan_proposal(body: dict[str, Any]) -> dict[str, Any]:
             status_code=422, detail="mode must be quick, investigate or deep"
         )
     store = get_store()
-    out = generate_proposal(store, CloudClient(store), tid, mode)
+    # one escalation per task at a time: a second click must never pay twice
+    with _inflight_lock:
+        if tid in _inflight:
+            return {"status": "already_running"}
+        _inflight.add(tid)
+    try:
+        out = generate_proposal(store, CloudClient(store), tid, mode)
+    finally:
+        with _inflight_lock:
+            _inflight.discard(tid)
     if out["status"] == "unknown_task":
         raise HTTPException(status_code=404, detail="unknown task")
     return out

@@ -294,7 +294,7 @@ export const api = {
   override: (id: string, effort: Effort | null) =>
     call('/clusters/override', { method: 'PUT', body: JSON.stringify({ id, effort }) }),
   proposal: (id: string, mode: EscalationMode) =>
-    call<{ status: string; estimate?: Estimate; cost_usd?: number; detail?: string; tool_calls?: number }>('/plan/proposal', {
+    call<{ status: string; estimate?: Estimate; cost_usd?: number; detail?: string; tool_calls?: number; proposal?: Proposal }>('/plan/proposal', {
       method: 'POST',
       body: JSON.stringify({ id, mode }),
     }),
