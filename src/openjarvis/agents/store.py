@@ -316,6 +316,10 @@ def _validate_group(key: str, value: Any) -> Any:
     ):
         if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
             raise SettingsError(f"{key} must be a list of strings")
+        if key == "extra_redaction_terms":
+            from openjarvis.agents.redaction import split_terms
+
+            return split_terms(value)
         return [v.strip() for v in value if v.strip()]
     if key == "watchdog":
         if not isinstance(value, dict) or set(value) != {

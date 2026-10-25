@@ -110,3 +110,36 @@ def test_redaction_terms_are_used_by_the_cloud_client(http):
     )
     sent = str(res.request["messages"])
     assert "Mustermann" not in sent and "<name_1>" in sent
+
+
+def test_hidden_words_ignore_case_accept_commas_and_work_inside_entity_ids():
+    from openjarvis.agents.redaction import Redactor, split_terms
+
+    assert split_terms(["Anna, Bob", " carl ", "ANNA", ""]) == ["Anna", "Bob", "carl"]
+    r = Redactor(["Anna, Bob", "Main Street"])
+    for text in (
+        "Anna lock",
+        "ANNA lock",
+        "anna lock",
+        "bob and ANNA",
+        "main street 5",
+    ):
+        out = r.redact(text)
+        assert "nna" not in out.lower().replace("<name", "") or "<name_" in out
+        assert not any(w in out.lower() for w in ("anna", "bob", "main street"))
+    eid = r.redact("binary_sensor.smoke_alarm_anna_alarm_status and sensor.Bob_battery")
+    assert (
+        "anna" not in eid.lower() and "bob" not in eid.lower() and "smoke_alarm_" in eid
+    )
+    # digits and letters still bound a word: no half-matches inside other words
+    assert r.redact("Annabelle and bob2") == "Annabelle and bob2"
+    # the answer is restored locally
+    assert r.restore(r.redact("Anna called")) == "Anna called"
+
+
+def test_comma_separated_words_are_split_when_saved(http):
+    out = http.put(
+        "/v1/ha/agents/settings",
+        json={"extra_redaction_terms": ["Anna, Bob", "Main Street, Town"]},
+    ).json()
+    assert out["extra_redaction_terms"] == ["Anna", "Bob", "Main Street", "Town"]

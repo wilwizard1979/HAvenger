@@ -93,6 +93,17 @@ DROP_KEYS = frozenset({"translation_placeholders", "placeholders"})
 _SECRET_KEY = re.compile(rf"(?i)^{_KEY}$")
 
 
+def split_terms(items: Iterable[str]) -> list[str]:
+    """One term per entry; a comma inside an entry separates terms; no duplicates."""
+    out: list[str] = []
+    for item in items:
+        for part in str(item or "").split(","):
+            part = part.strip()
+            if part and part.lower() not in (o.lower() for o in out):
+                out.append(part)
+    return out
+
+
 class RedactionError(RuntimeError):
     """A payload still contains something the redaction rules would remove."""
 
@@ -104,7 +115,7 @@ class Redactor:
         self, extra_terms: Iterable[str] = (), max_chars: int = MAX_CHARS
     ) -> None:
         self._max = max_chars
-        self._terms = [t.strip() for t in extra_terms if t and t.strip()]
+        self._terms = split_terms(extra_terms)
         self._maps: dict[str, dict[str, str]] = {}
         self._reverse: dict[str, str] = {}
 
@@ -186,8 +197,10 @@ class Redactor:
             lambda m: "person." + self._placeholder("person", m.group(1)), t
         )
         for term in self._terms:
+            # letters and digits bound a name; "_" and "." do not, so a name inside an
+            # entity id (smoke_alarm_<name>_status) is hidden as well
             t = re.sub(
-                rf"(?i)(?<![\w<]){re.escape(term)}(?![\w>])",
+                rf"(?i)(?<![A-Za-z0-9<]){re.escape(term)}(?![A-Za-z0-9>])",
                 lambda m: self._placeholder("name", m.group(0)),
                 t,
             )

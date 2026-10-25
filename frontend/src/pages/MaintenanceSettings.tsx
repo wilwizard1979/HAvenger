@@ -201,18 +201,27 @@ function Lines({
   onChange,
   rows = 4,
   placeholder,
+  commas = false,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
   rows?: number;
   placeholder?: string;
+  commas?: boolean;
 }) {
   return (
     <textarea
       value={value.join('\n')}
       rows={rows}
       placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value.split('\n').map((x) => x.trim()).filter(Boolean))}
+      onChange={(e) =>
+        onChange(
+          e.target.value
+            .split(commas ? /[\n,]/ : '\n')
+            .map((x) => x.trim())
+            .filter(Boolean),
+        )
+      }
       className="w-full rounded px-2 py-1.5 text-xs hud-mono"
       style={inputStyle}
     />
@@ -455,7 +464,8 @@ export function SettingsTab() {
         <Lines
           value={draft.extra_redaction_terms}
           rows={3}
-          placeholder="e.g. a family name or your street"
+          commas
+          placeholder="one per line, or separated by commas. Upper or lower case does not matter"
           onChange={(v) => set('extra_redaction_terms', v)}
         />
         {draft.extra_redaction_terms.length === 0 && (
