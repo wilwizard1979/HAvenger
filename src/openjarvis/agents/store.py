@@ -114,6 +114,23 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     },
     # One escalation (Sonnet or Opus) may look around read-only, within these limits.
     "escalation": {"max_rounds": 6, "max_usd": 0.5, "opus_max_usd": 2.0},
+    # Janitor Telegram bot (own token in the Keychain). Locked to one Telegram user.
+    "telegram": {
+        "enabled": True,
+        "allowed_user_id": 8259290562,
+        "digest": True,
+        # Pilot: alerts stay on the dashboard; switch on once the bot is trusted.
+        "alerts": False,
+    },
+    # Executor: runs only what you approved in Telegram. live=false = simulation.
+    "executor": {
+        "live": False,
+        "operator": "haiku",
+        "require_backup": True,
+        "allowed_tools": ["ha_call_write_tool"],
+        "deny_names_regex": "delete|remove|shutdown|restart|reboot|eval_template|reset",
+        "step_timeout_s": 660,
+    },
     "critical_entities": [],
     # Empty = automatic: every binary_sensor with device_class "motion".
     "motion_sensors": [],
@@ -167,6 +184,13 @@ CREATE TABLE IF NOT EXISTS plan_proposals (
 );
 CREATE TABLE IF NOT EXISTS facts (
   key TEXT PRIMARY KEY, value TEXT NOT NULL, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS executions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, cluster_id TEXT NOT NULL, label TEXT, members_hash TEXT,
+  instruction TEXT NOT NULL, instruction_hash TEXT NOT NULL, risk TEXT, summary TEXT,
+  status TEXT NOT NULL, live INTEGER NOT NULL DEFAULT 0, telegram_message_id TEXT,
+  created_at REAL NOT NULL, updated_at REAL NOT NULL, approved_at REAL, started_at REAL,
+  finished_at REAL, log TEXT NOT NULL DEFAULT '[]'
 );
 CREATE TABLE IF NOT EXISTS readouts (
   id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, report_id INTEGER, model TEXT,
@@ -332,6 +356,53 @@ def _validate_group(key: str, value: Any) -> Any:
             "effort_defaults": dict(eff),
             "chore_categories": list(chores),
             "default_effort": value["default_effort"],
+        }
+    if key == "telegram":
+        keys = {"enabled", "allowed_user_id", "digest", "alerts"}
+        if not isinstance(value, dict) or set(value) != keys:
+            raise SettingsError(
+                "telegram needs: enabled, allowed_user_id, digest, alerts"
+            )
+        for f in ("enabled", "digest", "alerts"):
+            if not isinstance(value[f], bool):
+                raise SettingsError(f"telegram.{f} must be true or false")
+        uid = value["allowed_user_id"]
+        if isinstance(uid, bool) or not isinstance(uid, int) or uid <= 0:
+            raise SettingsError("telegram.allowed_user_id must be a positive integer")
+        return dict(value)
+    if key == "executor":
+        keys = {
+            "live",
+            "operator",
+            "require_backup",
+            "allowed_tools",
+            "deny_names_regex",
+            "step_timeout_s",
+        }
+        if not isinstance(value, dict) or set(value) != keys:
+            raise SettingsError(f"executor needs: {', '.join(sorted(keys))}")
+        for f in ("live", "require_backup"):
+            if not isinstance(value[f], bool):
+                raise SettingsError(f"executor.{f} must be true or false")
+        if value["operator"] not in ("haiku", "python"):
+            raise SettingsError("executor.operator must be haiku or python")
+        tools = value["allowed_tools"]
+        if not isinstance(tools, list) or not all(
+            isinstance(t, str) and re.fullmatch(r"ha_[a-z0-9_]+", t) for t in tools
+        ):
+            raise SettingsError("executor.allowed_tools must be a list of ha_* tools")
+        try:
+            re.compile(str(value["deny_names_regex"]))
+        except re.error as exc:
+            raise SettingsError(
+                "executor.deny_names_regex is not a valid regex"
+            ) from exc
+        return {
+            **value,
+            "allowed_tools": list(tools),
+            "step_timeout_s": _num(
+                value["step_timeout_s"], "executor.step_timeout_s", 10, 3600
+            ),
         }
     if key == "escalation":
         keys = {"max_rounds", "max_usd", "opus_max_usd"}
@@ -616,6 +687,81 @@ class Store:
     def plan_proposals(self) -> dict[str, dict[str, Any]]:
         rows = self._all("SELECT * FROM plan_proposals")
         return {r["cluster_id"]: {**r, "body": json.loads(r["body"])} for r in rows}
+
+    # -- executions: what the user approved and what happened ---------------
+    def create_execution(
+        self,
+        cluster_id: str,
+        *,
+        label: str,
+        members_hash: str,
+        instruction: dict[str, Any],
+        instruction_hash: str,
+        risk: str,
+        summary: str,
+        live: bool,
+    ) -> int:
+        now = time.time()
+        cur = self._run(
+            "INSERT INTO executions(cluster_id,label,members_hash,instruction,instruction_hash,risk,summary,"
+            "status,live,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'awaiting_approval',?,?,?)",
+            (
+                cluster_id,
+                label,
+                members_hash,
+                json.dumps(instruction),
+                instruction_hash,
+                risk,
+                summary,
+                int(live),
+                now,
+                now,
+            ),
+        )
+        return int(cur.lastrowid or 0)
+
+    def execution(self, exec_id: int) -> dict[str, Any] | None:
+        rows = self._all("SELECT * FROM executions WHERE id=?", (exec_id,))
+        if not rows:
+            return None
+        r = rows[0]
+        return {
+            **r,
+            "instruction": json.loads(r["instruction"]),
+            "log": json.loads(r["log"]),
+        }
+
+    def executions(self, limit: int = 30) -> list[dict[str, Any]]:
+        rows = self._all("SELECT id FROM executions ORDER BY id DESC LIMIT ?", (limit,))
+        return [e for e in (self.execution(r["id"]) for r in rows) if e]
+
+    def update_execution(self, exec_id: int, **fields: Any) -> None:
+        allowed = {
+            "status",
+            "telegram_message_id",
+            "approved_at",
+            "started_at",
+            "finished_at",
+            "live",
+        }
+        cols = {k: v for k, v in fields.items() if k in allowed}
+        cols["updated_at"] = time.time()
+        sets = ", ".join(f"{k}=?" for k in cols)
+        self._run(f"UPDATE executions SET {sets} WHERE id=?", (*cols.values(), exec_id))
+
+    def log_execution(self, exec_id: int, event: str, detail: str = "") -> None:
+        with self._lock, self._conn() as c:
+            row = c.execute(
+                "SELECT log FROM executions WHERE id=?", (exec_id,)
+            ).fetchone()
+            if row is None:
+                return
+            log = json.loads(row["log"])
+            log.append({"t": time.time(), "event": event, "detail": detail[:600]})
+            c.execute(
+                "UPDATE executions SET log=? WHERE id=?",
+                (json.dumps(log[-80:]), exec_id),
+            )
 
     # -- Qwen read-outs ----------------------------------------------------
     def add_readout(

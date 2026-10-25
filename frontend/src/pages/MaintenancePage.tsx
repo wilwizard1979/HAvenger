@@ -10,6 +10,7 @@ import {
   SEVERITY_COLOR,
   type Effort,
   type EscalationMode,
+  type Execution,
   type Overview,
   type Proposal,
   type Plan,
@@ -534,7 +535,7 @@ function Runs({ runs }: { runs: RunRow[] }) {
   );
 }
 
-type StepKey = 'check' | 'digest' | 'qwen' | 'haiku' | 'sonnet';
+type StepKey = 'check' | 'digest' | 'qwen' | 'haiku' | 'sonnet' | 'exec';
 
 function Step({
   n,
@@ -593,6 +594,8 @@ function FlowTab({ plan }: { plan: Plan | null }) {
   const navigate = useNavigate();
   const { data, reload } = usePolled(api.team, 20_000);
   const settings = usePolled(api.settings, 60_000);
+  const execs = usePolled(api.executions, 10_000);
+  const tg = usePolled(api.telegramStatus, 20_000);
   const [busy, setBusy] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [open, setOpen] = useState<Set<StepKey>>(new Set());
@@ -665,6 +668,20 @@ function FlowTab({ plan }: { plan: Plan | null }) {
       }
       return last === 'dry_run' ? `dry-run: nothing was sent (${ticked.length} tasks)` : `${ok} of ${ticked.length} proposals written${last ? ` (last: ${last})` : ''}`;
     });
+
+  const requestApproval = (clusterId: string) =>
+    guarded('exec', async () => {
+      const r = await api.requestExecution(clusterId);
+      await execs.reload();
+      if (r.status === 'awaiting_approval') return `Sent to Telegram (request #${r.id}). Approve it there.`;
+      if (r.status === 'not_executable') return `Cannot be executed: ${(r.problems ?? []).join('; ')}`;
+      return r.status.replace(/_/g, ' ');
+    });
+
+  const setGroup = async (group: 'telegram' | 'executor', next: Record<string, unknown>) => {
+    await api.putSettings({ [group]: next });
+    await Promise.all([settings.reload(), execs.reload(), tg.reload()]);
+  };
 
   const toggleAuto = async () => {
     const w = settings.data?.watchdog;
@@ -882,6 +899,17 @@ function FlowTab({ plan }: { plan: Plan | null }) {
                 <Chip text={`risk ${p.risk}`} color={risky(p.risk)} />
                 {!p.current && <Chip text="out of date" color="var(--color-warning)" />}
                 <span className="hud-mono" style={faint}>{p.proposal.mode ?? 'quick'} · {usd(p.cost_usd)}</span>
+                {p.current && (p.proposal.instruction?.steps.length ?? 0) > 0 && (
+                  <button
+                    disabled={busy !== null || (execs.data?.executions ?? []).some((e) => e.cluster_id === p.cluster_id && ['awaiting_approval', 'approved', 'running'].includes(e.status))}
+                    onClick={() => void requestApproval(p.cluster_id)}
+                    className="ml-auto px-2 py-1 rounded text-[11px] cursor-pointer"
+                    style={{ ...btn, border: '1px solid var(--color-accent)' }}
+                    title="Sends the steps to your Janitor bot. Nothing happens until you press Approve in Telegram."
+                  >
+                    Send for approval in Telegram
+                  </button>
+                )}
               </div>
               <ProposalView p={p.proposal} />
             </div>
@@ -900,12 +928,100 @@ function FlowTab({ plan }: { plan: Plan | null }) {
         n={7}
         tag="Haiku"
         title="Approval and execution"
-        role="You approve a proposal, then Haiku runs exactly its steps. Not built yet (Phase 5)."
-        status="locked"
-        open={false}
-        onToggle={() => undefined}
+        role="You approve in Telegram; Haiku then runs exactly the approved steps, nothing else."
+        status={`${(execs.data?.executions ?? []).filter((e) => e.status === 'awaiting_approval').length} waiting · ${execs.data?.executor.live ? 'LIVE' : 'simulation'}`}
+        open={open.has('exec')}
+        onToggle={() => toggle('exec')}
       >
-        <span />
+        {note('exec')}
+        <div className="text-xs" style={muted}>
+          Telegram bot:{' '}
+          {tg.data?.running ? `connected as @${tg.data.username}` : `not running${tg.data?.last_error ? ` (${tg.data.last_error})` : ''}`}
+          {' · '}locked to your Telegram user only.
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button disabled={busy !== null} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}
+            onClick={() => void guarded('exec', async () => { await api.telegramTest(); return 'Test message sent to Telegram.'; })}>
+            Send test message
+          </button>
+          <button disabled={busy !== null} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}
+            onClick={() => void guarded('exec', async () => { const r = await api.telegramDigest(); return `Digest: ${r.status}`; })}>
+            Send digest to Telegram
+          </button>
+        </div>
+        {settings.data && (
+          <div className="flex flex-col gap-1.5 pt-1">
+            {(
+              [
+                ['telegram', 'enabled', 'Telegram bot on'],
+                ['telegram', 'digest', 'Send the digest to Telegram'],
+                ['telegram', 'alerts', 'Alerts for new critical issues (never during quiet hours)'],
+                ['executor', 'require_backup', 'Live runs need a backup newer than the limit'],
+              ] as ['telegram' | 'executor', string, string][]
+            ).map(([g, k, label]) => {
+              const cfg = settings.data![g] as unknown as Record<string, boolean>;
+              return (
+                <label key={`${g}.${k}`} className="flex items-center gap-2 text-xs cursor-pointer" style={muted}>
+                  <input type="checkbox" checked={cfg[k]} onChange={() => void setGroup(g, { ...settings.data![g], [k]: !cfg[k] })} />
+                  {label}
+                </label>
+              );
+            })}
+            <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: settings.data.executor.live ? 'var(--color-error)' : 'var(--color-text-secondary)' }}>
+              <input
+                type="checkbox"
+                checked={settings.data.executor.live}
+                onChange={() => {
+                  const live = !settings.data!.executor.live;
+                  if (live && !window.confirm('LIVE mode lets approved steps change Home Assistant. Home Assistant will still ask for its own approval. Switch on?')) return;
+                  void setGroup('executor', { ...settings.data!.executor, live });
+                }}
+              />
+              Executor LIVE (off = simulation: the steps are logged, nothing is sent)
+            </label>
+            <label className="flex items-center gap-2 text-xs" style={muted}>
+              Operator
+              <select
+                value={settings.data.executor.operator}
+                onChange={(e) => void setGroup('executor', { ...settings.data!.executor, operator: e.target.value })}
+                className="text-[11px] rounded px-1 py-0.5 cursor-pointer"
+                style={btn}
+              >
+                <option value="haiku">Haiku (follows the approved steps only)</option>
+                <option value="python">Python (no model)</option>
+              </select>
+            </label>
+          </div>
+        )}
+        <div className="hud-label pt-2">Requests</div>
+        {(execs.data?.executions ?? []).length === 0 ? (
+          <div className="text-xs" style={faint}>No requests yet. Use "Send for approval in Telegram" on a proposal in step 6.</div>
+        ) : (
+          (execs.data?.executions ?? []).map((e: Execution) => (
+            <div key={e.id} className="flex flex-col gap-1 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <div className="flex items-center gap-2 text-xs flex-wrap">
+                <span className="hud-mono" style={faint}>#{e.id}</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{e.label}</span>
+                <Chip text={e.status.replace('_', ' ')} color={['failed', 'rolled_back'].includes(e.status) ? 'var(--color-error)' : e.status === 'done' ? 'var(--color-success)' : undefined} />
+                <Chip text={e.live ? 'live' : 'simulation'} />
+                <span style={faint}>{ago(e.created_at)} ago</span>
+                {e.status === 'awaiting_approval' && (
+                  <button className="ml-auto px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}
+                    onClick={() => void guarded('exec', async () => { await api.cancelExecution(e.id); await execs.reload(); return `#${e.id} withdrawn`; })}>
+                    Withdraw
+                  </button>
+                )}
+              </div>
+              <ul className="text-[11px] hud-mono flex flex-col gap-0.5" style={faint}>
+                {e.log.slice(-8).map((l, i) => (
+                  <li key={i} className="truncate" title={l.detail}>
+                    {new Date(l.t * 1000).toLocaleTimeString()} {l.event}{l.detail ? ` · ${l.detail}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
       </Step>
 
       <div className="hud-panel p-3">

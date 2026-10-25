@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from openjarvis.agents import janitor_executor as executor
 from openjarvis.agents.cloud_client import KEYCHAIN_SERVICE, CloudClient
 from openjarvis.agents.clusters import build_clusters, matrix_counts
 from openjarvis.agents.planning import (
@@ -29,6 +30,7 @@ from openjarvis.agents.store import (
     get_store,
 )
 from openjarvis.agents.team import team_overview
+from openjarvis.agents.telegram_bot import TelegramError, get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
 
 ha_agents_router = APIRouter(prefix="/v1/ha/agents", tags=["home-assistant-agents"])
@@ -225,3 +227,63 @@ def agents_team() -> dict[str, Any]:
 def readout_run() -> dict[str, Any]:
     """Qwen (local, free) reads the latest report aloud."""
     return run_readout(get_store())
+
+
+@ha_agents_router.get("/telegram/status")
+def telegram_status() -> dict[str, Any]:
+    return get_bot_service().status()
+
+
+@ha_agents_router.post("/telegram/test")
+def telegram_test() -> dict[str, Any]:
+    try:
+        get_bot_service().bot.send(
+            "Test from Jarvis the Janitor. The bot is connected."
+        )
+    except TelegramError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"status": "sent"}
+
+
+@ha_agents_router.post("/telegram/digest")
+def telegram_digest() -> dict[str, Any]:
+    try:
+        return get_bot_service().bot.send_digest()
+    except TelegramError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@ha_agents_router.get("/executions")
+def list_executions() -> dict[str, Any]:
+    store = get_store()
+    ex = store.settings()["executor"]
+    return {
+        "executions": store.executions(30),
+        "executor": {"live": ex["live"], "operator": ex["operator"]},
+    }
+
+
+@ha_agents_router.post("/executions/request")
+def request_execution(body: dict[str, Any]) -> dict[str, Any]:
+    """Ask for approval of one proposal. The approval itself happens in Telegram."""
+    cid = body.get("cluster_id")
+    if not isinstance(cid, str) or not cid:
+        raise HTTPException(status_code=422, detail="cluster_id is required")
+    store = get_store()
+    out = executor.request_approval(store, cid)
+    if out["status"] != "awaiting_approval":
+        return out
+    try:
+        get_bot_service().bot.request_approval(out["id"])
+    except TelegramError as exc:
+        executor.cancel(store, out["id"])
+        raise HTTPException(
+            status_code=502, detail=f"Could not reach Telegram: {exc}"
+        ) from exc
+    return out
+
+
+@ha_agents_router.post("/executions/{exec_id}/cancel")
+def cancel_execution(exec_id: int) -> dict[str, Any]:
+    """Withdraw a request that is still waiting. This can never approve anything."""
+    return executor.cancel(get_store(), exec_id)

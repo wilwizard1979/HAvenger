@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from openjarvis.agents.telegram_bot import get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
 from openjarvis.server.analytics_routes import router as analytics_router
 from openjarvis.server.api_routes import include_all_routes
@@ -507,10 +508,12 @@ def create_app(
         # L0 only: read-only polling of Home Assistant, no cloud calls.
         # JARVIS_WATCHDOG=0 or settings.watchdog.enabled=false turn it off.
         get_watchdog().start()
+        get_bot_service().start()
 
     @app.on_event("shutdown")
     async def _stop_janitor_watchdog() -> None:
         await get_watchdog().stop()
+        await get_bot_service().stop()
 
     app.include_router(upload_router)
     app.include_router(research_router)

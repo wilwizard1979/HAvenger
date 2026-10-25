@@ -116,6 +116,53 @@ export interface Plan {
   dry_run: boolean;
 }
 
+export interface Execution {
+  id: number;
+  cluster_id: string;
+  label: string;
+  risk: string;
+  summary: string;
+  status:
+    | 'awaiting_approval'
+    | 'approved'
+    | 'running'
+    | 'done'
+    | 'simulated'
+    | 'failed'
+    | 'rolled_back'
+    | 'rejected'
+    | 'expired'
+    | 'cancelled';
+  live: number;
+  created_at: number;
+  log: { t: number; event: string; detail: string }[];
+}
+
+export interface TelegramStatus {
+  enabled: boolean;
+  running: boolean;
+  username: string | null;
+  allowed_user_id: number;
+  last_poll: number | null;
+  last_error: string | null;
+}
+
+export interface ExecutorCfg {
+  live: boolean;
+  operator: 'haiku' | 'python';
+  require_backup: boolean;
+  allowed_tools: string[];
+  deny_names_regex: string;
+  step_timeout_s: number;
+}
+
+export interface TelegramCfg {
+  enabled: boolean;
+  allowed_user_id: number;
+  digest: boolean;
+  alerts: boolean;
+}
+
 export interface ReportOut {
   id?: number;
   status?: string;
@@ -236,7 +283,23 @@ export const api = {
   team: () => call<Team>('/team'),
   runReadout: () => call<{ status: string; detail?: string }>('/readout/run', { method: 'POST' }),
   runTriage: () => call<{ status: string; estimated_cost_usd?: number; detail?: string }>('/triage/run', { method: 'POST' }),
-  settings: () => call<{ watchdog: { enabled: boolean; interval_min: number; quiet_hours: { enabled: boolean; start: string; end: string } } }>('/settings'),
+  settings: () =>
+    call<{
+      watchdog: { enabled: boolean; interval_min: number; quiet_hours: { enabled: boolean; start: string; end: string } };
+      telegram: TelegramCfg;
+      executor: ExecutorCfg;
+    }>('/settings'),
+  putSettings: (patch: Record<string, unknown>) => call('/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+  telegramStatus: () => call<TelegramStatus>('/telegram/status'),
+  telegramTest: () => call<{ status: string }>('/telegram/test', { method: 'POST' }),
+  telegramDigest: () => call<{ status: string }>('/telegram/digest', { method: 'POST' }),
+  executions: () => call<{ executions: Execution[]; executor: { live: boolean; operator: string } }>('/executions'),
+  requestExecution: (cluster_id: string) =>
+    call<{ status: string; id?: number; problems?: string[] }>('/executions/request', {
+      method: 'POST',
+      body: JSON.stringify({ cluster_id }),
+    }),
+  cancelExecution: (id: number) => call<{ status: string }>(`/executions/${id}/cancel`, { method: 'POST' }),
   setWatchdog: (w: { enabled: boolean; interval_min: number; quiet_hours: { enabled: boolean; start: string; end: string } }) =>
     call('/settings', { method: 'PUT', body: JSON.stringify({ watchdog: w }) }),
   runDigest: (triage: boolean) => call<ReportOut>(`/reports/run?triage=${triage}`, { method: 'POST' }),

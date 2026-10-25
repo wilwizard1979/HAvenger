@@ -136,6 +136,29 @@ class Redactor:
         return obj
 
     # -- text -------------------------------------------------------------
+    @staticmethod
+    def redact_secrets(text: str) -> str:
+        """Secrets only (keys, passwords, tokens, URL credentials). For messages to
+        the user's own Telegram bot, where entity ids must stay readable."""
+        t = _ANSI.sub("", text)
+        t = Redactor._secret_rules(t)
+        for name, rx in _KNOWN.items():
+            t = rx.sub(f"[REDACTED:{name}]", t)
+        return t
+
+    @staticmethod
+    def _secret_rules(t: str) -> str:
+        t = _KV_QUOTED.sub(
+            lambda m: f"{m.group(1)}{m.group(2)}<redacted>{m.group(2)}", t
+        )
+        t = _KV_BARE.sub(lambda m: f"{m.group(1)}<redacted>", t)
+        t = _BANG_SECRET.sub(r"\1<redacted>", t)
+        t = _BEARER.sub(r"\1<redacted>", t)
+        t = _URL_CREDS.sub(r"\1<redacted>@", t)
+        t = _URL_QUERY.sub(r"\1<redacted>", t)
+        t = _HA_MCP_PATH.sub(r"\1<redacted>", t)
+        return _WEBHOOK.sub(r"\1<redacted>", t)
+
     def redact(self, text: str) -> str:
         if not isinstance(text, str):
             return text
