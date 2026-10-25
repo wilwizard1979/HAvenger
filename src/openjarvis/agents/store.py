@@ -95,6 +95,23 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         # Quiet hours always win, critical alerts included.
         "quiet_hours": {"enabled": True, "start": "22:00", "end": "07:00"},
     },
+    # Severity x effort matrix. "auto" = Haiku rates it (until then default_effort).
+    "matrix": {
+        "effort_defaults": {
+            "repair": "auto",
+            "integration": "auto",
+            "log": "auto",
+            "entity_group": "hard",
+            "motion": "medium",
+            "critical_entity": "medium",
+            "battery": "quick",
+            "backup": "medium",
+        },
+        # Needs no change in Home Assistant (e.g. replace a battery): a chore.
+        "chore_categories": ["battery"],
+        "default_effort": "medium",
+        "batch_size": 5,
+    },
     "critical_entities": [],
     # Empty = automatic: every binary_sensor with device_class "motion".
     "motion_sensors": [],
@@ -132,6 +149,13 @@ CREATE TABLE IF NOT EXISTS ledger (
   PRIMARY KEY (month, model)
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS cluster_overrides (
+  cluster_id TEXT PRIMARY KEY, effort TEXT, kind TEXT, updated REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS triage_notes (
+  cluster_id TEXT PRIMARY KEY, members_hash TEXT NOT NULL, effort TEXT, note TEXT, cause TEXT,
+  model TEXT, updated REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS watch_state (
   fingerprint TEXT PRIMARY KEY, category TEXT NOT NULL, first_seen REAL NOT NULL, misses INTEGER NOT NULL DEFAULT 0
 );
@@ -147,6 +171,8 @@ PROPOSAL_STATES = (
     "rolled_back",
 )
 RISKS = ("low", "medium", "high")
+EFFORTS = ("quick", "medium", "hard")
+CLUSTER_KINDS = ("change", "chore")
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 
 
@@ -262,6 +288,28 @@ def _validate_group(key: str, value: Any) -> Any:
             "enabled": value["enabled"],
             "interval_min": interval,
             "quiet_hours": dict(qh),
+        }
+    if key == "matrix":
+        keys = {"effort_defaults", "chore_categories", "default_effort", "batch_size"}
+        if not isinstance(value, dict) or set(value) != keys:
+            raise SettingsError(f"matrix needs: {', '.join(sorted(keys))}")
+        eff = value["effort_defaults"]
+        if not isinstance(eff, dict) or not all(
+            isinstance(k, str) and v in (*EFFORTS, "auto") for k, v in eff.items()
+        ):
+            raise SettingsError(
+                "matrix.effort_defaults: category -> quick|medium|hard|auto"
+            )
+        if value["default_effort"] not in EFFORTS:
+            raise SettingsError("matrix.default_effort must be quick, medium or hard")
+        chores = value["chore_categories"]
+        if not isinstance(chores, list) or not all(isinstance(c, str) for c in chores):
+            raise SettingsError("matrix.chore_categories must be a list of categories")
+        return {
+            "effort_defaults": dict(eff),
+            "chore_categories": list(chores),
+            "default_effort": value["default_effort"],
+            "batch_size": int(_num(value["batch_size"], "matrix.batch_size", 1, 50)),
         }
     if key == "features":
         if not isinstance(value, dict) or not all(
@@ -454,6 +502,49 @@ class Store:
             raise ValueError(f"issue state must be one of {ISSUE_STATES}")
         self._run("UPDATE issues SET state=? WHERE fingerprint=?", (state, fingerprint))
 
+    # -- clusters: overrides and Haiku notes ------------------------------
+    def set_override(
+        self, cluster_id: str, effort: str | None, kind: str | None
+    ) -> None:
+        if effort is not None and effort not in EFFORTS:
+            raise ValueError(f"effort must be one of {EFFORTS}")
+        if kind is not None and kind not in CLUSTER_KINDS:
+            raise ValueError(f"kind must be one of {CLUSTER_KINDS}")
+        if effort is None and kind is None:
+            self._run("DELETE FROM cluster_overrides WHERE cluster_id=?", (cluster_id,))
+            return
+        self._run(
+            "INSERT INTO cluster_overrides(cluster_id,effort,kind,updated) VALUES(?,?,?,?) "
+            "ON CONFLICT(cluster_id) DO UPDATE SET effort=excluded.effort, kind=excluded.kind, updated=excluded.updated",
+            (cluster_id, effort, kind, time.time()),
+        )
+
+    def overrides(self) -> dict[str, dict[str, Any]]:
+        return {
+            r["cluster_id"]: r for r in self._all("SELECT * FROM cluster_overrides")
+        }
+
+    def put_triage(
+        self,
+        cluster_id: str,
+        members_hash: str,
+        *,
+        effort: str | None,
+        note: str,
+        cause: str,
+        model: str,
+    ) -> None:
+        self._run(
+            "INSERT INTO triage_notes(cluster_id,members_hash,effort,note,cause,model,updated) "
+            "VALUES(?,?,?,?,?,?,?) ON CONFLICT(cluster_id) DO UPDATE SET members_hash=excluded.members_hash,"
+            " effort=excluded.effort, note=excluded.note, cause=excluded.cause, model=excluded.model,"
+            " updated=excluded.updated",
+            (cluster_id, members_hash, effort, note, cause, model, time.time()),
+        )
+
+    def triage_notes(self) -> dict[str, dict[str, Any]]:
+        return {r["cluster_id"]: r for r in self._all("SELECT * FROM triage_notes")}
+
     # -- watchdog bookkeeping ---------------------------------------------
     def watch_states(self) -> dict[str, dict[str, Any]]:
         rows = self._all("SELECT * FROM watch_state")
@@ -485,12 +576,23 @@ class Store:
         self._run("DELETE FROM watch_state WHERE fingerprint=?", (fingerprint,))
 
     # -- reports ----------------------------------------------------------
-    def add_report(self, status: str, summary_text: str, body: dict[str, Any]) -> int:
+    def add_report(
+        self,
+        status: str,
+        summary_text: str,
+        body: dict[str, Any],
+        ts: float | None = None,
+    ) -> int:
         if status not in ("ok", "attention", "critical"):
             raise ValueError("report status must be ok, attention or critical")
         cur = self._run(
             "INSERT INTO reports(created_at,status,summary_text,body) VALUES(?,?,?,?)",
-            (time.time(), status, summary_text, json.dumps(body)),
+            (
+                ts if ts is not None else time.time(),
+                status,
+                summary_text,
+                json.dumps(body),
+            ),
         )
         return int(cur.lastrowid or 0)
 

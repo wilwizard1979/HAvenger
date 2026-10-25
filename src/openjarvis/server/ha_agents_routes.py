@@ -12,7 +12,15 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 
 from openjarvis.agents.cloud_client import KEYCHAIN_SERVICE, CloudClient
-from openjarvis.agents.store import ISSUE_STATES, SettingsError, get_store
+from openjarvis.agents.clusters import build_clusters, matrix_counts
+from openjarvis.agents.reporting import generate_report, run_triage
+from openjarvis.agents.store import (
+    CLUSTER_KINDS,
+    EFFORTS,
+    ISSUE_STATES,
+    SettingsError,
+    get_store,
+)
 from openjarvis.agents.watchdog import get_watchdog
 
 ha_agents_router = APIRouter(prefix="/v1/ha/agents", tags=["home-assistant-agents"])
@@ -108,3 +116,53 @@ def suggestions() -> dict[str, Any]:
         return HaCollector().suggest()
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=str(exc)[:200]) from exc
+
+
+def _clusters() -> list[dict[str, Any]]:
+    store = get_store()
+    return build_clusters(
+        store.issues(), store.settings(), store.overrides(), store.triage_notes()
+    )
+
+
+@ha_agents_router.get("/clusters")
+def clusters() -> dict[str, Any]:
+    """Prioritised clusters and the severity x effort matrix (read-only)."""
+    found = _clusters()
+    return {
+        "clusters": found,
+        "matrix": matrix_counts(found),
+        "batch_size": get_store().settings()["matrix"]["batch_size"],
+    }
+
+
+@ha_agents_router.put("/clusters/override")
+def cluster_override(body: dict[str, Any]) -> dict[str, Any]:
+    """Set (or clear, with both null) the user's effort / kind for one cluster."""
+    cid, effort, kind = body.get("id"), body.get("effort"), body.get("kind")
+    if not isinstance(cid, str) or not cid:
+        raise HTTPException(status_code=422, detail="id is required")
+    if effort is not None and effort not in EFFORTS:
+        raise HTTPException(status_code=422, detail=f"effort must be one of {EFFORTS}")
+    if kind is not None and kind not in CLUSTER_KINDS:
+        raise HTTPException(
+            status_code=422, detail=f"kind must be one of {CLUSTER_KINDS}"
+        )
+    get_store().set_override(cid, effort, kind)
+    return {"clusters": _clusters()}
+
+
+@ha_agents_router.get("/reports/latest")
+def latest_report() -> dict[str, Any]:
+    return {"report": get_store().latest_report()}
+
+
+@ha_agents_router.post("/reports/run")
+def run_report(triage: bool = True) -> dict[str, Any]:
+    """Build the digest now (manual: allowed past the 75 % auto-escalation pause)."""
+    return generate_report(get_store(), manual=True, triage=triage)
+
+
+@ha_agents_router.post("/triage/run")
+def run_triage_now() -> dict[str, Any]:
+    return run_triage(get_store(), CloudClient(get_store()), _clusters(), manual=True)

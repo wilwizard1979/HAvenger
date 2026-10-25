@@ -503,6 +503,18 @@ class WatchdogService:
             self.running = False
             self._lock.release()
 
+    def _maybe_report(self) -> None:
+        """Digest (and Haiku triage when allowed) once per scheduled slot."""
+        from openjarvis.agents.reporting import generate_report, report_due
+
+        now = self._clock()
+        if not report_due(self.store, now):
+            return
+        try:
+            generate_report(self.store, now=now)
+        except Exception:  # noqa: BLE001
+            logger.warning("Janitor report failed", exc_info=True)
+
     async def _loop(self, first_delay: float) -> None:
         delay = first_delay
         while True:
@@ -511,7 +523,9 @@ class WatchdogService:
             wd = self.store.settings()["watchdog"]
             if wd["enabled"]:
                 try:
-                    await asyncio.get_running_loop().run_in_executor(None, self.tick)
+                    run = asyncio.get_running_loop().run_in_executor
+                    await run(None, self.tick)
+                    await run(None, self._maybe_report)
                 except Exception:  # noqa: BLE001
                     logger.warning("watchdog loop error", exc_info=True)
             delay = max(60.0, float(wd["interval_min"]) * 60) if wd["enabled"] else 60.0
