@@ -209,19 +209,28 @@ function Lines({
   placeholder?: string;
   commas?: boolean;
 }) {
+  const parse = (raw: string) =>
+    raw
+      .split(commas ? /[\n,]/ : '\n')
+      .map((x) => x.trim())
+      .filter(Boolean);
+  // Keep what is being typed as plain text: Enter and "," must be allowed while
+  // typing. Only the parsed list goes up; outside changes (Save, a picker) come back in.
+  const [text, setText] = useState(value.join('\n'));
+  useEffect(() => {
+    if (JSON.stringify(parse(text)) !== JSON.stringify(value)) setText(value.join('\n'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+
   return (
     <textarea
-      value={value.join('\n')}
+      value={text}
       rows={rows}
       placeholder={placeholder}
-      onChange={(e) =>
-        onChange(
-          e.target.value
-            .split(commas ? /[\n,]/ : '\n')
-            .map((x) => x.trim())
-            .filter(Boolean),
-        )
-      }
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(parse(e.target.value));
+      }}
       className="w-full rounded px-2 py-1.5 text-xs hud-mono"
       style={inputStyle}
     />
