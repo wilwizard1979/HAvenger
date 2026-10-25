@@ -122,6 +122,7 @@ def test_only_allow_listed_reads_reach_home_assistant():
     ):
         assert "not allowed" in ro.call(bad, {})
     assert set(escalation.DIAG_TOOLS) == {
+        "ha_search_tools",
         "ha_get_state",
         "ha_search",
         "ha_get_integration",
@@ -130,6 +131,19 @@ def test_only_allow_listed_reads_reach_home_assistant():
     }
     # an allowed tool that fails is reported to the model, not raised
     assert "error" in ro.call("ha_get_state", {"entity_id": ["x"]})
+
+
+def test_tool_discovery_is_called_directly_and_read_only():
+    seen = []
+
+    def call_tool(name, args):
+        seen.append((name, args))
+        return {"content": [{"text": '[{"name": "ha_reload_config_entry"}]'}]}
+
+    ro = ReadOnlyHA(SimpleNamespace(_client=SimpleNamespace(call_tool=call_tool)))
+    assert "ha_reload_config_entry" in ro.call("ha_search_tools", {"query": "reload"})
+    assert seen == [("ha_search_tools", {"query": "reload"})]
+    assert "ha_search_tools" in escalation.SYSTEM and "never guess" in escalation.SYSTEM
 
 
 def test_reads_go_through_the_read_proxy_and_are_truncated():

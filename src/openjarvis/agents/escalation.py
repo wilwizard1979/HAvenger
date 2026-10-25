@@ -34,6 +34,17 @@ TOOL_NAME = re.compile(r"^ha_[a-z0-9_]+$")
 # Read-only Home Assistant lookups an escalated model may use. ``ha_get_overview``
 # is called directly, the others through the read proxy (see ``ReadOnlyHA``).
 DIAG_TOOLS: dict[str, dict[str, Any]] = {
+    "ha_search_tools": {
+        "description": (
+            "Find the exact name and parameters of a Home Assistant tool. Use it "
+            "before you write a step, so the step uses a real tool name."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"],
+        },
+    },
     "ha_get_state": {
         "description": "Current state and attributes of one or more entities.",
         "input_schema": {
@@ -96,7 +107,10 @@ SYSTEM = (
     '"rollback_steps": [same shape]}. The steps are executed later, literally, by '
     "a small model that is not allowed to improvise, so each step must contain the "
     "exact tool name and the exact arguments. Use an empty steps list when no change "
-    "in Home Assistant is needed. Placeholders like <email_1> are redacted values: "
+    "in Home Assistant is needed. To change something use the tool "
+    'ha_call_write_tool with args {"name": <exact tool name>, "arguments": {...}}; '
+    "look the exact name and parameters up with ha_search_tools first, never guess "
+    "them. Placeholders like <email_1> are redacted values: "
     "keep them unchanged."
 )
 
@@ -116,9 +130,14 @@ class ReadOnlyHA:
             self._ha = _HA()
         client = self._ha._client
         try:
-            raw = client.call_tool(
-                "ha_call_read_tool", {"name": name, "arguments": args or {}}
-            )
+            if name == "ha_search_tools":  # discovery tool, called directly
+                raw = client.call_tool(
+                    name, {"query": str((args or {}).get("query", ""))}
+                )
+            else:
+                raw = client.call_tool(
+                    "ha_call_read_tool", {"name": name, "arguments": args or {}}
+                )
             text = raw["content"][0]["text"]
         except Exception as exc:  # noqa: BLE001 - tell the model, keep going
             return json.dumps({"error": str(exc)[:200]})
