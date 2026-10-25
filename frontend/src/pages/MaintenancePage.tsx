@@ -665,6 +665,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
   const runSonnet = () =>
     guarded('sonnet', async () => {
       setConfirm(false);
+      setOpen((p) => new Set(p).add('sonnet'));
       let ok = 0;
       let last = '';
       for (const t of ticked) {
@@ -673,7 +674,11 @@ function FlowTab({ plan }: { plan: Plan | null }) {
         else last = r.status;
         if (r.status === 'skipped_budget' || r.status === 'skipped_no_key') break;
       }
-      return last === 'dry_run' ? `dry-run: nothing was sent (${ticked.length} tasks)` : `${ok} of ${ticked.length} proposals written${last ? ` (last: ${last})` : ''}`;
+      if (last === 'dry_run')
+        return `Dry-run is ON, so Sonnet was NOT called and no proposal was written (${ticked.length} tasks checked). If it were live it would cost up to ${usd(total)}. Switch dry-run off in Settings to get real proposals.`;
+      if (last === 'skipped_no_key') return 'No Anthropic key found in the Keychain (jarvis-the-janitor).';
+      if (last === 'skipped_budget') return 'The monthly budget guard stopped the call.';
+      return `${ok} of ${ticked.length} proposals written${last ? ` (last: ${last})` : ''}`;
     });
 
   const requestApproval = (clusterId: string) =>
@@ -887,10 +892,23 @@ function FlowTab({ plan }: { plan: Plan | null }) {
         tag="Sonnet"
         title={`Proposals · ${t.l3.model}`}
         role="Plans the ticked tasks and writes the instruction for the executor. Only when you start it."
-        status={`${t.l3.escalated.length} proposals`}
+        status={`${t.l3.escalated.length} proposals${t.dry_run ? ' · dry-run' : ''}`}
         open={open.has('sonnet')}
         onToggle={() => toggle('sonnet')}
       >
+        {t.dry_run && (
+          <div
+            className="text-xs p-2 rounded-md flex items-center gap-3 flex-wrap"
+            style={{ background: 'color-mix(in srgb, var(--color-warning) 12%, transparent)', color: 'var(--color-text)' }}
+          >
+            <span className="flex-1 min-w-[240px]">
+              Dry-run is ON: Sonnet is not called, so no proposal can be written. The buttons only show what it would cost.
+            </span>
+            <button onClick={() => navigate('/maintenance?tab=settings')} className="px-2 py-1 rounded text-[11px] cursor-pointer shrink-0" style={btn}>
+              Open Settings
+            </button>
+          </div>
+        )}
         <div className="flex items-center gap-2 flex-wrap">
           <select
             value={mode}
@@ -910,7 +928,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
               className="px-2 py-1 rounded text-[11px] cursor-pointer"
               style={btn}
             >
-              Plan {ticked.length} ticked task{ticked.length === 1 ? '' : 's'}
+              {t.dry_run ? 'Estimate' : 'Plan'} {ticked.length} ticked task{ticked.length === 1 ? '' : 's'}
             </button>
           ) : (
             <>
