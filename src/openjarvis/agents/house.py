@@ -120,10 +120,15 @@ def build_house_status(store: Store, now: float | None = None) -> str:
         )
     mb = c["motion_batteries"]
     if mb["value"] is not None:
-        lines.append(
-            f"- Motion sensor batteries: {mb['value']} low out of "
-            f"{mb['with_battery']} that report a battery."
-        )
+        if mb["kind"] == "ok":
+            lines.append("- Motion sensor batteries: all fine.")
+        else:
+            parts = []
+            if mb["red"]:
+                parts.append(f"{mb['red']} unknown or offline")
+            if mb["orange"]:
+                parts.append(f"{mb['orange']} below {mb['warn_pct']}%")
+            lines.append("- Motion sensor batteries: " + ", ".join(parts) + ".")
     lines.append(
         f"- Devices offline for more than {days} days: "
         f"{c['stale_unavailable']['value']}."

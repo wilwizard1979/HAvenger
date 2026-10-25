@@ -132,29 +132,55 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
     since_h = round((now - boots[0]["boot_at"]) / 3600, 1) if boots else None
 
     mb = facts.get("motion_batteries")
-    limit_pct = s["thresholds"]["battery_low_pct"]
+    warn_pct = s["thresholds"].get("battery_warn_pct", 50)
 
-    def mb_low(r: dict[str, Any]) -> bool:
-        return bool(r.get("low_flag")) or (
-            r.get("battery") is not None and r["battery"] <= limit_pct
-        )
+    def mb_level(r: dict[str, Any]) -> str:
+        """red = unknown or offline, orange = low or below the warn limit."""
+        if r.get("state") in ("unavailable", "unknown") or (
+            r.get("battery") is None and r.get("battery_offline")
+        ):
+            return "red"
+        if r.get("low_flag") or (
+            r.get("battery") is not None and r["battery"] < warn_pct
+        ):
+            return "orange"
+        return "ok" if r.get("battery") is not None else "none"
 
+    order = {"red": 0, "orange": 1, "ok": 2, "none": 3}
     mb_rows = sorted(
         mb or [],
         key=lambda r: (
-            r.get("battery") is None and not r.get("low_flag"),
+            order[mb_level(r)],
             r["battery"] if r.get("battery") is not None else 101,
             r["name"],
         ),
     )
-    mb_low_n = sum(1 for r in mb_rows if mb_low(r))
+    mb_red = sum(1 for r in mb_rows if mb_level(r) == "red")
+    mb_orange = sum(1 for r in mb_rows if mb_level(r) == "orange")
 
     cards = {
         "motion_batteries": {
-            "value": None if mb is None else mb_low_n,
+            # red (unknown or offline) prevails; otherwise the orange ones
+            "value": None if mb is None else mb_red if mb_red else mb_orange,
+            "kind": "idle"
+            if mb is None
+            else "red"
+            if mb_red
+            else "orange"
+            if mb_orange
+            else "ok",
+            "red": mb_red,
+            "orange": mb_orange,
+            "warn_pct": warn_pct,
             "total": len(mb_rows),
             "with_battery": sum(1 for r in mb_rows if r.get("has_battery")),
-            "tone": "idle" if mb is None else "bad" if mb_low_n else "ok",
+            "tone": "idle"
+            if mb is None
+            else "bad"
+            if mb_red
+            else "warn"
+            if mb_orange
+            else "ok",
         },
         "stale_unavailable": {
             "value": stale["count"],
@@ -218,9 +244,9 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
             "items": [
                 {
                     "title": r["name"] + (f" ({r['area']})" if r.get("area") else ""),
-                    "severity": "warning"
-                    if mb_low(r) or r.get("state") in ("unavailable", "unknown")
-                    else "info",
+                    "severity": {"red": "critical", "orange": "warning"}.get(
+                        mb_level(r), "info"
+                    ),
                     "detail": (
                         f"battery {r['battery']:g}%"
                         if r.get("battery") is not None

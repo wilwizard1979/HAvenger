@@ -83,6 +83,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "entities_red_pct": 10,
         "backup_age_hours": 36,
         "battery_low_pct": 20,
+        # Motion sensor batteries: orange below this, red when unknown or offline.
+        "battery_warn_pct": 50,
         "persist_min": 10,
         "log_error_min": 3,
         "automation_fail_runs_24h": 3,

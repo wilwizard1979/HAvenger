@@ -138,9 +138,17 @@ export function HaPanel({ onAsk }: HaPanelProps) {
             <Card icon={Terminal} label="Critical log errors" value={c.log_critical.value} tone={c.log_critical.tone} section="log_critical" />
             <Card
               icon={BatteryLow}
-              label="Motion batteries low"
+              label="Motion batteries"
               value={c.motion_batteries.value}
-              unit={c.motion_batteries.value === null ? undefined : `of ${c.motion_batteries.with_battery}`}
+              unit={
+                c.motion_batteries.kind === 'red'
+                  ? 'unknown or offline'
+                  : c.motion_batteries.kind === 'orange'
+                    ? `below ${c.motion_batteries.warn_pct}%`
+                    : c.motion_batteries.kind === 'ok'
+                      ? 'all fine'
+                      : undefined
+              }
               tone={c.motion_batteries.tone}
               section="motion_batteries"
             />

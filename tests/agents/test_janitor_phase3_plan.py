@@ -296,106 +296,102 @@ def test_plan_endpoints(tmp_path, monkeypatch):
         )
 
 
-def test_motion_battery_card_and_full_list(store):
-    rows = [
-        {
-            "entity_id": "b.a",
-            "name": "Hall",
-            "state": "off",
-            "area": "Hall",
-            "battery": 8.0,
-            "low_flag": False,
-            "has_battery": True,
-        },
-        {
-            "entity_id": "b.b",
-            "name": "Kitchen",
-            "state": "off",
-            "area": None,
-            "battery": 64.0,
-            "low_flag": False,
-            "has_battery": True,
-        },
-        {
-            "entity_id": "b.c",
-            "name": "Doorbell",
-            "state": "off",
-            "area": None,
-            "battery": None,
-            "low_flag": False,
-            "has_battery": False,
-        },
-        {
-            "entity_id": "b.d",
-            "name": "Garage",
-            "state": "unavailable",
-            "area": None,
-            "battery": None,
-            "low_flag": True,
-            "has_battery": True,
-        },
-        {
-            "entity_id": "b.e",
-            "name": "Office",
-            "state": "off",
-            "area": "Office",
-            "battery": 20.0,
-            "low_flag": False,
-            "has_battery": True,
-        },
-    ]
-    store.set_facts({"motion_batteries": rows})
-    o = planning.overview(store, NOW)
-    assert o["cards"]["motion_batteries"] == {
-        "value": 3,
-        "total": 5,
-        "with_battery": 4,
-        "tone": "bad",
+def mrow(
+    name, battery=None, state="off", low_flag=False, offline=False, has=True, area=None
+):
+    return {
+        "entity_id": f"b.{name.lower()}",
+        "name": name,
+        "state": state,
+        "area": area,
+        "battery": battery,
+        "low_flag": low_flag,
+        "battery_offline": offline,
+        "has_battery": has,
     }
-    items = o["sections"]["motion_batteries"]["items"]
-    assert len(items) == 5  # all of them, not just ten
-    assert [i["title"] for i in items][:2] == [
-        "Hall (Hall)",
-        "Office (Office)",
-    ]  # lowest first
-    assert (
-        items[-1]["title"] == "Doorbell" and "no battery sensor" in items[-1]["detail"]
-    )
-    garage = next(i for i in items if i["title"] == "Garage")
-    assert (
-        garage["severity"] == "warning"
-        and "battery low" in garage["detail"]
-        and "offline" in garage["detail"]
-    )
-    from openjarvis.agents.house import build_house_status
-
-    assert (
-        "Motion sensor batteries: 3 low out of 4 that report a battery."
-        in build_house_status(store, NOW)
-    )
 
 
-def test_offline_battery_sensor_is_not_called_mains_powered(store):
+def test_red_prevails_on_the_card_and_lists_every_sensor(store):
     store.set_facts(
         {
             "motion_batteries": [
-                {
-                    "entity_id": "b.k",
-                    "name": "Kitchen",
-                    "state": "unavailable",
-                    "area": None,
-                    "battery": None,
-                    "low_flag": False,
-                    "battery_offline": True,
-                    "has_battery": True,
-                }
+                mrow("Hall", 8.0, area="Hall"),  # orange
+                mrow("Kitchen", 64.0),  # fine
+                mrow("Doorbell", None, has=False),  # no battery sensor
+                mrow("Garage", None, state="unavailable", low_flag=True),  # red
+                mrow("Office", 49.0),  # orange (below 50)
+                mrow("Cellar", None, offline=True),  # red: battery unknown
+                mrow("Porch", 50.0),  # exactly 50: fine
             ]
         }
     )
-    item = planning.overview(store, NOW)["sections"]["motion_batteries"]["items"][0]
-    assert "its sensor is offline" in item["detail"] and "mains" not in item["detail"]
+    o = planning.overview(store, NOW)
+    card = o["cards"]["motion_batteries"]
+    assert (card["value"], card["kind"], card["tone"]) == (2, "red", "bad")
+    assert (card["red"], card["orange"], card["with_battery"], card["total"]) == (
+        2,
+        2,
+        6,
+        7,
+    )
+    items = o["sections"]["motion_batteries"]["items"]
+    assert len(items) == 7  # all of them, not just ten
+    assert [i["severity"] for i in items] == [
+        "critical",
+        "critical",
+        "warning",
+        "warning",
+        "info",
+        "info",
+        "info",
+    ]
+    assert {i["title"] for i in items[:2]} == {"Garage", "Cellar"}
+    assert [i["title"] for i in items[2:4]] == ["Hall (Hall)", "Office"]  # lowest first
+    assert (
+        items[-1]["title"] == "Doorbell" and "no battery sensor" in items[-1]["detail"]
+    )
+    cellar = next(i for i in items if i["title"] == "Cellar")
+    assert (
+        "its sensor is offline" in cellar["detail"] and "mains" not in cellar["detail"]
+    )
+    from openjarvis.agents.house import build_house_status
+
+    text = build_house_status(store, NOW)
+    assert "Motion sensor batteries: 2 unknown or offline, 2 below 50%." in text
+
+
+def test_without_red_the_card_shows_the_orange_ones(store):
+    store.set_facts(
+        {
+            "motion_batteries": [
+                mrow("Hall", 30.0),
+                mrow("Kitchen", 40.0),
+                mrow("Porch", 80.0),
+                mrow("Cam", None, has=False),
+                mrow("Flag", None, low_flag=True),
+            ]
+        }
+    )
+    card = planning.overview(store, NOW)["cards"]["motion_batteries"]
+    assert (card["value"], card["kind"], card["tone"], card["red"]) == (
+        3,
+        "orange",
+        "warn",
+        0,
+    )
+
+
+def test_all_fine_is_green_and_no_data_is_idle(store):
+    store.set_facts(
+        {"motion_batteries": [mrow("Hall", 90.0), mrow("Cam", None, has=False)]}
+    )
+    card = planning.overview(store, NOW)["cards"]["motion_batteries"]
+    assert (card["value"], card["kind"], card["tone"]) == (0, "ok", "ok")
+    from openjarvis.agents.house import build_house_status
+
+    assert "Motion sensor batteries: all fine." in build_house_status(store, NOW)
 
 
 def test_motion_battery_card_without_data_is_idle(store):
     c = planning.overview(store, NOW)["cards"]["motion_batteries"]
-    assert c["value"] is None and c["tone"] == "idle"
+    assert c["value"] is None and c["tone"] == "idle" and c["kind"] == "idle"
