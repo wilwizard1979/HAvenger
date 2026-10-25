@@ -18,7 +18,8 @@ import logging
 import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from typing import Any
 
 from fastapi import APIRouter
@@ -81,7 +82,9 @@ class _HA:
         )
         self._client.initialize()
 
-    def read(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+    def read(
+        self, name: str, arguments: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         if name not in _READ_CALLS:
             raise PermissionError(f"{name} is not an allowed read call")
         if name == "ha_get_overview":
@@ -126,7 +129,9 @@ def _parse_logs(text: str) -> dict[str, Any]:
         else:
             errors += 1
         comp = m.group("logger")
-        comp = comp.replace("homeassistant.components.", "").replace("custom_components.", "")
+        comp = comp.replace("homeassistant.components.", "").replace(
+            "custom_components.", ""
+        )
         comp = comp.split(".")[0] if comp else "unknown"
         counts[comp] = counts.get(comp, 0) + 1
         if len(recent) < 8:
@@ -158,9 +163,13 @@ def _entity_stats(overview: dict[str, Any]) -> dict[str, Any]:
         un = int((d.get("states_summary") or {}).get("unavailable", 0) or 0)
         unavailable += un
         if un:
-            worst.append({"domain": name, "unavailable": un, "count": int(d.get("count", 0))})
+            worst.append(
+                {"domain": name, "unavailable": un, "count": int(d.get("count", 0))}
+            )
     worst.sort(key=lambda x: -x["unavailable"])
-    updates = int(((domains.get("update") or {}).get("states_summary") or {}).get("on", 0) or 0)
+    updates = int(
+        ((domains.get("update") or {}).get("states_summary") or {}).get("on", 0) or 0
+    )
     autos = domains.get("automation") or {}
     return {
         "total": total,
@@ -168,7 +177,9 @@ def _entity_stats(overview: dict[str, Any]) -> dict[str, Any]:
         "worst_domains": worst[:5],
         "updates_available": updates,
         "automations_total": int(autos.get("count", 0)),
-        "automations_unavailable": int((autos.get("states_summary") or {}).get("unavailable", 0) or 0),
+        "automations_unavailable": int(
+            (autos.get("states_summary") or {}).get("unavailable", 0) or 0
+        ),
     }
 
 
@@ -191,7 +202,11 @@ def _repair_stats(overview: dict[str, Any]) -> dict[str, Any]:
             backup_issues += 1
         if i.get("breaks_in_ha_version"):
             upcoming.append(
-                {"domain": dom, "issue": str(i.get("translation_key", "")), "breaks_in": str(i["breaks_in_ha_version"])}
+                {
+                    "domain": dom,
+                    "issue": str(i.get("translation_key", "")),
+                    "breaks_in": str(i["breaks_in_ha_version"]),
+                }
             )
     top_domains = sorted(by_domain.items(), key=lambda kv: -kv[1])[:6]
     return {
@@ -231,15 +246,24 @@ def _collect() -> dict[str, Any]:
         try:
             seen: dict[str, dict[str, Any]] = {}
             for word in MOTION_WORDS[:3]:
-                r = ha.read("ha_search", {"query": word, "domain_filter": "binary_sensor", "limit": 200})
+                r = ha.read(
+                    "ha_search",
+                    {"query": word, "domain_filter": "binary_sensor", "limit": 200},
+                )
                 for e in r.get("entities", []):
                     seen[e["entity_id"]] = e
-            offline = [e for e in seen.values() if e.get("state") in ("unavailable", "unknown")]
+            offline = [
+                e for e in seen.values() if e.get("state") in ("unavailable", "unknown")
+            ]
             motion = {
                 "total": len(seen),
                 "offline": len(offline),
                 "offline_entities": [
-                    {"entity_id": e["entity_id"], "name": e.get("friendly_name", ""), "state": e["state"]}
+                    {
+                        "entity_id": e["entity_id"],
+                        "name": e.get("friendly_name", ""),
+                        "state": e["state"],
+                    }
                     for e in offline[:10]
                 ],
             }
@@ -248,7 +272,10 @@ def _collect() -> dict[str, Any]:
 
         logs: dict[str, Any] = {}
         try:
-            lg = ha.read("ha_get_logs", {"source": "error_log", "limit": LOG_LINES, "compact": True})
+            lg = ha.read(
+                "ha_get_logs",
+                {"source": "error_log", "limit": LOG_LINES, "compact": True},
+            )
             logs = _parse_logs(str(lg.get("log", "")))
         except Exception as exc:  # noqa: BLE001
             errors.append(f"logs: {exc}")
@@ -285,7 +312,11 @@ def get_dashboard(force: bool = False) -> dict[str, Any]:
         stale = _cache["data"]
         if stale:
             return {**stale, "cached": True, "stale": True}
-        return {"ok": False, "errors": ["Home Assistant did not answer in time"], "collected_at": now}
+        return {
+            "ok": False,
+            "errors": ["Home Assistant did not answer in time"],
+            "collected_at": now,
+        }
     except Exception as exc:  # noqa: BLE001
         logger.warning("HA dashboard collection failed: %s", exc)
         stale = _cache["data"]

@@ -1,0 +1,507 @@
+"""SQLite store for Jarvis the Janitor (``~/.openjarvis/ha_agents.db``).
+
+Tables: issues, runs, reports, proposals, ledger, settings. Everything here is
+local; nothing in this file talks to the network.
+"""
+
+# ruff: noqa: E501  -- long SQL strings
+from __future__ import annotations
+
+import copy
+import json
+import os
+import re
+import sqlite3
+import threading
+import time
+from pathlib import Path
+from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+DEFAULT_DB = (
+    Path(os.environ.get("OPENJARVIS_HOME", Path.home() / ".openjarvis"))
+    / "ha_agents.db"
+)
+
+# Verified 2026-10-25: platform.claude.com/docs/en/about-claude/pricing
+# USD per million tokens. ``long`` applies when the prompt exceeds ``long_over`` tokens.
+DEFAULT_PRICES: dict[str, dict[str, Any]] = {
+    "claude-haiku-5-5": {
+        "input": 0.10,
+        "output": 0.50,
+        "cache_write": 0.125,
+        "cache_read": 0.01,
+        "long_over": 100_000,
+        "long": {
+            "input": 0.50,
+            "output": 2.50,
+            "cache_write": 0.625,
+            "cache_read": 0.05,
+        },
+    },
+    "claude-sonnet-5-5": {
+        "input": 2.0,
+        "output": 10.0,
+        "cache_write": 2.5,
+        "cache_read": 0.10,
+    },
+    "claude-opus-5-5": {
+        "input": 4.0,
+        "output": 20.0,
+        "cache_write": 5.0,
+        "cache_read": 0.20,
+    },
+}
+
+DEFAULT_SETTINGS: dict[str, Any] = {
+    # Pilot: daily. Target: {"frequency": "weekly", "weekday": "fri"}.
+    "schedule": {
+        "frequency": "daily",
+        "weekday": "fri",
+        "time": "07:30",
+        "timezone": "Europe/Berlin",
+    },
+    "budget": {
+        "monthly_limit_usd": 20.0,
+        "pause_auto_escalation_pct": 75,
+        "hard_stop_pct": 100,
+    },
+    "models": {
+        "triage": "claude-haiku-5-5",
+        "diagnose": "claude-sonnet-5-5",
+        "deep": "claude-opus-5-5",
+    },
+    "prices": DEFAULT_PRICES,
+    "prices_verified": {
+        "date": "2026-10-25",
+        "source": "platform.claude.com/docs/en/about-claude/pricing",
+    },
+    "dry_run": True,
+    "auto_escalation": True,
+    "thresholds": {
+        "entities_amber_pct": 2,
+        "entities_red_pct": 10,
+        "critical_unavailable_min": 30,
+        "backup_age_red_days": 3,
+        "battery_low_pct": 20,
+        "persist_min": 10,
+        "automation_fail_runs_24h": 3,
+        "breaking_change_days": 30,
+    },
+    "critical_entities": [],
+    "motion_sensors": [],
+    "ignore_patterns": ["device_tracker.*", "button.*", "*alexa*", "*echo*"],
+    "extra_redaction_terms": [],
+    "features": {"qwen_presort": False},
+}
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS issues (
+  fingerprint TEXT PRIMARY KEY, category TEXT NOT NULL, source_id TEXT, title TEXT,
+  severity TEXT NOT NULL DEFAULT 'warning', state TEXT NOT NULL DEFAULT 'open',
+  first_seen REAL NOT NULL, last_seen REAL NOT NULL, occurrences INTEGER NOT NULL DEFAULT 1, meta TEXT
+);
+CREATE TABLE IF NOT EXISTS runs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, layer TEXT NOT NULL, model TEXT, started REAL NOT NULL,
+  finished REAL, input_tokens INTEGER DEFAULT 0, output_tokens INTEGER DEFAULT 0,
+  cache_read_tokens INTEGER DEFAULT 0, cache_write_tokens INTEGER DEFAULT 0,
+  cost_usd REAL DEFAULT 0, outcome TEXT, purpose TEXT, dry_run INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, created_at REAL NOT NULL, status TEXT NOT NULL,
+  summary_text TEXT, body TEXT
+);
+CREATE TABLE IF NOT EXISTS proposals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, fingerprint TEXT, model TEXT, diagnosis TEXT,
+  risk TEXT, change TEXT, rollback TEXT, verification TEXT,
+  status TEXT NOT NULL DEFAULT 'pending', telegram_message_id TEXT,
+  created_at REAL NOT NULL, updated_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ledger (
+  month TEXT NOT NULL, model TEXT NOT NULL, input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0, cache_read_tokens INTEGER DEFAULT 0,
+  cache_write_tokens INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0, calls INTEGER DEFAULT 0,
+  PRIMARY KEY (month, model)
+);
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+"""
+
+ISSUE_STATES = ("open", "acknowledged", "ignored", "resolved")
+PROPOSAL_STATES = (
+    "pending",
+    "approved",
+    "rejected",
+    "applied",
+    "failed",
+    "rolled_back",
+)
+RISKS = ("low", "medium", "high")
+WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+
+class SettingsError(ValueError):
+    """A settings change was rejected."""
+
+
+def month_key(ts: float | None = None) -> str:
+    return time.strftime("%Y-%m", time.localtime(ts if ts is not None else time.time()))
+
+
+def _num(value: Any, name: str, lo: float, hi: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise SettingsError(f"{name} must be a number")
+    if not lo <= value <= hi:
+        raise SettingsError(f"{name} must be between {lo} and {hi}")
+    return float(value)
+
+
+def _validate_group(key: str, value: Any) -> Any:
+    if key == "schedule":
+        if not isinstance(value, dict):
+            raise SettingsError("schedule must be an object")
+        if value.get("frequency") not in ("daily", "weekly"):
+            raise SettingsError("schedule.frequency must be 'daily' or 'weekly'")
+        if str(value.get("weekday", "")).lower() not in WEEKDAYS:
+            raise SettingsError("schedule.weekday must be mon..sun")
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", str(value.get("time", ""))):
+            raise SettingsError("schedule.time must be HH:MM (24 h)")
+        try:
+            ZoneInfo(str(value.get("timezone", "")))
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise SettingsError(
+                "schedule.timezone is not a valid IANA timezone"
+            ) from exc
+        return {**value, "weekday": str(value["weekday"]).lower()}
+    if key == "budget":
+        if not isinstance(value, dict):
+            raise SettingsError("budget must be an object")
+        limit = _num(
+            value.get("monthly_limit_usd"), "budget.monthly_limit_usd", 0, 100_000
+        )
+        pause = _num(
+            value.get("pause_auto_escalation_pct"),
+            "budget.pause_auto_escalation_pct",
+            1,
+            100,
+        )
+        stop = _num(value.get("hard_stop_pct"), "budget.hard_stop_pct", 1, 100)
+        if pause > stop:
+            raise SettingsError("pause_auto_escalation_pct cannot exceed hard_stop_pct")
+        return {
+            "monthly_limit_usd": limit,
+            "pause_auto_escalation_pct": pause,
+            "hard_stop_pct": stop,
+        }
+    if key == "models":
+        if not isinstance(value, dict) or set(value) != {"triage", "diagnose", "deep"}:
+            raise SettingsError("models needs exactly: triage, diagnose, deep")
+        if not all(isinstance(v, str) and v.strip() for v in value.values()):
+            raise SettingsError("model names must be non-empty strings")
+        return value
+    if key == "prices":
+        if not isinstance(value, dict):
+            raise SettingsError("prices must be an object keyed by model")
+        for model, row in value.items():
+            if not isinstance(row, dict) or not all(
+                isinstance(row.get(f), (int, float))
+                for f in ("input", "output", "cache_write", "cache_read")
+            ):
+                raise SettingsError(
+                    f"prices[{model}] needs numeric input/output/cache_write/cache_read"
+                )
+        return value
+    if key in ("dry_run", "auto_escalation"):
+        if not isinstance(value, bool):
+            raise SettingsError(f"{key} must be true or false")
+        return value
+    if key == "thresholds":
+        if not isinstance(value, dict) or set(value) != set(
+            DEFAULT_SETTINGS["thresholds"]
+        ):
+            raise SettingsError("thresholds has missing or unknown fields")
+        return {k: _num(v, f"thresholds.{k}", 0, 100_000) for k, v in value.items()}
+    if key in (
+        "critical_entities",
+        "motion_sensors",
+        "ignore_patterns",
+        "extra_redaction_terms",
+    ):
+        if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+            raise SettingsError(f"{key} must be a list of strings")
+        return [v.strip() for v in value if v.strip()]
+    if key == "features":
+        if not isinstance(value, dict) or not all(
+            isinstance(v, bool) for v in value.values()
+        ):
+            raise SettingsError("features must map names to true/false")
+        return value
+    if key == "prices_verified":
+        return value
+    raise SettingsError(f"unknown setting: {key}")
+
+
+class Store:
+    """Thread-safe SQLite wrapper (one short-lived connection per call)."""
+
+    def __init__(self, path: str | os.PathLike[str] | None = None) -> None:
+        self.path = (
+            Path(path)
+            if path
+            else Path(os.environ.get("JARVIS_JANITOR_DB", DEFAULT_DB))
+        )
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._lock = threading.Lock()
+        with self._conn() as c:
+            c.executescript(_SCHEMA)
+
+    def _conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.path, timeout=15)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
+    def _run(self, sql: str, args: tuple = ()) -> sqlite3.Cursor:
+        with self._lock, self._conn() as c:
+            return c.execute(sql, args)
+
+    def _all(self, sql: str, args: tuple = ()) -> list[dict[str, Any]]:
+        with self._lock, self._conn() as c:
+            return [dict(r) for r in c.execute(sql, args).fetchall()]
+
+    # -- settings ---------------------------------------------------------
+    def settings(self) -> dict[str, Any]:
+        out = copy.deepcopy(DEFAULT_SETTINGS)
+        for row in self._all("SELECT key, value FROM settings"):
+            if row["key"] in out:
+                out[row["key"]] = json.loads(row["value"])
+        return out
+
+    def update_settings(self, patch: dict[str, Any]) -> dict[str, Any]:
+        """Validate and merge ``patch`` (top-level groups replace the old group)."""
+        clean = {k: _validate_group(k, v) for k, v in patch.items()}
+        with self._lock, self._conn() as c:
+            for k, v in clean.items():
+                c.execute(
+                    "INSERT INTO settings(key,value) VALUES(?,?) "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                    (k, json.dumps(v)),
+                )
+        return self.settings()
+
+    # -- ledger and runs --------------------------------------------------
+    def add_usage(
+        self,
+        model: str,
+        *,
+        input_tokens: int,
+        output_tokens: int,
+        cache_read_tokens: int,
+        cache_write_tokens: int,
+        cost_usd: float,
+        ts: float | None = None,
+    ) -> None:
+        self._run(
+            "INSERT INTO ledger(month,model,input_tokens,output_tokens,cache_read_tokens,"
+            "cache_write_tokens,cost_usd,calls) VALUES(?,?,?,?,?,?,?,1) "
+            "ON CONFLICT(month,model) DO UPDATE SET "
+            "input_tokens=input_tokens+excluded.input_tokens,"
+            "output_tokens=output_tokens+excluded.output_tokens,"
+            "cache_read_tokens=cache_read_tokens+excluded.cache_read_tokens,"
+            "cache_write_tokens=cache_write_tokens+excluded.cache_write_tokens,"
+            "cost_usd=cost_usd+excluded.cost_usd, calls=calls+1",
+            (
+                month_key(ts),
+                model,
+                input_tokens,
+                output_tokens,
+                cache_read_tokens,
+                cache_write_tokens,
+                cost_usd,
+            ),
+        )
+
+    def month_spend(self, ts: float | None = None) -> float:
+        rows = self._all(
+            "SELECT COALESCE(SUM(cost_usd),0) AS s FROM ledger WHERE month=?",
+            (month_key(ts),),
+        )
+        return float(rows[0]["s"])
+
+    def month_breakdown(self, ts: float | None = None) -> list[dict[str, Any]]:
+        return self._all(
+            "SELECT * FROM ledger WHERE month=? ORDER BY cost_usd DESC",
+            (month_key(ts),),
+        )
+
+    def record_run(self, layer: str, model: str | None, **fields: Any) -> int:
+        cols = {
+            "started": fields.pop("started", time.time()),
+            "finished": fields.pop("finished", time.time()),
+        }
+        allowed = (
+            "input_tokens",
+            "output_tokens",
+            "cache_read_tokens",
+            "cache_write_tokens",
+            "cost_usd",
+            "outcome",
+            "purpose",
+            "dry_run",
+        )
+        cols.update({k: v for k, v in fields.items() if k in allowed})
+        names = ", ".join(["layer", "model", *cols])
+        marks = ", ".join("?" * (2 + len(cols)))
+        cur = self._run(
+            f"INSERT INTO runs({names}) VALUES({marks})", (layer, model, *cols.values())
+        )
+        return int(cur.lastrowid or 0)
+
+    def runs(self, limit: int = 50) -> list[dict[str, Any]]:
+        return self._all("SELECT * FROM runs ORDER BY id DESC LIMIT ?", (limit,))
+
+    # -- issues -----------------------------------------------------------
+    def upsert_issue(
+        self,
+        fingerprint: str,
+        *,
+        category: str,
+        source_id: str = "",
+        title: str = "",
+        severity: str = "warning",
+        meta: dict[str, Any] | None = None,
+        now: float | None = None,
+    ) -> dict[str, Any]:
+        now = now if now is not None else time.time()
+        existing = self.issue(fingerprint)
+        if existing:
+            state = "open" if existing["state"] == "resolved" else existing["state"]
+            self._run(
+                "UPDATE issues SET last_seen=?, occurrences=occurrences+1, severity=?, title=?, state=?, meta=? "
+                "WHERE fingerprint=?",
+                (
+                    now,
+                    severity,
+                    title or existing["title"],
+                    state,
+                    json.dumps(meta or {}),
+                    fingerprint,
+                ),
+            )
+        else:
+            self._run(
+                "INSERT INTO issues(fingerprint,category,source_id,title,severity,state,first_seen,last_seen,"
+                "occurrences,meta) VALUES(?,?,?,?,?,'open',?,?,1,?)",
+                (
+                    fingerprint,
+                    category,
+                    source_id,
+                    title,
+                    severity,
+                    now,
+                    now,
+                    json.dumps(meta or {}),
+                ),
+            )
+        return self.issue(fingerprint)  # type: ignore[return-value]
+
+    def issue(self, fingerprint: str) -> dict[str, Any] | None:
+        rows = self._all("SELECT * FROM issues WHERE fingerprint=?", (fingerprint,))
+        return rows[0] if rows else None
+
+    def issues(self, state: str | None = None) -> list[dict[str, Any]]:
+        if state:
+            return self._all(
+                "SELECT * FROM issues WHERE state=? ORDER BY last_seen DESC", (state,)
+            )
+        return self._all("SELECT * FROM issues ORDER BY last_seen DESC")
+
+    def set_issue_state(self, fingerprint: str, state: str) -> None:
+        if state not in ISSUE_STATES:
+            raise ValueError(f"issue state must be one of {ISSUE_STATES}")
+        self._run("UPDATE issues SET state=? WHERE fingerprint=?", (state, fingerprint))
+
+    # -- reports ----------------------------------------------------------
+    def add_report(self, status: str, summary_text: str, body: dict[str, Any]) -> int:
+        if status not in ("ok", "attention", "critical"):
+            raise ValueError("report status must be ok, attention or critical")
+        cur = self._run(
+            "INSERT INTO reports(created_at,status,summary_text,body) VALUES(?,?,?,?)",
+            (time.time(), status, summary_text, json.dumps(body)),
+        )
+        return int(cur.lastrowid or 0)
+
+    def latest_report(self) -> dict[str, Any] | None:
+        rows = self._all("SELECT * FROM reports ORDER BY id DESC LIMIT 1")
+        if not rows:
+            return None
+        return {**rows[0], "body": json.loads(rows[0]["body"] or "{}")}
+
+    # -- proposals --------------------------------------------------------
+    def add_proposal(
+        self,
+        fingerprint: str,
+        model: str,
+        diagnosis: str,
+        risk: str,
+        change: dict[str, Any],
+        rollback: dict[str, Any],
+        verification: list[str],
+    ) -> int:
+        if risk not in RISKS:
+            raise ValueError(f"risk must be one of {RISKS}")
+        now = time.time()
+        cur = self._run(
+            "INSERT INTO proposals(fingerprint,model,diagnosis,risk,change,rollback,verification,created_at,updated_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?)",
+            (
+                fingerprint,
+                model,
+                diagnosis,
+                risk,
+                json.dumps(change),
+                json.dumps(rollback),
+                json.dumps(verification),
+                now,
+                now,
+            ),
+        )
+        return int(cur.lastrowid or 0)
+
+    def set_proposal_status(
+        self, proposal_id: int, status: str, telegram_message_id: str | None = None
+    ) -> None:
+        if status not in PROPOSAL_STATES:
+            raise ValueError(f"proposal status must be one of {PROPOSAL_STATES}")
+        self._run(
+            "UPDATE proposals SET status=?, telegram_message_id=COALESCE(?,telegram_message_id), updated_at=? WHERE id=?",
+            (status, telegram_message_id, time.time(), proposal_id),
+        )
+
+    def proposals(self, status: str | None = None) -> list[dict[str, Any]]:
+        rows = (
+            self._all(
+                "SELECT * FROM proposals WHERE status=? ORDER BY id DESC", (status,)
+            )
+            if status
+            else self._all("SELECT * FROM proposals ORDER BY id DESC")
+        )
+        for r in rows:
+            for f in ("change", "rollback", "verification"):
+                r[f] = json.loads(r[f] or "null")
+        return rows
+
+
+_store: Store | None = None
+
+
+def get_store() -> Store:
+    """Process-wide store (path from ``JARVIS_JANITOR_DB`` or ``~/.openjarvis``)."""
+    global _store
+    if _store is None:
+        _store = Store()
+    return _store
+
+
+def reset_store_for_tests() -> None:
+    global _store
+    _store = None
