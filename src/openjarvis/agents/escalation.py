@@ -95,6 +95,7 @@ DIAG_TOOLS: dict[str, dict[str, Any]] = {
 
 SYSTEM = (
     "You are the senior Home Assistant maintenance planner. You investigate ONE task "
+    "(if a 'focus' is given, concentrate on that issue first) "
     "and write a plan for a human to approve. You may call the read-only tools to "
     "look at the system; you can never change anything yourself. Look only at what "
     "you need (a few calls), then answer with JSON only and no other text.\n"
@@ -280,11 +281,45 @@ def escalate(
     try:
         proposal = clean_proposal(_loads_json(last.text))
     except (ValueError, KeyError, TypeError, AttributeError):
-        return {
-            "status": "bad_reply",
-            "spent_usd": round(spent, 4),
-            "tool_calls": calls,
-        }
+        # one repair round: ask for the JSON object alone (tools are off)
+        if last.stop_reason == "max_tokens":
+            return {
+                "status": "truncated",
+                "spent_usd": round(spent, 4),
+                "tool_calls": calls,
+            }
+        try:
+            messages.append({"role": "assistant", "content": last.raw_blocks})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "That was not usable. Reply with the JSON object only, "
+                    "no other text.",
+                }
+            )
+            again = client.complete(
+                tier,
+                system=SYSTEM,
+                messages=messages,
+                max_tokens=6000,
+                manual=True,
+                purpose=f"escalate:{payload['id']}:repair",
+            )
+            spent += again.cost_usd
+            proposal = clean_proposal(_loads_json(again.text))
+            last = again
+        except (ValueError, KeyError, TypeError, AttributeError):
+            return {
+                "status": "bad_reply",
+                "spent_usd": round(spent, 4),
+                "tool_calls": calls,
+            }
+        except (BudgetExceeded, CloudUnavailable, RedactionError):
+            return {
+                "status": "bad_reply",
+                "spent_usd": round(spent, 4),
+                "tool_calls": calls,
+            }
     return {
         "status": "ok",
         "proposal": proposal,

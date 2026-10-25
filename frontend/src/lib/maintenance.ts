@@ -293,10 +293,10 @@ export const api = {
     call<Plan>('/plan/select', { method: 'PUT', body: JSON.stringify({ id, selected }) }),
   override: (id: string, effort: Effort | null) =>
     call('/clusters/override', { method: 'PUT', body: JSON.stringify({ id, effort }) }),
-  proposal: (id: string, mode: EscalationMode) =>
+  proposal: (id: string, mode: EscalationMode, focus?: string) =>
     call<{ status: string; estimate?: Estimate; cost_usd?: number; detail?: string; tool_calls?: number; proposal?: Proposal }>('/plan/proposal', {
       method: 'POST',
-      body: JSON.stringify({ id, mode }),
+      body: JSON.stringify({ id, mode, focus: focus || undefined }),
     }),
   latestReport: () => call<LatestReport>('/reports/latest'),
   runReport: () => call<ReportOut>('/reports/run?triage=true', { method: 'POST' }),

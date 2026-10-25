@@ -245,10 +245,11 @@ def test_rounds_are_capped_and_the_last_call_has_no_tools(store):
     out = planning.generate_proposal(
         store, live(store, sdk), "integration:fritz", "investigate", FakeHA()
     )
-    assert len(sdk.requests) == 3 and "tools" not in sdk.requests[-1]
-    assert "tools" in sdk.requests[0]
-    # the model still asked for a tool on the last call: no proposal could be read
-    assert out["status"] == "bad_reply"
+    # 2 rounds with tools, a final call without tools, then one repair round
+    assert len(sdk.requests) == 4 and "tools" not in sdk.requests[2]
+    assert "tools" not in sdk.requests[-1] and "tools" in sdk.requests[0]
+    # the final call still asked for a tool; the repair round got the JSON
+    assert out["status"] == "ok"
 
 
 def test_cost_cap_forces_the_answer(store):
@@ -474,7 +475,7 @@ def test_a_second_click_on_the_same_task_never_pays_twice(tmp_path, monkeypatch)
     seed(store_mod.get_store())
     calls = []
 
-    def slow(store, client, tid, mode="quick", ha=None):
+    def slow(store, client, tid, mode="quick", ha=None, focus=None):
         calls.append(tid)
         _t.sleep(0.4)
         return {"status": "dry_run", "estimate": {}}
@@ -519,3 +520,61 @@ def test_long_diagnoses_are_kept_whole_not_cut_mid_word():
     )
     assert len(out["diagnosis"]) == 3500 and len(out["user_action"]) == 3000
     assert out["summary"] == long[:2000]
+
+
+def test_focus_puts_the_named_issue_first_and_the_source_is_sent(store):
+    for n in range(20):
+        o = Observation(
+            "repair",
+            f"automation/automation.a{n}_service_not_found",
+            "Repair: automation / service_not_found",
+            "warning",
+            {"domain": "automation"},
+        )
+        store.upsert_issue(
+            o.fingerprint,
+            category="repair",
+            source_id=o.source_id,
+            title=o.title,
+            meta={"domain": "automation"},
+            now=1.0,
+        )
+    sdk = ScriptSDK(text(json.dumps(FINAL)))
+    planning.generate_proposal(
+        store,
+        live(store, sdk),
+        "integration:automation",
+        "investigate",
+        FakeHA(),
+        focus="automation.a19_",
+    )
+    sent = json.loads(sdk.requests[0]["messages"][0]["content"])
+    assert sent["focus"] == "automation.a19_"
+    assert sent["issues"][0]["source"].startswith("automation/automation.a19_")
+    assert len(sent["issues"]) == 15
+    body = store.plan_proposals()["integration:automation"]["body"]
+    assert body["focus"] == "automation.a19_"
+
+
+def test_an_unusable_final_reply_gets_one_repair_round(store):
+    seed(store)
+    sdk = ScriptSDK(
+        text("I looked at everything and here is my plan in prose."),
+        text(json.dumps(FINAL)),
+    )
+    out = planning.generate_proposal(
+        store, live(store, sdk), "integration:fritz", "investigate", FakeHA()
+    )
+    assert out["status"] == "ok" and len(sdk.requests) == 2
+    assert "JSON object only" in json.dumps(sdk.requests[1]["messages"][-1])
+    # still unusable after the repair round: reported, nothing stored
+    store2 = Store(store.path.parent / "second.db")
+    seed(store2)
+    bad = ScriptSDK(text("prose"), text("more prose"))
+    assert (
+        planning.generate_proposal(
+            store2, live(store2, bad), "integration:fritz", "investigate", FakeHA()
+        )["status"]
+        == "bad_reply"
+    )
+    assert store2.plan_proposals() == {}

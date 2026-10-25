@@ -227,7 +227,14 @@ def plan_proposal(body: dict[str, Any]) -> dict[str, Any]:
             return {"status": "already_running"}
         _inflight.add(tid)
     try:
-        out = generate_proposal(store, CloudClient(store), tid, mode)
+        focus = body.get("focus")
+        out = generate_proposal(
+            store,
+            CloudClient(store),
+            tid,
+            mode,
+            focus=focus if isinstance(focus, str) and focus.strip() else None,
+        )
     finally:
         with _inflight_lock:
             _inflight.discard(tid)

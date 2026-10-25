@@ -392,7 +392,8 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
   const mine = jobs.find((j) => j.taskId === t.id);
   const running = mine?.state === 'running';
   const secs = useElapsed(running ? mine!.startedAt : null);
-  const escalate = (mode: EscalationMode) => void startEscalation({ id: t.id, label: t.label }, mode);
+  const [focus, setFocus] = useState('');
+  const escalate = (mode: EscalationMode) => void startEscalation({ id: t.id, label: t.label }, mode, focus.trim() || undefined);
 
   // when this task's job finishes, reload the plan and show the result right here
   useEffect(
@@ -493,6 +494,17 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               </>
             ) : null}
           </div>
+          {t.count > 3 && nextMode !== null && !running && (
+            <input
+              value={focus}
+              onChange={(e) => setFocus(e.target.value)}
+              placeholder="focus on… e.g. birthdays (optional)"
+              className="w-60 rounded px-2 py-0.5 text-[11px]"
+              style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+              aria-label="Focus the investigation on one issue"
+              title="This group has many issues. Name the one you care about (part of its automation or entity name) and Sonnet looks at it first."
+            />
+          )}
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {(
               [

@@ -85,7 +85,11 @@ function describe(r: Awaited<ReturnType<typeof api.proposal>>): { ok: boolean; t
   }
 }
 
-export async function startEscalation(task: { id: string; label: string }, mode: EscalationMode): Promise<Job | null> {
+export async function startEscalation(
+  task: { id: string; label: string },
+  mode: EscalationMode,
+  focus?: string,
+): Promise<Job | null> {
   if (isRunning(task.id)) return null;
   const job: Job = {
     key: `${task.id}:${Date.now()}`,
@@ -100,7 +104,7 @@ export async function startEscalation(task: { id: string; label: string }, mode:
   set([job, ...jobs.filter((j) => j.taskId !== task.id)]);
   let result: { ok: boolean; text: string };
   try {
-    result = describe(await api.proposal(task.id, mode));
+    result = describe(await api.proposal(task.id, mode, focus));
   } catch (e) {
     result = { ok: false, text: e instanceof Error ? e.message : 'The request failed' };
   }

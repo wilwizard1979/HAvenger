@@ -473,6 +473,7 @@ def generate_proposal(
     cluster_id: str,
     mode: str = "quick",
     ha: ReadOnlyHA | None = None,
+    focus: str | None = None,
 ) -> dict[str, Any]:
     """``quick`` = one Sonnet call; ``investigate`` = Sonnet with read-only
     lookups; ``deep`` = the same with Opus. All three are started by the user."""
@@ -493,10 +494,20 @@ def generate_proposal(
         "note": cluster["note"],
         "suspected_cause": cluster["cause"],
         "issues": [
-            {"title": m["title"], "severity": m["severity"], "category": m["category"]}
-            for m in members[:15]
+            {
+                "title": m["title"],
+                "source": m["source_id"],
+                "severity": m["severity"],
+                "category": m["category"],
+            }
+            for m in sorted(
+                members,
+                key=lambda m: not (focus and focus.lower() in m["source_id"].lower()),
+            )[:15]
         ],
     }
+    if focus:
+        payload["focus"] = focus.strip()[:300]
     if mode not in ("quick", "investigate", "deep"):
         return {"status": "bad_mode"}
     if mode != "quick":
@@ -513,6 +524,8 @@ def generate_proposal(
         if out["status"] != "ok":
             return {**out, "estimate": estimate}
         body = {**out["proposal"], "mode": mode, "tool_calls": out["tool_calls"]}
+        if focus:
+            body["focus"] = focus.strip()[:300]
         store.put_plan_proposal(
             cluster_id,
             cluster["members_hash"],
