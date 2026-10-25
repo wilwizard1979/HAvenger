@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { SettingsTab } from './MaintenanceSettings';
 import { ChevronDown, ChevronRight, RefreshCw, Play, Volume2, Square } from 'lucide-react';
 import { useReadAloud } from '../lib/janitorSpeech';
 import {
@@ -21,13 +22,14 @@ import {
   type Team,
 } from '../lib/maintenance';
 
-type Tab = 'dashboard' | 'plan' | 'flow' | 'reports';
+type Tab = 'dashboard' | 'plan' | 'flow' | 'reports' | 'settings';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'plan', label: 'Plan' },
   { id: 'flow', label: 'Flow' },
   { id: 'reports', label: 'Reports' },
+  { id: 'settings', label: 'Settings' },
 ];
 
 const muted = { color: 'var(--color-text-secondary)' } as const;
@@ -1215,6 +1217,7 @@ export function MaintenancePage() {
           (plan.data ? <PlanTab plan={plan.data} reload={() => void plan.reload()} /> : <Status error={plan.error} />)}
         {tab === 'flow' && <FlowTab plan={plan.data} />}
         {tab === 'reports' && <ReportsTab />}
+        {tab === 'settings' && <SettingsTab />}
       </div>
     </div>
   );

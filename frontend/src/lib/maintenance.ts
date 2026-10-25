@@ -310,6 +310,8 @@ export const api = {
       executor: ExecutorCfg;
       qwen: { house_status: boolean; read_aloud: boolean };
     }>('/settings'),
+  fullSettings: () => call<Record<string, unknown>>('/settings'),
+  status: () => call<{ budget: { spend_usd: number; limit_usd: number; pct: number } }>('/status'),
   putSettings: (patch: Record<string, unknown>) => call('/settings', { method: 'PUT', body: JSON.stringify(patch) }),
   houseStatus: () => call<HouseStatus>('/house-status'),
   telegramStatus: () => call<TelegramStatus>('/telegram/status'),
