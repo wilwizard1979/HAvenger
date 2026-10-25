@@ -20,6 +20,7 @@ export interface Overview {
     stale_unavailable: { value: number; days: number; tone: Tone };
     last_restart: { value: number | null; unit: string; tone: Tone };
     backup_failed: { value: number; tone: Tone };
+    log_levels: { value: number; tone: Tone };
     last_backup: { value: number | null; unit: string; at: string | null; limit_hours: number; tone: Tone };
     integrations_failed: { value: number; tone: Tone };
     automation_errors: { value: number; tone: Tone };
@@ -163,6 +164,15 @@ export interface TelegramCfg {
   alerts: boolean;
 }
 
+export interface HouseStatus {
+  read_aloud: boolean;
+  house_status: boolean;
+  text: string;
+  spoken: string;
+  verified_readout: boolean;
+  path: string;
+}
+
 export interface ReportOut {
   id?: number;
   status?: string;
@@ -288,8 +298,10 @@ export const api = {
       watchdog: { enabled: boolean; interval_min: number; quiet_hours: { enabled: boolean; start: string; end: string } };
       telegram: TelegramCfg;
       executor: ExecutorCfg;
+      qwen: { house_status: boolean; read_aloud: boolean };
     }>('/settings'),
   putSettings: (patch: Record<string, unknown>) => call('/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+  houseStatus: () => call<HouseStatus>('/house-status'),
   telegramStatus: () => call<TelegramStatus>('/telegram/status'),
   telegramTest: () => call<{ status: string }>('/telegram/test', { method: 'POST' }),
   telegramDigest: () => call<{ status: string }>('/telegram/digest', { method: 'POST' }),

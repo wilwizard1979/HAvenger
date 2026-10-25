@@ -41,7 +41,10 @@ def parse_log_groups(text: str) -> dict[str, dict[str, Any]]:
     groups: dict[str, dict[str, Any]] = {}
     for line in _ANSI.sub("", text).splitlines():
         m = _LOG_LINE.match(line)
-        if not m or m.group("level") not in ("ERROR", "CRITICAL"):
+        level = {"FATAL": "CRITICAL", "WARN": "WARNING"}.get(
+            m.group("level") if m else "", m.group("level") if m else ""
+        )
+        if not m or level not in ("WARNING", "ERROR", "CRITICAL"):
             continue
         comp = (
             m.group("logger")
@@ -51,9 +54,16 @@ def parse_log_groups(text: str) -> dict[str, dict[str, Any]]:
             or "unknown"
         )
         g = groups.setdefault(
-            comp, {"critical": 0, "error": 0, "example": "", "ts": m.group("ts")}
+            comp,
+            {
+                "critical": 0,
+                "error": 0,
+                "warning": 0,
+                "example": "",
+                "ts": m.group("ts"),
+            },
         )
-        g["critical" if m.group("level") == "CRITICAL" else "error"] += 1
+        g[{"CRITICAL": "critical", "ERROR": "error", "WARNING": "warning"}[level]] += 1
         g["example"] = _clean_log_message(m.group("msg"))
         g["ts"] = m.group("ts")
     return groups
@@ -210,6 +220,21 @@ class HaCollector:
                 facts["log_critical_lines"] = sum(
                     g["critical"] for g in snap["logs"].values()
                 )
+                facts["log_levels"] = [
+                    {
+                        "component": k,
+                        **{f: g[f] for f in ("critical", "error", "warning")},
+                        "example": g["example"],
+                    }
+                    for k, g in sorted(
+                        snap["logs"].items(),
+                        key=lambda kv: (
+                            -kv[1]["critical"],
+                            -kv[1]["error"],
+                            -kv[1]["warning"],
+                        ),
+                    )
+                ][:15]
         finally:
             ha.close()
         return snap

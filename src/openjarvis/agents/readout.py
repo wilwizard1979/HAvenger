@@ -127,8 +127,11 @@ def run_readout(
     report = store.latest_report()
     if not report:
         return {"status": "no_report"}
+    from openjarvis.agents.house import source_hash, write_house_status
+
     model = os.environ.get("JARVIS_READOUT_MODEL", DEFAULT_MODEL)
-    source = report["summary_text"]
+    # Qwen reads the plain-English house status (digest numbers + Haiku's notes)
+    source, _ = write_house_status(store, now)
     t0 = time.monotonic()
     try:
         out = generate(model, SYSTEM, source)
@@ -161,8 +164,9 @@ def run_readout(
         guard_ok=ok,
         note=""
         if ok
-        else "Qwen changed or invented a number; the report text is used instead",
+        else "Qwen changed or invented a number; the status text is used instead",
         ts=now,
+        source_hash=source_hash(source),
     )
     store.record_run(
         "L1",

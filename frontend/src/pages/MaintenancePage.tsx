@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
-import { ChevronDown, ChevronRight, RefreshCw, Play } from 'lucide-react';
+import { ChevronDown, ChevronRight, RefreshCw, Play, Volume2, Square } from 'lucide-react';
+import { useReadAloud } from '../lib/janitorSpeech';
 import {
   api,
   usePolled,
@@ -64,6 +65,7 @@ const SECTIONS: { key: string; title: string; hint: string }[] = [
   { key: 'updates_pending', title: 'Updates pending', hint: 'Install after a backup and a breaking-change check' },
   { key: 'deprecations', title: 'Deprecations and breaking changes', hint: 'Will stop working in a coming release' },
   { key: 'log_critical', title: 'Critical errors in the log', hint: 'Last 400 log lines' },
+  { key: 'log_levels', title: 'Log: warnings, errors and critical', hint: 'Only these levels, grouped by component. Newest 400 lines' },
   { key: 'stale_unavailable', title: 'Unavailable for a long time', hint: 'Oldest first. Likely orphaned or dead devices' },
   { key: 'last_restart', title: 'Home Assistant restarts', hint: 'When Home Assistant last started, as seen by the watchdog' },
 ];
@@ -592,6 +594,8 @@ function Step({
 
 function FlowTab({ plan }: { plan: Plan | null }) {
   const navigate = useNavigate();
+  const speech = useReadAloud();
+  const house = usePolled(api.houseStatus, 60_000);
   const { data, reload } = usePolled(api.team, 20_000);
   const settings = usePolled(api.settings, 60_000);
   const execs = usePolled(api.executions, 10_000);
@@ -678,7 +682,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
       return r.status.replace(/_/g, ' ');
     });
 
-  const setGroup = async (group: 'telegram' | 'executor', next: Record<string, unknown>) => {
+  const setGroup = async (group: 'telegram' | 'executor' | 'qwen', next: Record<string, unknown>) => {
     await api.putSettings({ [group]: next });
     await Promise.all([settings.reload(), execs.reload(), tg.reload()]);
   };
@@ -780,6 +784,42 @@ function FlowTab({ plan }: { plan: Plan | null }) {
         action={run('qwen', 'Run read-out', () => void runQwen())}
       >
         {note('qwen')}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            disabled={speech.busy}
+            onClick={() => (speech.speaking ? speech.stop() : void speech.run())}
+            className="px-2 py-1 rounded text-[11px] cursor-pointer flex items-center gap-1"
+            style={{ ...btn, border: '1px solid var(--color-accent)' }}
+          >
+            {speech.speaking ? <Square size={11} /> : <Volume2 size={11} />} {speech.speaking ? 'Stop' : 'Read aloud (and show in chat)'}
+          </button>
+          {speech.error && <span className="text-[11px]" style={{ color: 'var(--color-warning)' }}>{speech.error}</span>}
+        </div>
+        {settings.data && (
+          <div className="flex flex-col gap-1">
+            {(
+              [
+                ['house_status', 'Jarvis answers questions about the house (from the status file)'],
+                ['read_aloud', 'The "read aloud" buttons are available'],
+              ] as ['house_status' | 'read_aloud', string][]
+            ).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2 text-xs cursor-pointer" style={muted}>
+                <input
+                  type="checkbox"
+                  checked={settings.data!.qwen[k]}
+                  onChange={() => void setGroup('qwen', { ...settings.data!.qwen, [k]: !settings.data!.qwen[k] })}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        )}
+        {house.data && (
+          <details className="text-xs" style={muted}>
+            <summary className="cursor-pointer">The plain-English status Qwen reads (file: {house.data.path})</summary>
+            <pre className="whitespace-pre-wrap hud-mono mt-1" style={{ color: 'var(--color-text)' }}>{house.data.text}</pre>
+          </details>
+        )}
         {t.l1.latest ? (
           <>
             <div className="text-xs" style={{ color: 'var(--color-text)' }}>{t.l1.latest.text}</div>

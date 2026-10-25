@@ -137,6 +137,17 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
             "days": days,
             "tone": "warn" if stale["count"] else "ok",
         },
+        "log_levels": {
+            "value": sum(
+                x["critical"] + x["error"] + x["warning"]
+                for x in facts.get("log_levels") or []
+            ),
+            "tone": "bad"
+            if crit_lines
+            else "warn"
+            if facts.get("log_levels")
+            else "ok",
+        },
         "last_restart": {
             "value": since_h,
             "unit": "h ago",
@@ -178,6 +189,22 @@ def overview(store: Store, now: float | None = None) -> dict[str, Any]:
     }
     counting = stale["counting_since"]
     sections = {
+        "log_levels": {
+            "total": len(facts.get("log_levels") or []),
+            "items": [
+                {
+                    "title": f"{x['component']}: {x['critical']} critical, "
+                    f"{x['error']} errors, {x['warning']} warnings",
+                    "severity": "critical"
+                    if x["critical"]
+                    else "warning"
+                    if x["error"]
+                    else "info",
+                    "detail": x.get("example", ""),
+                }
+                for x in (facts.get("log_levels") or [])[:SECTION_LIMIT]
+            ],
+        },
         "stale_unavailable": {
             "total": stale["count"],
             "items": [

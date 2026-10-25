@@ -267,4 +267,7 @@ def generate_report(
     status, text, body = build_digest(store, final, now)
     body["triage"] = tri
     rid = store.add_report(status, text, body, ts=now)
+    from openjarvis.agents.house import write_house_status
+
+    write_house_status(store, now)  # the plain-English file Qwen reads
     return {"id": rid, "status": status, "text": text, "triage": tri}

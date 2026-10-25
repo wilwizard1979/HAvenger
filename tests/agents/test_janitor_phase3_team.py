@@ -53,11 +53,11 @@ def test_guard_accepts_faithful_and_rejects_invented_numbers():
 
 def test_readout_stores_spoken_text_and_a_free_run(store):
     out = readout.run_readout(
-        store, generate=gen("Forty one issues in 8 clusters, 41 warnings."), now=NOW
+        store, generate=gen("Everything looks fine, zero problems."), now=NOW
     )
     assert out["status"] == "ok"
     r = store.latest_readout()
-    assert r["guard_ok"] == 1 and r["text"].startswith("Forty one")
+    assert r["guard_ok"] == 1 and r["text"].startswith("Everything looks fine")
     run = store.runs_by_layer("L1", 1)[0]
     assert run["cost_usd"] == 0 and run["input_tokens"] == 100
 
@@ -66,7 +66,8 @@ def test_readout_falls_back_to_the_report_when_qwen_invents_numbers(store):
     out = readout.run_readout(store, generate=gen("There are 99 issues."), now=NOW)
     assert out["status"] == "guard_failed"
     r = store.latest_readout()
-    assert r["guard_ok"] == 0 and r["text"] == REPORT and "invented" in r["note"]
+    assert r["guard_ok"] == 0 and r["text"].startswith("# House status")
+    assert "invented" in r["note"]
 
 
 def test_readout_survives_qwen_being_down_or_no_report(tmp_path, store):
@@ -142,7 +143,8 @@ def test_service_runs_readout_after_the_digest(tmp_path, monkeypatch):
         readout,
         "ollama_generate",
         lambda m, sy, so: (
-            called.append(so) or {"text": "41 issues", "tokens_in": 1, "tokens_out": 1}
+            called.append(so)
+            or {"text": "Everything is fine.", "tokens_in": 1, "tokens_out": 1}
         ),
     )
     monkeypatch.setattr(
@@ -178,7 +180,7 @@ def test_team_overview_shows_every_layer(store):
         model="claude-sonnet-5-5",
         cost_usd=0.02,
     )
-    readout.run_readout(store, generate=gen("41 issues"), now=NOW)
+    readout.run_readout(store, generate=gen("Everything is fine."), now=NOW)
     t = team_overview(
         store,
         {
@@ -190,7 +192,7 @@ def test_team_overview_shows_every_layer(store):
     )
     assert t["dry_run"] is True
     assert t["l0"]["report"]["text"] == REPORT and t["l0"]["interval_min"] == 15
-    assert t["l1"]["latest"]["text"] == "41 issues"
+    assert t["l1"]["latest"]["text"] == "Everything is fine."
     assert t["l2"]["model"] == "claude-haiku-5-5" and t["l2"]["mode"].startswith(
         "dry-run"
     )
@@ -213,11 +215,11 @@ def test_team_and_readout_endpoints(tmp_path, monkeypatch):
     monkeypatch.setenv("JARVIS_JANITOR_DB", str(tmp_path / "api.db"))
     store_mod.reset_store_for_tests()
     store_mod.get_store().add_report("ok", REPORT, {}, ts=NOW)
-    monkeypatch.setattr(readout, "ollama_generate", gen("41 issues"))
+    monkeypatch.setattr(readout, "ollama_generate", gen("Everything is fine."))
     monkeypatch.setattr(
         routes,
         "run_readout",
-        lambda st: readout.run_readout(st, generate=gen("41 issues")),
+        lambda st: readout.run_readout(st, generate=gen("Everything is fine.")),
     )
     app = FastAPI()
     app.include_router(routes.ha_agents_router)
@@ -225,7 +227,8 @@ def test_team_and_readout_endpoints(tmp_path, monkeypatch):
     assert http.post("/v1/ha/agents/readout/run").json()["status"] == "ok"
     team = http.get("/v1/ha/agents/team").json()
     assert (
-        team["l1"]["latest"]["text"] == "41 issues" and team["l0"]["report"]["id"] == 1
+        team["l1"]["latest"]["text"] == "Everything is fine."
+        and team["l0"]["report"]["id"] == 1
     )
 
 
@@ -235,7 +238,7 @@ def test_readout_gets_one_correction_round_before_falling_back(store):
     def flaky(model, system, source):
         calls.append(source)
         text = (
-            "You have three quick wins." if len(calls) == 1 else "There are 41 issues."
+            "You have three quick wins." if len(calls) == 1 else "There are 0 problems."
         )
         return {"text": text, "tokens_in": 100, "tokens_out": 20}
 
@@ -243,7 +246,7 @@ def test_readout_gets_one_correction_round_before_falling_back(store):
     assert out["status"] == "ok" and len(calls) == 2
     assert "not in the report" in calls[1] and "3" in calls[1]
     r = store.latest_readout()
-    assert r["text"] == "There are 41 issues." and r["tokens_in"] == 200
+    assert r["text"] == "There are 0 problems." and r["tokens_in"] == 200
 
 
 def test_team_overview_carries_full_proposals_and_the_pilot_switch(store):

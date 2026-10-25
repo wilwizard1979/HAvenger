@@ -11,9 +11,12 @@ import {
   Hourglass,
   Power,
   MessageSquareText,
+  Volume2,
+  Square,
   type LucideIcon,
 } from 'lucide-react';
 import { api, usePolled, TONE_COLOR, type Tone } from '../../lib/maintenance';
+import { useReadAloud } from '../../lib/janitorSpeech';
 
 const POLL_MS = 60_000;
 
@@ -66,6 +69,7 @@ interface HaPanelProps {
 /** Main-page summary: totals only. Every card opens the Maintenance dashboard. */
 export function HaPanel({ onAsk }: HaPanelProps) {
   const navigate = useNavigate();
+  const speech = useReadAloud();
   const { data, loading, error, reload } = usePolled(api.overview, POLL_MS);
   const c = data?.cards;
   const ago = data?.checked_at ? Math.max(0, Math.round(Date.now() / 1000 - data.checked_at)) : null;
@@ -156,6 +160,21 @@ export function HaPanel({ onAsk }: HaPanelProps) {
         )}
 
         <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => (speech.speaking ? speech.stop() : void speech.run())}
+            disabled={speech.busy}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs cursor-pointer text-left transition-colors"
+            style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
+            title="Reads the plain-English house status aloud and shows it in the chat"
+          >
+            {speech.speaking ? <Square size={14} style={{ color: 'var(--color-accent)' }} /> : <Volume2 size={14} style={{ color: 'var(--color-accent)' }} />}
+            {speech.speaking ? 'Stop reading' : speech.busy ? 'Preparing…' : 'Read the house status aloud'}
+          </button>
+          {speech.error && (
+            <div className="text-[11px]" style={{ color: 'var(--color-warning)' }}>
+              {speech.error}
+            </div>
+          )}
           <button
             onClick={() => navigate('/maintenance?tab=plan')}
             className="px-3 py-2 rounded-lg text-xs cursor-pointer text-left transition-colors"

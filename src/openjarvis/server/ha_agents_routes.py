@@ -14,6 +14,12 @@ from fastapi import APIRouter, HTTPException
 from openjarvis.agents import janitor_executor as executor
 from openjarvis.agents.cloud_client import KEYCHAIN_SERVICE, CloudClient
 from openjarvis.agents.clusters import build_clusters, matrix_counts
+from openjarvis.agents.house import (
+    ask_house,
+    source_hash,
+    spoken_text,
+    write_house_status,
+)
 from openjarvis.agents.planning import (
     build_plan,
     generate_proposal,
@@ -287,3 +293,29 @@ def request_execution(body: dict[str, Any]) -> dict[str, Any]:
 def cancel_execution(exec_id: int) -> dict[str, Any]:
     """Withdraw a request that is still waiting. This can never approve anything."""
     return executor.cancel(get_store(), exec_id)
+
+
+@ha_agents_router.get("/house-status")
+def house_status() -> dict[str, Any]:
+    """The plain-English status (rebuilt now) and the text to read aloud."""
+    store = get_store()
+    cfg = store.settings()["qwen"]
+    text, path = write_house_status(store)
+    return {
+        "read_aloud": cfg["read_aloud"],
+        "house_status": cfg["house_status"],
+        "text": text,
+        "spoken": spoken_text(store, text),
+        "verified_readout": spoken_text(store, text) != text,
+        "hash": source_hash(text),
+        "path": str(path),
+    }
+
+
+@ha_agents_router.post("/ask")
+def ask(body: dict[str, Any]) -> dict[str, Any]:
+    """Ask Qwen (local) a question about the house; answered from the status only."""
+    q = body.get("question")
+    if not isinstance(q, str) or not q.strip():
+        raise HTTPException(status_code=422, detail="question is required")
+    return ask_house(get_store(), q)

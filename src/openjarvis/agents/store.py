@@ -114,6 +114,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     },
     # One escalation (Sonnet or Opus) may look around read-only, within these limits.
     "escalation": {"max_rounds": 6, "max_usd": 0.5, "opus_max_usd": 2.0},
+    # Qwen (local, free): plain-English house status. Both switches are yours.
+    "qwen": {"house_status": True, "read_aloud": True},
     # Janitor Telegram bot (own token in the Keychain). Locked to one Telegram user.
     "telegram": {
         "enabled": True,
@@ -357,6 +359,12 @@ def _validate_group(key: str, value: Any) -> Any:
             "chore_categories": list(chores),
             "default_effort": value["default_effort"],
         }
+    if key == "qwen":
+        if not isinstance(value, dict) or set(value) != {"house_status", "read_aloud"}:
+            raise SettingsError("qwen needs: house_status, read_aloud")
+        if not all(isinstance(v, bool) for v in value.values()):
+            raise SettingsError("qwen switches must be true or false")
+        return dict(value)
     if key == "telegram":
         keys = {"enabled", "allowed_user_id", "digest", "alerts"}
         if not isinstance(value, dict) or set(value) != keys:
@@ -441,6 +449,10 @@ class Store:
         self._lock = threading.Lock()
         with self._conn() as c:
             c.executescript(_SCHEMA)
+            try:  # older databases: add the column the read-out hash needs
+                c.execute("ALTER TABLE readouts ADD COLUMN source_hash TEXT")
+            except sqlite3.OperationalError:
+                pass
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.path, timeout=15)
@@ -776,10 +788,11 @@ class Store:
         guard_ok: bool,
         note: str,
         ts: float | None = None,
+        source_hash: str | None = None,
     ) -> int:
         cur = self._run(
-            "INSERT INTO readouts(created_at,report_id,model,tokens_in,tokens_out,seconds,text,guard_ok,note) "
-            "VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT INTO readouts(created_at,report_id,model,tokens_in,tokens_out,seconds,text,guard_ok,note,source_hash) "
+            "VALUES(?,?,?,?,?,?,?,?,?,?)",
             (
                 ts if ts is not None else time.time(),
                 report_id,
@@ -790,6 +803,7 @@ class Store:
                 text,
                 int(guard_ok),
                 note,
+                source_hash,
             ),
         )
         return int(cur.lastrowid or 0)
