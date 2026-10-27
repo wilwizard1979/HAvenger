@@ -54,3 +54,17 @@ def test_no_findings_means_nothing_extra_is_sent(store):
     client, sdk = live(store, None)
     planning.generate_proposal(store, client, "integration:ollama")
     assert "owner_findings" not in sdk.requests[0]["messages"][0]["content"]
+
+
+def test_taskbook_collects_findings_and_analysis(store, tmp_path, monkeypatch):
+    from openjarvis.agents import taskbook
+
+    monkeypatch.setenv("JARVIS_JANITOR_DIR", str(tmp_path))
+    add(store, "repair", "ollama/a", "Ollama unreachable", domain="ollama")
+    client, _ = live(store, None)
+    store.set_findings("integration:ollama", "IP changed after the cable switch")
+    planning.generate_proposal(store, client, "integration:ollama")
+    path = taskbook.write_taskbook(store)
+    text = path.read_text()
+    assert path.name == "tasks.md" and "IP changed after the cable switch" in text
+    assert "Based on your findings" in text and "Re-authenticate" in text

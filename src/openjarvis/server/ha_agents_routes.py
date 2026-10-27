@@ -37,6 +37,7 @@ from openjarvis.agents.store import (
     SettingsError,
     get_store,
 )
+from openjarvis.agents.taskbook import write_taskbook
 from openjarvis.agents.team import team_overview
 from openjarvis.agents.telegram_bot import TelegramError, get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
@@ -188,6 +189,13 @@ def run_triage_now() -> dict[str, Any]:
     return run_triage(get_store(), CloudClient(get_store()), _clusters(), manual=True)
 
 
+def _export_taskbook() -> None:
+    try:
+        write_taskbook(get_store())
+    except Exception:  # noqa: BLE001 - the export must never break the action
+        pass
+
+
 @ha_agents_router.get("/overview")
 def agents_overview() -> dict[str, Any]:
     """Totals for the main-page cards and the top 10 per dashboard section."""
@@ -207,6 +215,7 @@ def plan_select(body: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(tid, str) or not isinstance(selected, bool):
         raise HTTPException(status_code=422, detail="id (string) and selected (bool)")
     select_task(get_store(), tid, selected)
+    _export_taskbook()
     return build_plan(get_store())
 
 
@@ -220,6 +229,7 @@ def plan_findings(body: dict[str, Any]) -> dict[str, Any]:
     if not any(c["id"] == tid for c in plan_clusters(store)):
         raise HTTPException(status_code=404, detail="unknown task")
     store.set_findings(tid, text)
+    _export_taskbook()
     return build_plan(store)
 
 
@@ -254,6 +264,8 @@ def plan_proposal(body: dict[str, Any]) -> dict[str, Any]:
             _inflight.discard(tid)
     if out["status"] == "unknown_task":
         raise HTTPException(status_code=404, detail="unknown task")
+    if out["status"] == "ok":
+        _export_taskbook()
     return out
 
 
