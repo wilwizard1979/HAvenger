@@ -134,7 +134,8 @@ def request_approval(store: Store, cluster_id: str) -> dict[str, Any]:
         return {"status": "already_active"}
     exec_id = store.create_execution(
         cluster_id,
-        label=cluster["label"],
+        label=(f"{tid} · " if (tid := store.open_task_id(cluster_id)) else "")
+        + cluster["label"],
         members_hash=cluster["members_hash"],
         instruction=instruction,
         instruction_hash=instruction_hash(instruction),

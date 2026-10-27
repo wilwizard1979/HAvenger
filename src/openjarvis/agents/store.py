@@ -182,6 +182,15 @@ CREATE TABLE IF NOT EXISTS triage_notes (
 CREATE TABLE IF NOT EXISTS task_selection (
   cluster_id TEXT PRIMARY KEY, selected INTEGER NOT NULL, updated REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY, cluster_id TEXT NOT NULL, label TEXT NOT NULL,
+  opened_at REAL NOT NULL, opened_day TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  seen_before TEXT, cleared_at REAL, closed_at REAL,
+  solution TEXT NOT NULL DEFAULT '', meta TEXT NOT NULL DEFAULT '{}',
+  record TEXT NOT NULL DEFAULT '{}'
+);
+CREATE INDEX IF NOT EXISTS tasks_cluster ON tasks(cluster_id, status);
 CREATE TABLE IF NOT EXISTS task_findings (
   cluster_id TEXT PRIMARY KEY, text TEXT NOT NULL, updated REAL NOT NULL
 );
@@ -691,6 +700,126 @@ class Store:
     def selected_tasks(self) -> set[str]:
         rows = self._all("SELECT cluster_id FROM task_selection WHERE selected=1")
         return {r["cluster_id"] for r in rows}
+
+    # -- task ids: year_month_day_sequence, one open task per cluster ---------
+    def sync_tasks(
+        self, clusters: list[dict[str, Any]], now: float | None = None
+    ) -> dict[str, dict[str, Any]]:
+        """Give every current cluster an open task id; mark vanished ones 'cleared'.
+
+        A cluster that comes back after its task was closed gets a NEW id that
+        remembers the old one in ``seen_before``. Returns open/cleared tasks by
+        cluster id.
+        """
+        now = now if now is not None else time.time()
+        day = time.strftime("%Y_%m_%d", time.localtime(now))
+        present = {c["id"] for c in clusters}
+        with self._lock, self._conn() as c:
+            live = {
+                r["cluster_id"]: dict(r)
+                for r in c.execute(
+                    "SELECT * FROM tasks WHERE status IN ('open','cleared')"
+                ).fetchall()
+            }
+            for cl in clusters:
+                meta = json.dumps(
+                    {
+                        k: cl.get(k)
+                        for k in (
+                            "severity",
+                            "effort",
+                            "examples",
+                            "cause",
+                            "note",
+                            "count",
+                        )
+                    }
+                )
+                row = live.get(cl["id"])
+                if row:
+                    c.execute(
+                        "UPDATE tasks SET status='open', cleared_at=NULL, label=?, meta=? WHERE id=?",
+                        (cl["label"], meta, row["id"]),
+                    )
+                    row.update(status="open", label=cl["label"], meta=meta)
+                    continue
+                n = c.execute(
+                    "SELECT COUNT(*) FROM tasks WHERE opened_day=?", (day,)
+                ).fetchone()[0]
+                prev = c.execute(
+                    "SELECT id FROM tasks WHERE cluster_id=? AND status='closed' "
+                    "ORDER BY closed_at DESC LIMIT 1",
+                    (cl["id"],),
+                ).fetchone()
+                tid = f"{day}_{n + 1:03d}"
+                c.execute(
+                    "INSERT INTO tasks(id,cluster_id,label,opened_at,opened_day,seen_before,meta) "
+                    "VALUES(?,?,?,?,?,?,?)",
+                    (
+                        tid,
+                        cl["id"],
+                        cl["label"],
+                        now,
+                        day,
+                        prev["id"] if prev else None,
+                        meta,
+                    ),
+                )
+                live[cl["id"]] = {
+                    "id": tid,
+                    "cluster_id": cl["id"],
+                    "label": cl["label"],
+                    "status": "open",
+                    "seen_before": prev["id"] if prev else None,
+                    "solution": "",
+                    "meta": meta,
+                    "opened_at": now,
+                }
+            for cid, row in live.items():
+                if cid not in present and row["status"] == "open":
+                    c.execute(
+                        "UPDATE tasks SET status='cleared', cleared_at=? WHERE id=?",
+                        (now, row["id"]),
+                    )
+                    row["status"] = "cleared"
+        return live
+
+    def task(self, task_id: str) -> dict[str, Any] | None:
+        rows = self._all("SELECT * FROM tasks WHERE id=?", (task_id,))
+        return rows[0] if rows else None
+
+    def open_task_id(self, cluster_id: str) -> str | None:
+        rows = self._all(
+            "SELECT id FROM tasks WHERE cluster_id=? AND status IN ('open','cleared')",
+            (cluster_id,),
+        )
+        return rows[0]["id"] if rows else None
+
+    def closed_tasks(self) -> list[dict[str, Any]]:
+        return self._all("SELECT * FROM tasks WHERE status='closed' ORDER BY id")
+
+    def set_solution(self, task_id: str, text: str) -> bool:
+        cur = self._run(
+            "UPDATE tasks SET solution=? WHERE id=? AND status IN ('open','cleared')",
+            (text.strip()[: FINDINGS_MAX * 2], task_id),
+        )
+        return cur.rowcount > 0
+
+    def close_task(
+        self, task_id: str, record: dict[str, Any], now: float | None = None
+    ) -> None:
+        """Close a task and forget its working data (the record keeps the story)."""
+        row = self.task(task_id)
+        assert row is not None
+        with self._lock, self._conn() as c:
+            c.execute(
+                "UPDATE tasks SET status='closed', closed_at=?, record=? WHERE id=?",
+                (now if now is not None else time.time(), json.dumps(record), task_id),
+            )
+            for table in ("task_findings", "plan_proposals", "task_selection"):
+                c.execute(
+                    f"DELETE FROM {table} WHERE cluster_id=?", (row["cluster_id"],)
+                )
 
     def set_findings(self, cluster_id: str, text: str) -> None:
         """The owner's own diagnosis of a task. Empty text removes it."""

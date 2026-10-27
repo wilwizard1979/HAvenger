@@ -58,7 +58,9 @@ PROPOSAL_SYSTEM = (
     "(string, empty when not needed). Be concrete and short. Placeholders like "
     "<email_1> are redacted values: keep them as they are. If 'owner_findings' is "
     "present, the owner already diagnosed this: treat it as established fact, do not "
-    "re-diagnose, and build the plan on it."
+    "re-diagnose, and build the plan on it. If 'seen_before' is present, the same "
+    "problem was solved earlier in the way given: use it as a strong hint and check "
+    "that it still applies."
 )
 
 
@@ -378,12 +380,41 @@ def plan_clusters(store: Store) -> list[dict[str, Any]]:
     )
 
 
+def draft_solution(
+    findings: str, proposal: dict[str, Any] | None, runs: list[dict[str, Any]]
+) -> str:
+    """A starting text for the closing note, built without any model."""
+    parts: list[str] = []
+    if findings:
+        parts.append(f"Cause / finding: {findings}")
+    if proposal:
+        if proposal.get("summary"):
+            parts.append(f"Fix: {proposal['summary']}")
+        steps = (proposal.get("instruction") or {}).get("steps") or []
+        if steps:
+            parts.append(
+                "Steps: " + "; ".join(s.get("purpose") or s["tool"] for s in steps)
+            )
+        elif proposal.get("steps"):
+            parts.append("Steps: " + "; ".join(str(x) for x in proposal["steps"]))
+        if proposal.get("user_action"):
+            parts.append(f"Done by hand: {proposal['user_action']}")
+    done = [r for r in runs if r["status"] in ("done", "completed", "succeeded")]
+    if done:
+        parts.append(f"Executed by the Janitor: run #{done[0]['id']}")
+    return "\n".join(parts)
+
+
 def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any]:
     client = client or CloudClient(store)
     settings = store.settings()
     clusters = plan_clusters(store)
+    live_tasks = store.sync_tasks(clusters)
     selected = store.selected_tasks()
     findings = store.findings()
+    runs_by: dict[str, list[dict[str, Any]]] = {}
+    for e in store.executions(200):
+        runs_by.setdefault(e["cluster_id"], []).append(e)
     proposals = store.plan_proposals()
     model = client.model_for("diagnose")
     prices = settings["prices"].get(model)
@@ -415,6 +446,14 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
                 "selected": c["id"] in selected,
                 "proposal": prop["body"] if current else None,
                 "proposal_stale": bool(prop) and not current,
+                "task_id": live_tasks[c["id"]]["id"],
+                "seen_before": live_tasks[c["id"]]["seen_before"],
+                "solution": live_tasks[c["id"]]["solution"],
+                "solution_draft": draft_solution(
+                    findings.get(c["id"], ""),
+                    prop["body"] if prop else None,
+                    runs_by.get(c["id"], []),
+                ),
                 "findings": findings.get(c["id"], ""),
                 "findings_changed": bool(prop)
                 and current
@@ -433,6 +472,25 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
             }
         )
 
+    cleared = []
+    for cid, row in live_tasks.items():
+        if row["status"] != "cleared":
+            continue
+        prop = proposals.get(cid)
+        cleared.append(
+            {
+                "task_id": row["id"],
+                "cluster_id": cid,
+                "label": row["label"],
+                "solution": row["solution"],
+                "solution_draft": draft_solution(
+                    findings.get(cid, ""),
+                    prop["body"] if prop else None,
+                    runs_by.get(cid, []),
+                ),
+                "findings": findings.get(cid, ""),
+            }
+        )
     lanes = {lane: [t["id"] for t in tasks if t["quadrant"] == lane] for lane in LANES}
     pending = [t["estimate"] for t in tasks if not t["proposal"]]
     chosen = [t["estimate"] for t in tasks if t["selected"] and not t["proposal"]]
@@ -444,6 +502,7 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
     limit = settings["budget"]["monthly_limit_usd"]
     return {
         "tasks": tasks,
+        "cleared": cleared,
         "lanes": lanes,
         "matrix": matrix_counts(clusters),
         "estimates": {
@@ -520,6 +579,14 @@ def generate_proposal(
     findings = store.findings().get(cluster_id, "")
     if findings:
         payload["owner_findings"] = findings
+    live_tasks = store.sync_tasks(plan_clusters(store))
+    prev = (
+        store.task(live_tasks[cluster_id]["seen_before"])
+        if live_tasks.get(cluster_id, {}).get("seen_before")
+        else None
+    )
+    if prev and prev["solution"]:
+        payload["seen_before"] = {"id": prev["id"], "solution": prev["solution"][:1500]}
     if mode not in ("quick", "investigate", "deep"):
         return {"status": "bad_mode"}
     if mode != "quick":

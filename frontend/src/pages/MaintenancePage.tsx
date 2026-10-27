@@ -431,6 +431,233 @@ function ProposalView({ p }: { p: Proposal }) {
   );
 }
 
+const RANK: Record<EscalationMode, number> = { quick: 0, investigate: 1, deep: 2 };
+
+// One button per step. gray = can run, green = done (click again to re-run),
+// frame only = not available yet.
+function ActionRow({
+  t,
+  running,
+  secs,
+  busy,
+  onRun,
+  onChange,
+}: {
+  t: Task;
+  running: boolean;
+  secs: number;
+  busy: boolean;
+  onRun: (mode: EscalationMode) => void;
+  onChange: () => void;
+}) {
+  const have = t.proposal ? RANK[t.proposal.mode ?? 'quick'] : -1;
+  const [ask, setAsk] = useState<EscalationMode | 'close' | null>(null);
+  const [err, setErr] = useState('');
+  const jobs = useJobs();
+  const runningMode = jobs.find((j) => j.taskId === t.id && j.state === 'running')?.mode;
+  const steps: [EscalationMode, string, { usd: number | null }, string][] = [
+    ['quick', 'Propose', t.estimate, 'Sonnet writes a plan from what the Janitor already knows'],
+    ['investigate', 'Investigate', t.estimate_investigate, 'Sonnet also looks at Home Assistant (read-only) and writes the steps to run'],
+    ['deep', 'Deep (Opus)', t.estimate_deep, 'Opus with read-only lookups, for hard cases'],
+  ];
+  const canClose = t.solution.trim().length > 0;
+  const base = 'text-[0.6875rem] px-2.5 py-1 rounded flex items-center gap-1 ';
+  const look = (state: 'done' | 'ready' | 'locked' | 'working') =>
+    state === 'done'
+      ? { background: 'var(--color-success-subtle, rgba(61,220,151,0.16))', border: '1px solid var(--color-success)', color: 'var(--color-success)' }
+      : state === 'ready'
+        ? { background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }
+        : state === 'working'
+          ? { background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }
+          : { background: 'transparent', border: '1px dashed var(--color-border)', color: 'var(--color-text-tertiary)', opacity: 0.7 };
+  const close = async () => {
+    setErr('');
+    try {
+      await api.close(t.task_id);
+      setAsk(null);
+      onChange();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'could not close');
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {steps.map(([mode, label, est, tip]) => {
+          const r = RANK[mode];
+          const done = have >= r;
+          const ready = !done && have >= r - 1;
+          const working = running && runningMode === mode;
+          const state = working ? 'working' : done ? 'done' : ready ? 'ready' : 'locked';
+          const clickable = !busy && !running && (done || ready);
+          return (
+            <button
+              key={mode}
+              disabled={!clickable}
+              onClick={() => (done ? setAsk(mode) : onRun(mode))}
+              className={base + (clickable ? 'cursor-pointer' : 'cursor-default')}
+              style={look(state)}
+              title={
+                state === 'locked'
+                  ? `Not available yet: ${mode === 'investigate' ? 'run Propose first' : 'run Investigate first'}`
+                  : `${tip}.${done ? ' Done. Click to run it again.' : ''} Started by you only. Up to ${usd(est.usd)}.`
+              }
+            >
+              {working ? (
+                <>
+                  <RefreshCw size={10} className="animate-spin" /> Working… {secs}s
+                </>
+              ) : (
+                <>
+                  {done ? '✓' : <Play size={10} />} {label}
+                  {done && t.findings_changed ? <span title="Your findings changed after this run" style={{ color: 'var(--color-warning)' }}>●</span> : null}
+                  <span style={{ opacity: 0.75 }}>≤{usd(est.usd)}</span>
+                </>
+              )}
+            </button>
+          );
+        })}
+        <span className="mx-1 self-stretch" style={{ borderLeft: '1px solid var(--color-border)' }} />
+        <button
+          disabled={!canClose || running}
+          onClick={() => setAsk('close')}
+          className={base + (canClose && !running ? 'cursor-pointer' : 'cursor-default')}
+          style={look(canClose ? 'ready' : 'locked')}
+          title={canClose ? 'Close this task and move it to resolved.md' : 'Not available yet: write and save the closing text first'}
+        >
+          Close task
+        </button>
+      </div>
+      {ask && ask !== 'close' && (
+        <div className="text-[0.6875rem] flex items-center gap-2 flex-wrap" style={muted}>
+          Run {ask === 'quick' ? 'Propose' : ask === 'investigate' ? 'Investigate' : 'Deep'} again with your latest findings? It replaces the
+          current result and is a paid call.
+          <button
+            onClick={() => {
+              onRun(ask);
+              setAsk(null);
+            }}
+            className="px-2 py-0.5 rounded cursor-pointer"
+            style={look('done')}
+          >
+            Yes, run
+          </button>
+          <button onClick={() => setAsk(null)} className="px-2 py-0.5 rounded cursor-pointer" style={look('ready')}>
+            Cancel
+          </button>
+        </div>
+      )}
+      {ask === 'close' && (
+        <div className="text-[0.6875rem] flex items-center gap-2 flex-wrap" style={muted}>
+          Close {t.task_id} and move it to resolved.md? The findings and proposal are kept in the record.
+          <button onClick={() => void close()} className="px-2 py-0.5 rounded cursor-pointer" style={look('done')}>
+            Yes, close
+          </button>
+          <button onClick={() => setAsk(null)} className="px-2 py-0.5 rounded cursor-pointer" style={look('ready')}>
+            Cancel
+          </button>
+        </div>
+      )}
+      {err && (
+        <div className="text-[0.6875rem]" style={{ color: 'var(--color-error)' }}>
+          {err}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClosingBox({
+  taskId,
+  solution,
+  draft,
+  onChange,
+  closeToo,
+}: {
+  taskId: string;
+  solution: string;
+  draft: string;
+  onChange: () => void;
+  closeToo?: boolean;
+}) {
+  const [open, setOpen] = useState(Boolean(solution) || Boolean(closeToo));
+  const [text, setText] = useState(solution);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => setText(solution), [solution]);
+  const dirty = text.trim() !== solution.trim();
+  const save = async (andClose: boolean) => {
+    setSaving(true);
+    setErr('');
+    try {
+      await api.solution(taskId, text);
+      if (andClose) await api.close(taskId);
+      onChange();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'could not save');
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-[0.6875rem] self-start cursor-pointer"
+        style={{ color: solution ? 'var(--color-success)' : 'var(--color-text-secondary)', background: 'none', border: 'none' }}
+        title="What fixed it. Needed before the task can be closed into resolved.md."
+      >
+        {open ? '▾' : '▸'} Closing text{solution ? ' ✓' : ''}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={3}
+            maxLength={4000}
+            placeholder="What was the cause and what fixed it? This becomes the knowledge-library entry."
+            className="w-full rounded px-2 py-1 text-xs"
+            style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)', resize: 'vertical' }}
+            aria-label={`Closing text for ${taskId}`}
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            {draft && !text.trim() && (
+              <button
+                onClick={() => setText(draft)}
+                className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer"
+                style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+                title="Fill in a draft built from your findings and the proposal (no AI call)"
+              >
+                Use draft
+              </button>
+            )}
+            <button
+              disabled={!dirty || saving}
+              onClick={() => void save(false)}
+              className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer disabled:opacity-40"
+              style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
+            >
+              {saving ? 'Saving…' : 'Save closing text'}
+            </button>
+            {closeToo && (
+              <button
+                disabled={!text.trim() || saving}
+                onClick={() => void save(true)}
+                className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer disabled:opacity-40"
+                style={{ background: 'var(--color-success-subtle, rgba(61,220,151,0.16))', border: '1px solid var(--color-success)', color: 'var(--color-success)' }}
+              >
+                Save and close
+              </button>
+            )}
+            {err && <span className="text-[0.6875rem]" style={{ color: 'var(--color-error)' }}>{err}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
   const [open, setOpen] = useState(Boolean(t.proposal?.mode && t.proposal.mode !== 'quick'));
   const [busy, setBusy] = useState(false);
@@ -448,12 +675,6 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
       setBusy(false);
     }
   };
-
-  // Plan tab ladder: Propose first; once a proposal exists the next step up
-  // (Investigate, then Deep). The Flow tab keeps every mode for debugging.
-  const have: EscalationMode | null = t.proposal ? (t.proposal.mode ?? 'quick') : null;
-  const nextMode: EscalationMode | null =
-    t.proposal_stale || have === null ? 'quick' : have === 'quick' ? 'investigate' : have === 'investigate' ? 'deep' : null;
 
   const jobs = useJobs();
   const mine = jobs.find((j) => j.taskId === t.id);
@@ -490,6 +711,10 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
             <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
               {t.label}
             </span>
+            <span className="text-[0.6875rem] hud-mono" style={faint} title="Task ID (year_month_day_sequence)">
+              {t.task_id}
+            </span>
+            {t.seen_before && <Chip text={`seen before: ${t.seen_before}`} color="var(--color-warning)" />}
             <Chip text={t.severity} color={SEVERITY_COLOR[t.severity]} />
             <Chip text={t.effort} />
             <Chip text={t.kind === 'chore' ? 'chore · no change in HA' : 'needs your approval'} />
@@ -541,17 +766,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
             </select>
             {t.proposal ? (
               <>
-                <button
-                  onClick={() => escalate(have ?? 'quick')}
-                  disabled={running}
-                  className="text-[0.6875rem] px-1.5 py-1 rounded cursor-pointer"
-                  style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-                  title="Run this step again (a paid call)"
-                  aria-label="Run this step again"
-                >
-                  ↻
-                </button>
-                <button
+                    <button
                   onClick={() => setOpen(!open)}
                   className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer"
                   style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
@@ -561,7 +776,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               </>
             ) : null}
           </div>
-          {t.count > 3 && nextMode !== null && !running && (
+          {t.count > 3 && !running && (
             <input
               value={focus}
               onChange={(e) => setFocus(e.target.value)}
@@ -572,44 +787,11 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               title="This group has many issues. Name the one you care about (part of its automation or entity name) and Sonnet looks at it first."
             />
           )}
-          <div className="flex items-center gap-1.5 flex-wrap justify-end">
-            {(
-              [
-                ['quick', 'Propose', t.estimate, 'Sonnet writes a plan from what the Janitor already knows'],
-                ['investigate', 'Investigate', t.estimate_investigate, 'Sonnet also looks at Home Assistant (read-only) and writes the steps to run'],
-                ['deep', 'Deep (Opus)', t.estimate_deep, 'Opus, read-only lookups, for hard cases'],
-              ] as [EscalationMode, string, { usd: number | null }, string][]
-            )
-              .filter(([mode]) => mode === nextMode)
-              .map(([mode, label, est, tip]) => (
-                <button
-                  key={mode}
-                  disabled={busy || running}
-                  onClick={() => escalate(mode)}
-                  className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
-                  style={{
-                    background: running ? 'var(--color-accent-subtle)' : 'var(--color-bg-secondary)',
-                    border: `1px solid ${running ? 'var(--color-accent)' : 'var(--color-border)'}`,
-                    color: 'var(--color-text)',
-                    opacity: running ? 0.9 : 1,
-                  }}
-                  title={`${tip}. Started by you only. Up to ${usd(est.usd)}.`}
-                >
-                  {running ? (
-                    <>
-                      <RefreshCw size={10} className="animate-spin" /> Working… {secs}s
-                    </>
-                  ) : (
-                    <>
-                      <Play size={10} /> {t.proposal_stale ? 'Refresh' : label} ≤{usd(est.usd)}
-                    </>
-                  )}
-                </button>
-              ))}
-          </div>
         </div>
       </div>
+      <ActionRow t={t} running={running} secs={secs} busy={busy} onRun={escalate} onChange={onChange} />
       <FindingsBox t={t} onChange={onChange} />
+      <ClosingBox taskId={t.task_id} solution={t.solution} draft={t.solution_draft} onChange={onChange} />
       {running && (
         <div className="h-0.5 rounded overflow-hidden" style={{ background: 'var(--color-bg-tertiary)' }}>
           <div className="h-full animate-pulse" style={{ width: `${Math.min(95, 8 + secs * 1.2)}%`, background: 'var(--color-accent)', transition: 'width 1s linear' }} />
@@ -643,6 +825,22 @@ function PlanTab({ plan, reload }: { plan: Plan; reload: () => void }) {
         <div className="text-sm" style={faint}>
           No open tasks yet. The first watchdog checks run a few minutes after the server starts.
         </div>
+      )}
+      {plan.cleared.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <div className="hud-label">Cleared by themselves · {plan.cleared.length} · write what fixed it to close</div>
+          {plan.cleared.map((c) => (
+            <div key={c.task_id} className="hud-panel p-3 flex flex-col gap-2" style={{ borderLeft: '2px solid var(--color-success)' }}>
+              <div className="text-sm" style={{ color: 'var(--color-text)' }}>
+                <span className="hud-mono text-[0.6875rem]" style={faint}>{c.task_id}</span> {c.label}
+              </div>
+              <div className="text-[0.6875rem]" style={faint}>
+                The issues are gone in Home Assistant. If they come back before you close it, the task reopens by itself.
+              </div>
+              <ClosingBox taskId={c.task_id} solution={c.solution} draft={c.solution_draft} onChange={reload} closeToo />
+            </div>
+          ))}
+        </section>
       )}
       {lanes.map((lane) => (
         <section key={lane} className="flex flex-col gap-2">

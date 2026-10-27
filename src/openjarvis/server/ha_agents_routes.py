@@ -37,7 +37,7 @@ from openjarvis.agents.store import (
     SettingsError,
     get_store,
 )
-from openjarvis.agents.taskbook import write_taskbook
+from openjarvis.agents.taskbook import close_task, write_taskbook
 from openjarvis.agents.team import team_overview
 from openjarvis.agents.telegram_bot import TelegramError, get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
@@ -229,6 +229,35 @@ def plan_findings(body: dict[str, Any]) -> dict[str, Any]:
     if not any(c["id"] == tid for c in plan_clusters(store)):
         raise HTTPException(status_code=404, detail="unknown task")
     store.set_findings(tid, text)
+    _export_taskbook()
+    return build_plan(store)
+
+
+@ha_agents_router.put("/plan/solution")
+def plan_solution(body: dict[str, Any]) -> dict[str, Any]:
+    """Save the closing text of a task (what fixed it). Needed before closing."""
+    task_id, text = body.get("task_id"), body.get("text", "")
+    if not isinstance(task_id, str) or not isinstance(text, str):
+        raise HTTPException(status_code=422, detail="task_id and text (strings)")
+    store = get_store()
+    if not store.set_solution(task_id, text):
+        raise HTTPException(status_code=404, detail="unknown or closed task")
+    _export_taskbook()
+    return build_plan(store)
+
+
+@ha_agents_router.post("/plan/close")
+def plan_close(body: dict[str, Any]) -> dict[str, Any]:
+    """Close a task into resolved.md. Only possible once a solution text is saved."""
+    task_id = body.get("task_id")
+    if not isinstance(task_id, str):
+        raise HTTPException(status_code=422, detail="task_id (string)")
+    store = get_store()
+    out = close_task(store, task_id)
+    if out["status"] == "unknown_task":
+        raise HTTPException(status_code=404, detail="unknown or closed task")
+    if out["status"] == "needs_solution":
+        raise HTTPException(status_code=409, detail="write the solution text first")
     _export_taskbook()
     return build_plan(store)
 

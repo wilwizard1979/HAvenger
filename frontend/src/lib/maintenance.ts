@@ -97,6 +97,10 @@ export interface Task {
   proposal_stale: boolean;
   findings: string;
   findings_changed: boolean;
+  task_id: string;
+  seen_before: string | null;
+  solution: string;
+  solution_draft: string;
   estimate: Estimate;
   estimate_investigate: Estimate;
   estimate_deep: Estimate;
@@ -109,8 +113,18 @@ interface Sum {
   usd: number | null;
 }
 
+export interface ClearedTask {
+  task_id: string;
+  cluster_id: string;
+  label: string;
+  solution: string;
+  solution_draft: string;
+  findings: string;
+}
+
 export interface Plan {
   tasks: Task[];
+  cleared: ClearedTask[];
   lanes: Record<string, string[]>;
   matrix: {
     cells: Record<Severity, Record<Effort, { clusters: number; issues: number }>>;
@@ -296,6 +310,10 @@ export const api = {
     call<Plan>('/plan/select', { method: 'PUT', body: JSON.stringify({ id, selected }) }),
   findings: (id: string, text: string) =>
     call<Plan>('/plan/findings', { method: 'PUT', body: JSON.stringify({ id, text }) }),
+  solution: (taskId: string, text: string) =>
+    call<Plan>('/plan/solution', { method: 'PUT', body: JSON.stringify({ task_id: taskId, text }) }),
+  close: (taskId: string) =>
+    call<Plan>('/plan/close', { method: 'POST', body: JSON.stringify({ task_id: taskId }) }),
   override: (id: string, effort: Effort | null) =>
     call('/clusters/override', { method: 'PUT', body: JSON.stringify({ id, effort }) }),
   proposal: (id: string, mode: EscalationMode, focus?: string) =>

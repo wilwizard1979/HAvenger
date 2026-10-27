@@ -42,3 +42,9 @@ Phases 0-7 built (watchdog, clusters and matrix, plan and estimates, Haiku notes
 Next: "edit with diff" step for automation fixes (read config in investigations, small change applied by Python, before/after diff in the approval), then the first real approval test.
 
 Open: automatic daily run and Telegram alerts (off), Option B approvals, LaunchAgent, Tailscale, weekly Friday report, merge to the main line, per-issue investigation, automation traces.
+
+## Added 2026-10-27
+- [ ] Export button (Python, on click) that writes redacted copies of tasks.md and resolved.md (full redaction incl. hidden words) to a Google Drive folder, so a Claude web project can use them. Wrap each record in a tag (`<task id="..." status="...">`) in the export copy only. Until then: copy and paste the local files.
+- [ ] Optional Haiku "polish" button for the closing text (about half a cent per use).
+- [ ] Read-back of edits made inside tasks.md / resolved.md (not planned; the files are one-way exports).
+- [ ] Host-IP value filled in by Python for plan steps, and a check of what ha-mcp can do with config entries (Ollama case).
