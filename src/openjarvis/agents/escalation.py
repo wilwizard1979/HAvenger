@@ -29,7 +29,7 @@ from openjarvis.agents.store import RISKS, Store
 
 TOOL_RESULT_CHARS = 6000
 MAX_STEPS = 15
-TOOL_NAME = re.compile(r"^ha_[a-z0-9_]+$")
+TOOL_NAME = re.compile(r"^(ha_[a-z0-9_]+|janitor_edit_automation)$")
 
 # Read-only Home Assistant lookups an escalated model may use. ``ha_get_overview``
 # is called directly, the others through the read proxy (see ``ReadOnlyHA``).
@@ -80,6 +80,17 @@ DIAG_TOOLS: dict[str, dict[str, Any]] = {
             "properties": {"limit": {"type": "integer"}},
         },
     },
+    "ha_config_get_automation": {
+        "description": (
+            "The full config of one automation (triggers, conditions, actions). "
+            "Use it before you propose an edit."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {"identifier": {"type": "string"}},
+            "required": ["identifier"],
+        },
+    },
     "ha_get_automation_traces": {
         "description": "Recent execution traces of one automation or script.",
         "input_schema": {
@@ -118,9 +129,17 @@ SYSTEM = (
     "in Home Assistant is needed. To change something use the tool "
     'ha_call_write_tool with args {"name": <exact tool name>, "arguments": {...}}; '
     "look the exact name and parameters up with ha_search_tools first, never guess "
-    "them. Placeholders like <email_1> are redacted values: "
-    "keep them unchanged."
+    "them. To change an AUTOMATION do not write its config: read it with "
+    "ha_config_get_automation, then use a step with tool janitor_edit_automation and "
+    'args {"identifier": <automation entity id or id>, "edits": [{"path": '
+    '"actions.2.action", "set": <value>} or {"path": ..., "delete": true}]} '
+    "(paths use dots and list indexes, at most 10 small edits). Python applies the "
+    "edits itself and shows the owner the exact before/after diff. "
+    "Placeholders like <email_1> are redacted values: keep them unchanged."
 )
+
+
+DIRECT_TOOLS = {"ha_config_get_automation", "ha_get_automation_traces"}
 
 
 class ReadOnlyHA:
@@ -142,6 +161,8 @@ class ReadOnlyHA:
                 raw = client.call_tool(
                     name, {"query": str((args or {}).get("query", ""))}
                 )
+            elif name in DIRECT_TOOLS:  # pinned tools are not behind the proxy
+                raw = client.call_tool(name, args or {})
             else:
                 raw = client.call_tool(
                     "ha_call_read_tool", {"name": name, "arguments": args or {}}

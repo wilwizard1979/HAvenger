@@ -128,6 +128,7 @@ def test_only_allow_listed_reads_reach_home_assistant():
         "ha_get_integration",
         "ha_get_logs",
         "ha_get_automation_traces",
+        "ha_config_get_automation",
     }
     # an allowed tool that fails is reported to the model, not raised
     assert "error" in ro.call("ha_get_state", {"entity_id": ["x"]})

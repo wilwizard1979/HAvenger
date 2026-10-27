@@ -27,6 +27,7 @@ import re
 import time
 from typing import Any, Callable
 
+from openjarvis.agents import config_edit
 from openjarvis.agents.cloud_client import (
     BudgetExceeded,
     CloudClient,
@@ -87,9 +88,11 @@ def instruction_hash(instruction: dict[str, Any]) -> str:
 def step_problems(step: dict[str, Any], cfg: dict[str, Any]) -> list[str]:
     out: list[str] = []
     tool = step.get("tool", "")
-    if tool not in cfg["allowed_tools"]:
+    if tool != config_edit.EDIT_TOOL and tool not in cfg["allowed_tools"]:
         out.append(f"tool {tool} is not allowed")
     args = step.get("args") or {}
+    if tool == config_edit.EDIT_TOOL:  # a Python-handled step, see config_edit
+        return config_edit.edit_problems(step, cfg["allowed_tools"])
     inner = args.get("name") if tool == "ha_call_write_tool" else None
     if tool == "ha_call_write_tool":
         if not isinstance(inner, str) or not inner:
@@ -112,8 +115,22 @@ def execution_problems(instruction: dict[str, Any], cfg: dict[str, Any]) -> list
     return problems
 
 
+def _read_only(tool: str, args: dict[str, Any]) -> str:
+    from openjarvis.agents.escalation import ReadOnlyHA
+
+    ha = ReadOnlyHA()
+    try:
+        return ha.call(tool, args)
+    finally:
+        ha.close()
+
+
 # -- approval --------------------------------------------------------------------
-def request_approval(store: Store, cluster_id: str) -> dict[str, Any]:
+def request_approval(
+    store: Store,
+    cluster_id: str,
+    read: Callable[[str, dict[str, Any]], str] | None = None,
+) -> dict[str, Any]:
     cfg = store.settings()["executor"]
     prop = store.plan_proposals().get(cluster_id)
     if prop is None:
@@ -127,6 +144,15 @@ def request_approval(store: Store, cluster_id: str) -> dict[str, Any]:
     problems = execution_problems(instruction, cfg)
     if problems:
         return {"status": "not_executable", "problems": problems}
+    if any(st.get("tool") == config_edit.EDIT_TOOL for st in instruction["steps"]):
+        # read the current configs (read-only), build the diff and the restore steps
+        try:
+            instruction = config_edit.prepare(instruction, read or _read_only)
+        except config_edit.EditError as exc:
+            return {"status": "not_executable", "problems": [str(exc)[:300]]}
+        problems = execution_problems(instruction, cfg)
+        if problems:
+            return {"status": "not_executable", "problems": problems}
     if any(
         e["cluster_id"] == cluster_id and e["status"] in ACTIVE
         for e in store.executions(50)
@@ -250,6 +276,8 @@ class Runner:
 
     def _do(self, label: str, step: dict[str, Any]) -> tuple[bool, str]:
         shown = Redactor.redact_secrets(f"{step['tool']} {json.dumps(step['args'])}")
+        if step["tool"] == config_edit.EDIT_TOOL:
+            return self._do_edit(label, step, shown)
         if not self.live:
             self.store.log_execution(self.id, f"simulated {label}", shown)
             return True, "simulated: nothing was sent to Home Assistant"
@@ -261,6 +289,25 @@ class Runner:
             self.store.log_execution(self.id, f"failed {label}", msg)
             return False, f"error: {msg}"
         out = Redactor.redact_secrets(out)[:RESULT_CHARS]
+        self.store.log_execution(self.id, f"done {label}", out[:300])
+        return True, out
+
+    def _do_edit(
+        self, label: str, step: dict[str, Any], shown: str
+    ) -> tuple[bool, str]:
+        diff = "\n".join((step.get("preview") or {}).get("diff") or [])
+        if not self.live:
+            self.store.log_execution(
+                self.id, f"simulated {label}", Redactor.redact_secrets(diff or shown)
+            )
+            return True, "simulated: nothing was sent to Home Assistant"
+        self.store.log_execution(self.id, f"running {label}", shown[:300])
+        try:
+            out = config_edit.run_live(step, self.ha.call)
+        except Exception as exc:  # noqa: BLE001
+            msg = Redactor.redact_secrets(str(exc))[:300]
+            self.store.log_execution(self.id, f"failed {label}", msg)
+            return False, f"error: {msg}"
         self.store.log_execution(self.id, f"done {label}", out[:300])
         return True, out
 

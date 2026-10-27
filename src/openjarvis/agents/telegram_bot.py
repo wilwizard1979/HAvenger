@@ -117,7 +117,12 @@ def approval_text(e: dict[str, Any], live: bool) -> str:
         lines.append("Before: " + "; ".join(ins["preconditions"]))
     lines.append(f"Steps ({len(ins['steps'])}), run exactly in this order:")
     for i, st in enumerate(ins["steps"]):
-        lines.append(f"{i}. {st['tool']} {json.dumps(st['args'])[:300]}")
+        diff = (st.get("preview") or {}).get("diff")
+        if diff:
+            lines.append(f"{i}. EDIT {st['args'].get('identifier')}, exact changes:")
+            lines += [f"   {d}" for d in diff[:40]]
+        else:
+            lines.append(f"{i}. {st['tool']} {json.dumps(st['args'])[:300]}")
         if st.get("purpose"):
             lines.append(f"   why: {st['purpose']}")
     if ins.get("rollback_steps"):
