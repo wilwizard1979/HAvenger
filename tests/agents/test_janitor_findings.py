@@ -89,6 +89,7 @@ def test_task_ids_close_and_seen_before(store, tmp_path, monkeypatch):
     store.set_findings("integration:ollama", "IP changed")
     assert store.set_solution(oid, "Updated the URL to the cable IP")
     assert taskbook.close_task(store, oid)["status"] == "ok"
+    store.set_facts({"checked_at": time.time() + 10})  # a check ran after closing
     assert store.findings() == {}  # working data is gone, the record keeps the story
 
     # the issue is gone, so the closed task stays closed and a new one is not made
@@ -150,3 +151,62 @@ def test_overwritten_findings_are_kept_in_a_log(store):
     store.set_findings("integration:ollama", "")
     rows = store._all("SELECT text FROM findings_log")
     assert [r["text"] for r in rows] == ["first"]
+
+
+def test_no_check_yet_means_a_closed_task_stays_gone(store):
+    add(store, "repair", "ollama/a", "Ollama unreachable", domain="ollama")
+    client, _ = live(store, None)
+    oid = planning.build_plan(store, client)["tasks"][0]["task_id"]
+    store.set_solution(oid, "fixed")
+    from openjarvis.agents import taskbook
+
+    taskbook.close_task(store, oid)
+    assert planning.build_plan(store, client)["tasks"] == []
+
+
+def test_api_findings_solution_close_library(tmp_path, monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from openjarvis.agents import store as store_mod
+    from openjarvis.server.ha_agents_routes import ha_agents_router
+
+    monkeypatch.setenv("JARVIS_JANITOR_DB", str(tmp_path / "api.db"))
+    monkeypatch.setenv("JARVIS_JANITOR_DIR", str(tmp_path))
+    store_mod.reset_store_for_tests()
+    s = store_mod.get_store()
+    add(s, "repair", "ollama/a", "Ollama unreachable", domain="ollama")
+    app = FastAPI()
+    app.include_router(ha_agents_router)
+    http = TestClient(app)
+    base = "/v1/ha/agents"
+
+    assert (
+        http.put(f"{base}/plan/findings", json={"id": "nope", "text": "x"}).status_code
+        == 404
+    )
+    assert http.put(f"{base}/plan/findings", json={"id": 5}).status_code == 422
+    r = http.put(
+        f"{base}/plan/findings", json={"id": "integration:ollama", "text": "IP"}
+    )
+    task = r.json()["tasks"][0]
+    assert task["findings"] == "IP" and (tmp_path / "tasks.md").exists()
+
+    tid = task["task_id"]
+    assert http.post(f"{base}/plan/close", json={"task_id": tid}).status_code == 409
+    assert http.post(f"{base}/plan/close", json={"task_id": "x"}).status_code == 404
+    assert (
+        http.put(
+            f"{base}/plan/solution", json={"task_id": "x", "text": "a"}
+        ).status_code
+        == 404
+    )
+    http.put(f"{base}/plan/solution", json={"task_id": tid, "text": "new url"})
+    out = http.post(f"{base}/plan/close", json={"task_id": tid})
+    assert out.status_code == 200 and out.json()["tasks"] == []
+    items = http.get(f"{base}/library").json()["items"]
+    assert items[0]["task_id"] == tid and items[0]["solution"] == "new url"
+    assert items[0]["awaiting_check"] is True
+    assert "new url" in (tmp_path / "resolved.md").read_text()
+    # closing twice is refused
+    assert http.post(f"{base}/plan/close", json={"task_id": tid}).status_code == 404

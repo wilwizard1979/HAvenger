@@ -757,7 +757,7 @@ class Store:
                 ).fetchone()
                 # closed by the owner but the watchdog has not looked again yet:
                 # wait for the next check before believing the problem is back
-                if prev and last_check is not None and prev["closed_at"] > last_check:
+                if prev and prev["closed_at"] > (last_check or 0.0):
                     continue
                 n = c.execute(
                     "SELECT COALESCE(MAX(CAST(substr(id, 12) AS INTEGER)), 0) "
@@ -810,10 +810,9 @@ class Store:
 
     def awaiting_check(self, last_check: float | None) -> set[str]:
         """Closed task ids the watchdog has not re-verified yet."""
-        if last_check is None:
-            return set()
         rows = self._all(
-            "SELECT id FROM tasks WHERE status='closed' AND closed_at>?", (last_check,)
+            "SELECT id FROM tasks WHERE status='closed' AND closed_at>?",
+            (last_check or 0.0,),
         )
         return {r["id"] for r in rows}
 
