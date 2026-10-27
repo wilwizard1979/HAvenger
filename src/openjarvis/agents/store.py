@@ -182,6 +182,9 @@ CREATE TABLE IF NOT EXISTS triage_notes (
 CREATE TABLE IF NOT EXISTS task_selection (
   cluster_id TEXT PRIMARY KEY, selected INTEGER NOT NULL, updated REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS task_findings (
+  cluster_id TEXT PRIMARY KEY, text TEXT NOT NULL, updated REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS plan_proposals (
   cluster_id TEXT PRIMARY KEY, members_hash TEXT NOT NULL, body TEXT NOT NULL, model TEXT,
   cost_usd REAL DEFAULT 0, updated REAL NOT NULL
@@ -442,6 +445,9 @@ def _validate_group(key: str, value: Any) -> Any:
     raise SettingsError(f"unknown setting: {key}")
 
 
+FINDINGS_MAX = 2000
+
+
 class Store:
     """Thread-safe SQLite wrapper (one short-lived connection per call)."""
 
@@ -685,6 +691,22 @@ class Store:
     def selected_tasks(self) -> set[str]:
         rows = self._all("SELECT cluster_id FROM task_selection WHERE selected=1")
         return {r["cluster_id"] for r in rows}
+
+    def set_findings(self, cluster_id: str, text: str) -> None:
+        """The owner's own diagnosis of a task. Empty text removes it."""
+        text = text.strip()[:FINDINGS_MAX]
+        if not text:
+            self._run("DELETE FROM task_findings WHERE cluster_id=?", (cluster_id,))
+            return
+        self._run(
+            "INSERT INTO task_findings(cluster_id,text,updated) VALUES(?,?,?) "
+            "ON CONFLICT(cluster_id) DO UPDATE SET text=excluded.text, updated=excluded.updated",
+            (cluster_id, text, time.time()),
+        )
+
+    def findings(self) -> dict[str, str]:
+        rows = self._all("SELECT cluster_id,text FROM task_findings")
+        return {r["cluster_id"]: r["text"] for r in rows}
 
     def put_plan_proposal(
         self,

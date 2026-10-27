@@ -66,6 +66,7 @@ export interface Proposal {
   verification: string[];
   needs_user: boolean;
   user_action: string;
+  findings_used?: string;
 }
 
 export type EscalationMode = 'quick' | 'investigate' | 'deep';
@@ -94,6 +95,8 @@ export interface Task {
   selected: boolean;
   proposal: Proposal | null;
   proposal_stale: boolean;
+  findings: string;
+  findings_changed: boolean;
   estimate: Estimate;
   estimate_investigate: Estimate;
   estimate_deep: Estimate;
@@ -291,6 +294,8 @@ export const api = {
   plan: () => call<Plan>('/plan'),
   select: (id: string, selected: boolean) =>
     call<Plan>('/plan/select', { method: 'PUT', body: JSON.stringify({ id, selected }) }),
+  findings: (id: string, text: string) =>
+    call<Plan>('/plan/findings', { method: 'PUT', body: JSON.stringify({ id, text }) }),
   override: (id: string, effort: Effort | null) =>
     call('/clusters/override', { method: 'PUT', body: JSON.stringify({ id, effort }) }),
   proposal: (id: string, mode: EscalationMode, focus?: string) =>

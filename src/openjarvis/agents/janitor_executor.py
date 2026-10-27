@@ -139,7 +139,12 @@ def request_approval(store: Store, cluster_id: str) -> dict[str, Any]:
         instruction=instruction,
         instruction_hash=instruction_hash(instruction),
         risk=prop["body"].get("risk", "medium"),
-        summary=prop["body"].get("summary", ""),
+        summary=prop["body"].get("summary", "")
+        + (
+            "\n\nBased on your findings: " + prop["body"]["findings_used"][:400]
+            if prop["body"].get("findings_used")
+            else ""
+        ),
         live=bool(cfg["live"]),
     )
     store.log_execution(exec_id, "requested", "waiting for your approval in Telegram")

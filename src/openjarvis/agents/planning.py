@@ -56,7 +56,9 @@ PROPOSAL_SYSTEM = (
     "rollback (string), verification (list of strings), needs_user (true when a "
     "human must act in the physical world or outside Home Assistant), user_action "
     "(string, empty when not needed). Be concrete and short. Placeholders like "
-    "<email_1> are redacted values: keep them as they are."
+    "<email_1> are redacted values: keep them as they are. If 'owner_findings' is "
+    "present, the owner already diagnosed this: treat it as established fact, do not "
+    "re-diagnose, and build the plan on it."
 )
 
 
@@ -381,6 +383,7 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
     settings = store.settings()
     clusters = plan_clusters(store)
     selected = store.selected_tasks()
+    findings = store.findings()
     proposals = store.plan_proposals()
     model = client.model_for("diagnose")
     prices = settings["prices"].get(model)
@@ -412,6 +415,12 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
                 "selected": c["id"] in selected,
                 "proposal": prop["body"] if current else None,
                 "proposal_stale": bool(prop) and not current,
+                "findings": findings.get(c["id"], ""),
+                "findings_changed": bool(prop)
+                and current
+                and (
+                    prop["body"].get("findings_used", "") != findings.get(c["id"], "")
+                ),
                 "estimate": estimate_task(prices, c),
                 "estimate_investigate": investigate_estimate(
                     prices, c, settings["escalation"]["max_rounds"]
@@ -508,6 +517,9 @@ def generate_proposal(
     }
     if focus:
         payload["focus"] = focus.strip()[:300]
+    findings = store.findings().get(cluster_id, "")
+    if findings:
+        payload["owner_findings"] = findings
     if mode not in ("quick", "investigate", "deep"):
         return {"status": "bad_mode"}
     if mode != "quick":
@@ -526,6 +538,8 @@ def generate_proposal(
         body = {**out["proposal"], "mode": mode, "tool_calls": out["tool_calls"]}
         if focus:
             body["focus"] = focus.strip()[:300]
+        if findings:
+            body["findings_used"] = findings
         store.put_plan_proposal(
             cluster_id,
             cluster["members_hash"],
@@ -571,6 +585,8 @@ def generate_proposal(
             "needs_user": bool(body.get("needs_user", False)),
             "user_action": str(body.get("user_action", ""))[:3000],
         }
+        if findings:
+            clean["findings_used"] = findings
     except (ValueError, KeyError, TypeError, AttributeError):
         return {"status": "bad_reply", "cost_usd": res.cost_usd, "estimate": estimate}
     store.put_plan_proposal(

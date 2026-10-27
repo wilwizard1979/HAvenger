@@ -289,10 +289,77 @@ function Estimates({ plan }: { plan: Plan }) {
 /** "1) a 2) b" -> one item per line, so long answers stay readable. */
 const lines = (text: string) => text.replace(/\s+(?=\d+\)\s)/g, '\n');
 
+function FindingsBox({ t, onChange }: { t: Task; onChange: () => void }) {
+  const [open, setOpen] = useState(Boolean(t.findings));
+  const [text, setText] = useState(t.findings);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  useEffect(() => setText(t.findings), [t.findings]);
+  const dirty = text.trim() !== t.findings.trim();
+  const save = async () => {
+    setSaving(true);
+    setErr('');
+    try {
+      await api.findings(t.id, text);
+      onChange();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'could not save');
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-[0.6875rem] self-start cursor-pointer"
+        style={{ color: t.findings ? 'var(--color-accent)' : 'var(--color-text-secondary)', background: 'none', border: 'none' }}
+        title="Write what you already know about this problem. Sonnet and Opus take it as fact and plan the fix from it."
+      >
+        {open ? '▾' : '▸'} My findings{t.findings ? ' ✓' : ''}
+        {t.findings_changed ? ' · changed since the proposal' : ''}
+      </button>
+      {open && (
+        <div className="flex flex-col gap-1">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={3}
+            maxLength={2000}
+            placeholder="What you already know, e.g. the cause and what the fix should be. Sonnet/Opus treat this as fact and do not re-diagnose."
+            className="w-full rounded px-2 py-1 text-xs"
+            style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)', resize: 'vertical' }}
+            aria-label={`My findings for ${t.label}`}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              disabled={!dirty || saving}
+              onClick={() => void save()}
+              className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer disabled:opacity-40"
+              style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
+            >
+              {saving ? 'Saving…' : 'Save findings'}
+            </button>
+            <span className="text-[0.6875rem]" style={faint}>
+              Saved locally. Sent to the model only when you press Propose or Investigate (secrets are removed first). {text.length}/2000
+            </span>
+            {err && <span className="text-[0.6875rem]" style={{ color: 'var(--color-error)' }}>{err}</span>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProposalView({ p }: { p: Proposal }) {
   return (
         <div className="text-xs flex flex-col gap-1.5 pt-2" style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
           <div>{p.summary}</div>
+          {p.findings_used && (
+            <div className="text-[0.6875rem]" style={{ color: 'var(--color-accent)' }}>
+              Based on your findings: {p.findings_used}
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Chip text={`risk ${p.risk}`} color={p.risk === 'high' ? 'var(--color-error)' : p.risk === 'medium' ? 'var(--color-warning)' : 'var(--color-success)'} />
             {p.needs_user && <Chip text="needs you" />}
@@ -542,6 +609,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
           </div>
         </div>
       </div>
+      <FindingsBox t={t} onChange={onChange} />
       {running && (
         <div className="h-0.5 rounded overflow-hidden" style={{ background: 'var(--color-bg-tertiary)' }}>
           <div className="h-full animate-pulse" style={{ width: `${Math.min(95, 8 + secs * 1.2)}%`, background: 'var(--color-accent)', transition: 'width 1s linear' }} />

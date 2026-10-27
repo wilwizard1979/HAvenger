@@ -25,6 +25,7 @@ from openjarvis.agents.planning import (
     build_plan,
     generate_proposal,
     overview,
+    plan_clusters,
     select_task,
 )
 from openjarvis.agents.readout import run_readout
@@ -207,6 +208,19 @@ def plan_select(body: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="id (string) and selected (bool)")
     select_task(get_store(), tid, selected)
     return build_plan(get_store())
+
+
+@ha_agents_router.put("/plan/findings")
+def plan_findings(body: dict[str, Any]) -> dict[str, Any]:
+    """Save the owner's diagnosis of a task (empty clears it). No cloud call."""
+    tid, text = body.get("id"), body.get("text", "")
+    if not isinstance(tid, str) or not tid or not isinstance(text, str):
+        raise HTTPException(status_code=422, detail="id and text (strings)")
+    store = get_store()
+    if not any(c["id"] == tid for c in plan_clusters(store)):
+        raise HTTPException(status_code=404, detail="unknown task")
+    store.set_findings(tid, text)
+    return build_plan(store)
 
 
 @ha_agents_router.post("/plan/proposal")
