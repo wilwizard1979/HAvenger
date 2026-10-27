@@ -122,3 +122,31 @@ def test_vanished_cluster_is_cleared_and_needs_a_solution(store):
     store.set_issue_state(fp, "open")
     plan = planning.build_plan(store, client)
     assert plan["cleared"] == [] and plan["tasks"][0]["task_id"] == tid
+
+
+def test_closed_task_stays_gone_until_the_next_check(store):
+    fp = add(store, "repair", "ollama/a", "Ollama unreachable", domain="ollama")
+    client, _ = live(store, None)
+    store.set_facts({"checked_at": 1000.0})
+    oid = planning.build_plan(store, client)["tasks"][0]["task_id"]
+    store.set_solution(oid, "fixed in HA")
+    from openjarvis.agents import taskbook
+
+    taskbook.close_task(store, oid, now=2000.0)
+    # the issue is still in the database but no check has run since closing
+    plan = planning.build_plan(store, client)
+    assert plan["tasks"] == [] and store.awaiting_check(1000.0) == {oid}
+    # next check: the issue is still there -> a new task remembering the old one
+    store.set_facts({"checked_at": 3000.0})
+    plan = planning.build_plan(store, client)
+    assert plan["tasks"][0]["seen_before"] == oid
+    assert plan["tasks"][0]["task_id"] != oid
+    # ids never collide after a task row is removed
+    del fp
+
+
+def test_overwritten_findings_are_kept_in_a_log(store):
+    store.set_findings("integration:ollama", "first")
+    store.set_findings("integration:ollama", "")
+    rows = store._all("SELECT text FROM findings_log")
+    assert [r["text"] for r in rows] == ["first"]

@@ -122,6 +122,26 @@ export interface ClearedTask {
   findings: string;
 }
 
+export interface LibraryItem {
+  task_id: string;
+  label: string;
+  cluster_id: string;
+  seen_before: string | null;
+  opened_at: number;
+  closed_at: number;
+  solution: string;
+  awaiting_check: boolean;
+  record: {
+    severity?: string;
+    examples?: string[];
+    cause?: string;
+    findings?: string;
+    analysis?: string;
+    steps?: string[];
+    executions?: { id: number; status: string; live: boolean }[];
+  };
+}
+
 export interface Plan {
   tasks: Task[];
   cleared: ClearedTask[];
@@ -306,6 +326,7 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   overview: () => call<Overview>('/overview'),
   plan: () => call<Plan>('/plan'),
+  library: () => call<{ items: LibraryItem[] }>('/library'),
   select: (id: string, selected: boolean) =>
     call<Plan>('/plan/select', { method: 'PUT', body: JSON.stringify({ id, selected }) }),
   findings: (id: string, text: string) =>

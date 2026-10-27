@@ -37,7 +37,7 @@ from openjarvis.agents.store import (
     SettingsError,
     get_store,
 )
-from openjarvis.agents.taskbook import close_task, write_taskbook
+from openjarvis.agents.taskbook import close_task, library, write_taskbook
 from openjarvis.agents.team import team_overview
 from openjarvis.agents.telegram_bot import TelegramError, get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
@@ -231,6 +231,12 @@ def plan_findings(body: dict[str, Any]) -> dict[str, Any]:
     store.set_findings(tid, text)
     _export_taskbook()
     return build_plan(store)
+
+
+@ha_agents_router.get("/library")
+def agents_library() -> dict[str, Any]:
+    """Closed tasks with their solutions (the knowledge library, read-only)."""
+    return {"items": library(get_store())}
 
 
 @ha_agents_router.put("/plan/solution")

@@ -380,6 +380,17 @@ def plan_clusters(store: Store) -> list[dict[str, Any]]:
     )
 
 
+def sync_open_tasks(
+    store: Store, clusters: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
+    """Task ids for the current clusters. A task the owner just closed stays gone
+    until the watchdog has checked again."""
+    last = store.facts().get("checked_at")
+    return store.sync_tasks(
+        clusters, last_check=last if isinstance(last, (int, float)) else None
+    )
+
+
 def draft_solution(
     findings: str, proposal: dict[str, Any] | None, runs: list[dict[str, Any]]
 ) -> str:
@@ -409,7 +420,8 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
     client = client or CloudClient(store)
     settings = store.settings()
     clusters = plan_clusters(store)
-    live_tasks = store.sync_tasks(clusters)
+    live_tasks = sync_open_tasks(store, clusters)
+    clusters = [c for c in clusters if c["id"] in live_tasks]
     selected = store.selected_tasks()
     findings = store.findings()
     runs_by: dict[str, list[dict[str, Any]]] = {}
@@ -579,7 +591,7 @@ def generate_proposal(
     findings = store.findings().get(cluster_id, "")
     if findings:
         payload["owner_findings"] = findings
-    live_tasks = store.sync_tasks(plan_clusters(store))
+    live_tasks = sync_open_tasks(store, plan_clusters(store))
     prev = (
         store.task(live_tasks[cluster_id]["seen_before"])
         if live_tasks.get(cluster_id, {}).get("seen_before")

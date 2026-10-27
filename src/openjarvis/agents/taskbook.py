@@ -203,6 +203,28 @@ def close_task(store: Store, task_id: str, now: float | None = None) -> dict[str
     return {"status": "ok", "task_id": task_id}
 
 
+def library(store: Store) -> list[dict[str, Any]]:
+    """Closed tasks for the Solutions tab, newest first."""
+    last = store.facts().get("checked_at")
+    waiting = store.awaiting_check(last if isinstance(last, (int, float)) else None)
+    out = []
+    for r in reversed(store.closed_tasks()):
+        out.append(
+            {
+                "task_id": r["id"],
+                "label": r["label"],
+                "cluster_id": r["cluster_id"],
+                "seen_before": r["seen_before"],
+                "opened_at": r["opened_at"],
+                "closed_at": r["closed_at"],
+                "solution": r["solution"],
+                "record": json.loads(r["record"] or "{}"),
+                "awaiting_check": r["id"] in waiting,
+            }
+        )
+    return out
+
+
 def build_resolved(store: Store, now: float | None = None) -> str:
     now = now if now is not None else time.time()
     rows = store.closed_tasks()

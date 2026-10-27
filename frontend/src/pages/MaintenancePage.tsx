@@ -14,6 +14,7 @@ import {
   type Effort,
   type EscalationMode,
   type Execution,
+  type LibraryItem,
   type Overview,
   type Proposal,
   type Plan,
@@ -23,12 +24,13 @@ import {
   type Team,
 } from '../lib/maintenance';
 
-type Tab = 'dashboard' | 'plan' | 'flow' | 'reports' | 'settings';
+type Tab = 'dashboard' | 'plan' | 'solutions' | 'flow' | 'reports' | 'settings';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'flow', label: 'Flow' },
   { id: 'plan', label: 'Plan' },
+  { id: 'solutions', label: 'Solutions' },
   { id: 'reports', label: 'Reports' },
   { id: 'settings', label: 'Settings' },
 ];
@@ -857,6 +859,75 @@ function PlanTab({ plan, reload }: { plan: Plan; reload: () => void }) {
   );
 }
 
+function SolutionsTab() {
+  const [items, setItems] = useState<LibraryItem[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [openId, setOpenId] = useState<string | null>(null);
+  useEffect(() => {
+    api.library().then((r) => setItems(r.items)).catch((e) => setErr(e instanceof Error ? e.message : 'Failed'));
+  }, []);
+  if (!items) return <Status error={err} />;
+  const needle = q.trim().toLowerCase();
+  const shown = needle ? items.filter((i) => JSON.stringify(i).toLowerCase().includes(needle)) : items;
+  const fmt = (ts: number) => new Date(ts * 1000).toLocaleString();
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="text-xs" style={muted}>
+          {items.length} resolved task{items.length === 1 ? '' : 's'}. Closed tasks live here and in resolved.md. If a problem returns it becomes a new
+          task tagged "seen before".
+        </div>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="search solutions…"
+          className="w-60 rounded px-2 py-1 text-xs ml-auto"
+          style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+          aria-label="Search solutions"
+        />
+      </div>
+      {shown.length === 0 && (
+        <div className="text-sm" style={faint}>
+          {items.length === 0 ? 'Nothing resolved yet. Close a task in the Plan tab (it needs a closing text).' : 'No match.'}
+        </div>
+      )}
+      {shown.map((i) => (
+        <div key={i.task_id} className="hud-panel p-3 flex flex-col gap-1.5" style={{ borderLeft: '2px solid var(--color-success)' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="hud-mono text-[0.6875rem]" style={faint}>{i.task_id}</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{i.label}</span>
+            {i.seen_before && <Chip text={`seen before: ${i.seen_before}`} color="var(--color-warning)" />}
+            {i.awaiting_check && <Chip text="waiting for the next check to confirm" color="var(--color-warning)" />}
+            <span className="text-[0.6875rem] ml-auto" style={faint}>closed {fmt(i.closed_at)}</span>
+          </div>
+          <div className="text-xs whitespace-pre-wrap" style={{ color: 'var(--color-text)' }}>{i.solution}</div>
+          <button
+            onClick={() => setOpenId(openId === i.task_id ? null : i.task_id)}
+            className="text-[0.6875rem] self-start cursor-pointer"
+            style={{ color: 'var(--color-text-secondary)', background: 'none', border: 'none' }}
+          >
+            {openId === i.task_id ? '▾ Hide details' : '▸ Details'}
+          </button>
+          {openId === i.task_id && (
+            <div className="text-[0.6875rem] flex flex-col gap-1" style={muted}>
+              <div>Key: {i.cluster_id} · opened {fmt(i.opened_at)}</div>
+              {i.record.examples?.length ? <div>Problem: {i.record.examples.join(' · ')}</div> : null}
+              {i.record.cause && <div>Suspected cause (triage): {i.record.cause}</div>}
+              {i.record.findings && <div>Your finding: {i.record.findings}</div>}
+              {i.record.analysis && <div>Analysis: {i.record.analysis}</div>}
+              {i.record.steps?.length ? <div>Steps: {i.record.steps.join(' · ')}</div> : null}
+              {i.record.executions?.length ? (
+                <div>Executions: {i.record.executions.map((e) => `#${e.id} ${e.status}${e.live ? ' (live)' : ''}`).join(', ')}</div>
+              ) : null}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // --- Agents ----------------------------------------------------------------------
 
 function Runs({ runs }: { runs: RunRow[] }) {
@@ -1651,6 +1722,7 @@ export function MaintenancePage() {
           ))}
         {tab === 'plan' &&
           (plan.data ? <PlanTab plan={plan.data} reload={() => void plan.reload()} /> : <Status error={plan.error} />)}
+        {tab === 'solutions' && <SolutionsTab />}
         {tab === 'flow' && <FlowTab plan={plan.data} />}
         {tab === 'reports' && <ReportsTab />}
         {tab === 'settings' && <SettingsTab />}

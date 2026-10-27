@@ -191,6 +191,10 @@ CREATE TABLE IF NOT EXISTS tasks (
   record TEXT NOT NULL DEFAULT '{}'
 );
 CREATE INDEX IF NOT EXISTS tasks_cluster ON tasks(cluster_id, status);
+CREATE TABLE IF NOT EXISTS findings_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, cluster_id TEXT NOT NULL, text TEXT NOT NULL,
+  replaced_at REAL NOT NULL
+);
 CREATE TABLE IF NOT EXISTS task_findings (
   cluster_id TEXT PRIMARY KEY, text TEXT NOT NULL, updated REAL NOT NULL
 );
@@ -703,7 +707,10 @@ class Store:
 
     # -- task ids: year_month_day_sequence, one open task per cluster ---------
     def sync_tasks(
-        self, clusters: list[dict[str, Any]], now: float | None = None
+        self,
+        clusters: list[dict[str, Any]],
+        now: float | None = None,
+        last_check: float | None = None,
     ) -> dict[str, dict[str, Any]]:
         """Give every current cluster an open task id; mark vanished ones 'cleared'.
 
@@ -743,14 +750,20 @@ class Store:
                     )
                     row.update(status="open", label=cl["label"], meta=meta)
                     continue
-                n = c.execute(
-                    "SELECT COUNT(*) FROM tasks WHERE opened_day=?", (day,)
-                ).fetchone()[0]
                 prev = c.execute(
-                    "SELECT id FROM tasks WHERE cluster_id=? AND status='closed' "
-                    "ORDER BY closed_at DESC LIMIT 1",
+                    "SELECT id, closed_at FROM tasks WHERE cluster_id=? "
+                    "AND status='closed' ORDER BY closed_at DESC LIMIT 1",
                     (cl["id"],),
                 ).fetchone()
+                # closed by the owner but the watchdog has not looked again yet:
+                # wait for the next check before believing the problem is back
+                if prev and last_check is not None and prev["closed_at"] > last_check:
+                    continue
+                n = c.execute(
+                    "SELECT COALESCE(MAX(CAST(substr(id, 12) AS INTEGER)), 0) "
+                    "FROM tasks WHERE opened_day=?",
+                    (day,),
+                ).fetchone()[0]
                 tid = f"{day}_{n + 1:03d}"
                 c.execute(
                     "INSERT INTO tasks(id,cluster_id,label,opened_at,opened_day,seen_before,meta) "
@@ -795,6 +808,15 @@ class Store:
         )
         return rows[0]["id"] if rows else None
 
+    def awaiting_check(self, last_check: float | None) -> set[str]:
+        """Closed task ids the watchdog has not re-verified yet."""
+        if last_check is None:
+            return set()
+        rows = self._all(
+            "SELECT id FROM tasks WHERE status='closed' AND closed_at>?", (last_check,)
+        )
+        return {r["id"] for r in rows}
+
     def closed_tasks(self) -> list[dict[str, Any]]:
         return self._all("SELECT * FROM tasks WHERE status='closed' ORDER BY id")
 
@@ -824,6 +846,12 @@ class Store:
     def set_findings(self, cluster_id: str, text: str) -> None:
         """The owner's own diagnosis of a task. Empty text removes it."""
         text = text.strip()[:FINDINGS_MAX]
+        old = self.findings().get(cluster_id, "")
+        if old and old != text:  # nothing the owner wrote is ever lost
+            self._run(
+                "INSERT INTO findings_log(cluster_id,text,replaced_at) VALUES(?,?,?)",
+                (cluster_id, old, time.time()),
+            )
         if not text:
             self._run("DELETE FROM task_findings WHERE cluster_id=?", (cluster_id,))
             return
