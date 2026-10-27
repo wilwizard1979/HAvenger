@@ -12,6 +12,7 @@ comes back after its task was closed gets a new id tagged ``seen before: <id>``.
 from __future__ import annotations
 
 import json
+import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -20,18 +21,23 @@ from typing import Any
 from openjarvis.agents.planning import build_plan
 from openjarvis.agents.redaction import Redactor
 from openjarvis.agents.store import Store
-from openjarvis.agents.watchdog import janitor_dir
 
 TASKS_FILE = "tasks.md"
 RESOLVED_FILE = "resolved.md"
 
 
+def book_dir() -> Path:
+    """A visible folder (not the hidden ~/.openjarvis), so the files are easy to find."""
+    env = os.environ.get("JARVIS_TASKBOOK_DIR") or os.environ.get("JARVIS_JANITOR_DIR")
+    return Path(env or "~/OpenJarvis/jarvis").expanduser()
+
+
 def taskbook_path() -> Path:
-    return janitor_dir() / TASKS_FILE
+    return book_dir() / TASKS_FILE
 
 
 def resolved_path() -> Path:
-    return janitor_dir() / RESOLVED_FILE
+    return book_dir() / RESOLVED_FILE
 
 
 def _bullets(items: list[Any] | None) -> list[str]:
