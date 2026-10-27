@@ -77,7 +77,7 @@ export function ConversationList({ searchQuery }: Props) {
               >
                 {conv.title}
               </div>
-              <div className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+              <div className="text-[0.6875rem] mt-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
                 {formatRelativeTime(conv.updatedAt)}
               </div>
             </button>

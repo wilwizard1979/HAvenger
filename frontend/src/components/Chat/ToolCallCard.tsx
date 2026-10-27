@@ -74,7 +74,7 @@ export function ToolCallCard({ toolCall }: Props) {
         {preview && !expanded && (
           <span
             className="truncate"
-            style={{ color: 'var(--color-text-tertiary)', fontSize: 10.5 }}
+            style={{ color: 'var(--color-text-tertiary)', fontSize: '0.65625rem' }}
           >
             {preview}
           </span>
@@ -84,7 +84,7 @@ export function ToolCallCard({ toolCall }: Props) {
           <span
             style={{
               color: 'var(--color-text-tertiary)',
-              fontSize: 10,
+              fontSize: '0.625rem',
               flexShrink: 0,
             }}
           >
@@ -104,7 +104,7 @@ export function ToolCallCard({ toolCall }: Props) {
               <div
                 style={{
                   color: 'var(--color-text-tertiary)',
-                  fontSize: 9.5,
+                  fontSize: '0.59375rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   marginBottom: 3,
@@ -117,7 +117,7 @@ export function ToolCallCard({ toolCall }: Props) {
                 style={{
                   background: 'var(--color-code-bg, rgba(0,0,0,0.2))',
                   color: 'var(--color-text-secondary)',
-                  fontSize: 11,
+                  fontSize: '0.6875rem',
                   lineHeight: 1.4,
                   maxHeight: 120,
                   whiteSpace: 'pre-wrap',
@@ -133,7 +133,7 @@ export function ToolCallCard({ toolCall }: Props) {
               <div
                 style={{
                   color: 'var(--color-text-tertiary)',
-                  fontSize: 9.5,
+                  fontSize: '0.59375rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
                   marginBottom: 3,
@@ -146,7 +146,7 @@ export function ToolCallCard({ toolCall }: Props) {
                 style={{
                   background: 'var(--color-code-bg, rgba(0,0,0,0.2))',
                   color: 'var(--color-text-secondary)',
-                  fontSize: 11,
+                  fontSize: '0.6875rem',
                   lineHeight: 1.4,
                   maxHeight: 180,
                   whiteSpace: 'pre-wrap',

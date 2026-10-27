@@ -99,7 +99,7 @@ export function ApprovalBell() {
         <Bell size={17} />
         {count > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[10px] font-bold px-1 leading-none"
+            className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[0.625rem] font-bold px-1 leading-none"
             style={{ background: 'var(--color-error)', color: '#fff' }}
           >
             {count > 99 ? '99+' : count}
@@ -131,7 +131,7 @@ export function ApprovalBell() {
             </div>
             {count > 0 && (
               <span
-                className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                className="text-[0.6875rem] font-medium px-2 py-0.5 rounded-full"
                 style={{
                   background: 'color-mix(in srgb, var(--color-error) 12%, transparent)',
                   color: 'var(--color-error)',
@@ -169,20 +169,20 @@ export function ApprovalBell() {
                     {/* Row 1: action type + tier + time */}
                     <div className="flex items-center justify-between mb-1.5">
                       <span
-                        className="text-[11px] font-mono font-semibold"
+                        className="text-[0.6875rem] font-mono font-semibold"
                         style={{ color: 'var(--color-accent)' }}
                       >
                         {action.action_type}
                       </span>
                       <div className="flex items-center gap-2">
                         <span
-                          className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                          className="text-[0.625rem] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded"
                           style={{ background: tier.bg, color: tier.color }}
                         >
                           {tier.label}
                         </span>
                         <span
-                          className="text-[10px] flex items-center gap-0.5"
+                          className="text-[0.625rem] flex items-center gap-0.5"
                           style={{ color: 'var(--color-text-secondary)' }}
                         >
                           <Clock size={9} />
@@ -193,7 +193,7 @@ export function ApprovalBell() {
 
                     {/* Description */}
                     <p
-                      className="text-[13px] mb-2.5 leading-snug"
+                      className="text-[0.8125rem] mb-2.5 leading-snug"
                       style={{ color: 'var(--color-text)' }}
                     >
                       {action.description}
@@ -202,7 +202,7 @@ export function ApprovalBell() {
                     {/* Expandable payload */}
                     {hasPayload && (
                       <button
-                        className="flex items-center gap-1 text-[11px] mb-2 cursor-pointer"
+                        className="flex items-center gap-1 text-[0.6875rem] mb-2 cursor-pointer"
                         style={{ color: 'var(--color-text-secondary)' }}
                         onClick={() =>
                           setExpanded(e => ({ ...e, [action.id]: !e[action.id] }))
@@ -215,7 +215,7 @@ export function ApprovalBell() {
 
                     {isExpanded && (
                       <pre
-                        className="text-[10px] rounded-lg p-2.5 mb-2.5 overflow-x-auto"
+                        className="text-[0.625rem] rounded-lg p-2.5 mb-2.5 overflow-x-auto"
                         style={{
                           background: 'var(--color-bg-tertiary)',
                           color: 'var(--color-text-secondary)',

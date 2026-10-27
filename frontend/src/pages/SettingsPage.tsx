@@ -51,7 +51,7 @@ function OllamaModelList() {
   return (
     <div className="flex flex-wrap gap-1">
       {models.map(m => (
-        <span key={m.name} className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]"
+        <span key={m.name} className="flex items-center gap-1 px-2 py-0.5 rounded text-[0.625rem]"
           style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text)' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-success)', display: 'inline-block' }} />
           {m.name} ({(m.size / 1e9).toFixed(1)} GB)
@@ -155,14 +155,14 @@ function ApiKeyInput({
       {hasKey && (
         <button
           onClick={() => void remove()}
-          className="px-2 py-1 rounded text-[10px] cursor-pointer"
+          className="px-2 py-1 rounded text-[0.625rem] cursor-pointer"
           style={{ color: 'var(--color-error)', border: '1px solid var(--color-error)' }}
         >
           Remove
         </button>
       )}
-      {saved && <span className="text-[10px]" style={{ color: 'var(--color-success)' }}>Saved</span>}
-      {error && <span className="text-[10px]" style={{ color: 'var(--color-error)' }}>{error}</span>}
+      {saved && <span className="text-[0.625rem]" style={{ color: 'var(--color-success)' }}>Saved</span>}
+      {error && <span className="text-[0.625rem]" style={{ color: 'var(--color-error)' }}>{error}</span>}
     </div>
   );
 }
@@ -620,7 +620,7 @@ export function SettingsPage() {
               <OllamaModelList />
             </SettingRow>
             <div className="text-xs mt-2 px-1" style={{ color: 'var(--color-text-tertiary)' }}>
-              Run <code className="px-1 py-0.5 rounded text-[11px]" style={{ background: 'var(--color-bg-tertiary)' }}>ollama pull &lt;model-name&gt;</code> in your terminal to add more models
+              Run <code className="px-1 py-0.5 rounded text-[0.6875rem]" style={{ background: 'var(--color-bg-tertiary)' }}>ollama pull &lt;model-name&gt;</code> in your terminal to add more models
             </div>
             <SettingRow label="Cloud providers" description="Green dot means API key is configured">
               <div className="flex flex-wrap gap-3">

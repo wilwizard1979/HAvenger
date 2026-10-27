@@ -70,7 +70,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 400,
   },
   header: {
-    fontSize: 20,
+    fontSize: '1.25rem',
     fontWeight: 700,
     marginBottom: 20,
     color: '#cdd6f4',
@@ -87,7 +87,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 16,
   },
   cardTitle: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
@@ -101,11 +101,11 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 0',
   },
   label: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: '#a6adc8',
   },
   value: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 500,
     color: '#cdd6f4',
   },
@@ -113,7 +113,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     padding: '2px 8px',
     borderRadius: 4,
-    fontSize: 12,
+    fontSize: '0.75rem',
     fontWeight: 600,
   },
   badgeEnabled: {
@@ -133,7 +133,7 @@ const styles: Record<string, React.CSSProperties> = {
   table: {
     width: '100%',
     borderCollapse: 'collapse' as const,
-    fontSize: 13,
+    fontSize: '0.8125rem',
   },
   th: {
     textAlign: 'left' as const,
@@ -141,7 +141,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: '1px solid #45475a',
     color: '#89b4fa',
     fontWeight: 600,
-    fontSize: 12,
+    fontSize: '0.75rem',
     textTransform: 'uppercase' as const,
   },
   td: {
@@ -166,7 +166,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 12,
     backgroundColor: '#f3858811',
     borderRadius: 8,
-    fontSize: 13,
+    fontSize: '0.8125rem',
   },
   loading: {
     color: '#a6adc8',
@@ -174,13 +174,13 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 40,
   },
   statNumber: {
-    fontSize: 28,
+    fontSize: '1.75rem',
     fontWeight: 700,
     color: '#89b4fa',
     lineHeight: 1.2,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: '#a6adc8',
     marginTop: 4,
   },
@@ -309,30 +309,30 @@ export function LearningCurve({ apiUrl }: { apiUrl: string }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#45475a" />
               <XAxis
                 dataKey="time"
-                tick={{ fill: '#a6adc8', fontSize: 11 }}
+                tick={{ fill: '#a6adc8', fontSize: '0.6875rem' }}
                 stroke="#45475a"
               />
               <YAxis
                 yAxisId="left"
-                tick={{ fill: '#a6adc8', fontSize: 11 }}
+                tick={{ fill: '#a6adc8', fontSize: '0.6875rem' }}
                 stroke="#45475a"
                 label={{
                   value: 'Accuracy %',
                   angle: -90,
                   position: 'insideLeft',
-                  style: { fill: '#a6adc8', fontSize: 11 },
+                  style: { fill: '#a6adc8', fontSize: '0.6875rem' },
                 }}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                tick={{ fill: '#a6adc8', fontSize: 11 }}
+                tick={{ fill: '#a6adc8', fontSize: '0.6875rem' }}
                 stroke="#45475a"
                 label={{
                   value: 'Latency (ms)',
                   angle: 90,
                   position: 'insideRight',
-                  style: { fill: '#a6adc8', fontSize: 11 },
+                  style: { fill: '#a6adc8', fontSize: '0.6875rem' },
                 }}
               />
               <Tooltip
@@ -341,10 +341,10 @@ export function LearningCurve({ apiUrl }: { apiUrl: string }) {
                   border: '1px solid #45475a',
                   borderRadius: 6,
                   color: '#cdd6f4',
-                  fontSize: 12,
+                  fontSize: '0.75rem',
                 }}
               />
-              <Legend wrapperStyle={{ color: '#cdd6f4', fontSize: 12 }} />
+              <Legend wrapperStyle={{ color: '#cdd6f4', fontSize: '0.75rem' }} />
               <Line
                 yAxisId="left"
                 type="monotone"

@@ -106,7 +106,7 @@ export function SystemPanel() {
       <div className="flex flex-col gap-4 p-4">
         {/* Session Stats */}
         <section>
-          <h4 className="text-[11px] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
+          <h4 className="text-[0.6875rem] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
             Session
           </h4>
           <div className="grid grid-cols-2 gap-2">
@@ -117,7 +117,7 @@ export function SystemPanel() {
 
         {/* Device */}
         <section>
-          <h4 className="text-[11px] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
+          <h4 className="text-[0.6875rem] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
             Device
           </h4>
           <div className="grid grid-cols-2 gap-2">
@@ -147,7 +147,7 @@ export function SystemPanel() {
 
         {/* Cost Comparison */}
         <section>
-          <h4 className="text-[11px] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
+          <h4 className="text-[0.6875rem] font-medium uppercase tracking-wide mb-2" style={{ color: 'var(--color-text-tertiary)' }}>
             Cost Comparison
           </h4>
 
@@ -196,7 +196,7 @@ export function SystemPanel() {
                       ${cost.toFixed(4)}
                     </div>
                     {saved > 0.0001 && (
-                      <div className="text-[9px] flex items-center gap-0.5 justify-end" style={{ color: 'var(--color-success)' }}>
+                      <div className="text-[0.5625rem] flex items-center gap-0.5 justify-end" style={{ color: 'var(--color-success)' }}>
                         <TrendingDown size={8} />
                         ${saved.toFixed(4)}
                       </div>
@@ -213,7 +213,7 @@ export function SystemPanel() {
         {/* Leaderboard / Share */}
         <section>
           <h4
-            className="text-[11px] font-medium uppercase tracking-wide mb-2"
+            className="text-[0.6875rem] font-medium uppercase tracking-wide mb-2"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             Leaderboard
@@ -246,7 +246,7 @@ export function SystemPanel() {
               {optInEnabled ? 'Sharing Savings' : 'Share Your Savings'}
             </span>
             <span
-              className="text-[9px] px-1.5 py-0.5 rounded-full"
+              className="text-[0.5625rem] px-1.5 py-0.5 rounded-full"
               style={{
                 background: optInEnabled ? 'var(--color-accent)' : 'var(--color-bg-tertiary, var(--color-bg-secondary))',
                 color: optInEnabled ? 'white' : 'var(--color-text-tertiary)',
@@ -260,7 +260,7 @@ export function SystemPanel() {
             href="https://open-jarvis.github.io/OpenJarvis/leaderboard"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 mt-1.5 px-3 py-1.5 text-[11px] rounded-lg transition-colors"
+            className="flex items-center gap-1.5 mt-1.5 px-3 py-1.5 text-[0.6875rem] rounded-lg transition-colors"
             style={{ color: 'var(--color-text-tertiary)' }}
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
             onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-tertiary)')}
@@ -292,14 +292,14 @@ function MiniStat({
     >
       <div className="flex items-center gap-1 mb-0.5">
         <Icon size={10} style={{ color: 'var(--color-accent)' }} />
-        <span className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>
+        <span className="text-[0.625rem]" style={{ color: 'var(--color-text-tertiary)' }}>
           {label}
         </span>
       </div>
       <div className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
         {value}
         {unit && (
-          <span className="text-[10px] font-normal ml-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
+          <span className="text-[0.625rem] font-normal ml-0.5" style={{ color: 'var(--color-text-tertiary)' }}>
             {unit}
           </span>
         )}

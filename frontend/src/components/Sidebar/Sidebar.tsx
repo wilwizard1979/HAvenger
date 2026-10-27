@@ -151,14 +151,14 @@ export function Sidebar() {
                   : selectedModel || serverInfo?.model || 'Select model'}
               </span>
               {modelLoading && (
-                <span className="text-[10px] block text-left" style={{ color: 'var(--color-accent)' }}>
+                <span className="text-[0.625rem] block text-left" style={{ color: 'var(--color-accent)' }}>
                   Loading model...
                 </span>
               )}
             </div>
             {!modelLoading && (
               <kbd
-                className="text-[10px] px-1.5 py-0.5 rounded font-mono"
+                className="text-[0.625rem] px-1.5 py-0.5 rounded font-mono"
                 style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' }}
               >
                 ⌘K

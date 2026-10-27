@@ -608,7 +608,7 @@ export function InputArea() {
         </div>
         {deepResearch && corpusSync.syncing && corpusSync.itemsSynced > 0 && (
           <div
-            className="text-[11px] leading-snug"
+            className="text-[0.6875rem] leading-snug"
             style={{ color: 'var(--color-text-tertiary)' }}
           >
             Searching over{' '}
@@ -681,7 +681,7 @@ export function InputArea() {
           </div>
         )}
       </div>
-      <div className="flex items-center justify-center mt-2 text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+      <div className="flex items-center justify-center mt-2 text-[0.6875rem]" style={{ color: 'var(--color-text-tertiary)' }}>
         <span>
           <kbd className="font-mono">Enter</kbd> to send &middot;{' '}
           <kbd className="font-mono">Shift+Enter</kbd> for new line

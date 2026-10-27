@@ -23,7 +23,7 @@ export function SessionPanel() {
   const local = savings?.local_cost ?? 0;
 
   return (
-    <div className="mx-2 mb-2 p-2.5 rounded-lg text-[11px]" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
+    <div className="mx-2 mb-2 p-2.5 rounded-lg text-[0.6875rem]" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
       <div className="hud-label mb-1.5">Session</div>
       <div className="flex items-center gap-2 mb-1.5">
         <Gauge size={13} style={{ color: 'var(--color-accent)' }} />

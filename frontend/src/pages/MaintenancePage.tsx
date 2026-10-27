@@ -39,7 +39,7 @@ const faint = { color: 'var(--color-text-tertiary)' } as const;
 function Chip({ text, color }: { text: string; color?: string }) {
   return (
     <span
-      className="px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide shrink-0"
+      className="px-1.5 py-0.5 rounded text-[0.625rem] uppercase tracking-wide shrink-0"
       style={{
         color: color ?? 'var(--color-text-secondary)',
         border: `1px solid ${color ?? 'var(--color-border)'}`,
@@ -108,7 +108,7 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
                 <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   {title}
                 </div>
-                <div className="text-[11px]" style={faint}>
+                <div className="text-[0.6875rem]" style={faint}>
                   {hint}
                 </div>
               </div>
@@ -143,7 +143,7 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
                           )}
                         </div>
                         {it.detail && (
-                          <div className="hud-mono text-[10px] truncate pl-1" style={faint} title={it.detail}>
+                          <div className="hud-mono text-[0.625rem] truncate pl-1" style={faint} title={it.detail}>
                             {it.detail}
                           </div>
                         )}
@@ -152,19 +152,19 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
                   </ul>
                 )}
                 {key === 'stale_unavailable' && sec && (
-                  <div className="text-[11px] mt-2" style={faint}>
+                  <div className="text-[0.6875rem] mt-2" style={faint}>
                     Home Assistant resets its change time at every restart, so the Janitor counts from {sec.counting_since ? new Date(sec.counting_since * 1000).toLocaleDateString() : 'its first check'} on
                     {sec.reliable_from ? `; the result is complete from ${new Date(sec.reliable_from * 1000).toLocaleDateString()}` : ''}.
                     {sec.tracked !== undefined ? ` Entities tracked: ${sec.tracked}.` : ''}
                   </div>
                 )}
                 {key === 'last_restart' && (
-                  <div className="text-[11px] mt-2" style={faint}>
+                  <div className="text-[0.6875rem] mt-2" style={faint}>
                     Home Assistant does not say whether a start was a crash or planned; a start right after an unreachable check is flagged.
                   </div>
                 )}
                 {sec && key !== 'stale_unavailable' && sec.total > sec.items.length && (
-                  <div className="text-[11px] mt-2" style={faint}>
+                  <div className="text-[0.6875rem] mt-2" style={faint}>
                     Showing the top {sec.items.length} of {sec.total}.
                   </div>
                 )}
@@ -196,13 +196,13 @@ function Matrix({ plan }: { plan: Plan }) {
       <div className="grid gap-1" style={{ gridTemplateColumns: '90px repeat(3, 1fr)' }}>
         <div />
         {EFFORTS.map((e) => (
-          <div key={e} className="text-[11px] text-center uppercase tracking-wide" style={faint}>
+          <div key={e} className="text-[0.6875rem] text-center uppercase tracking-wide" style={faint}>
             {e}
           </div>
         ))}
         {SEVERITIES.map((s) => (
           <div key={s} className="contents">
-            <div className="text-[11px] uppercase tracking-wide self-center" style={{ color: SEVERITY_COLOR[s] }}>
+            <div className="text-[0.6875rem] uppercase tracking-wide self-center" style={{ color: SEVERITY_COLOR[s] }}>
               {s}
             </div>
             {EFFORTS.map((e) => {
@@ -267,7 +267,7 @@ function Estimates({ plan }: { plan: Plan }) {
           {usd(e.budget.spent_usd)} of {usd(e.budget.limit_usd)} · {usd(e.budget.remaining_usd)} left
         </span>
       </div>
-      <div className="text-[11px] mt-1" style={faint}>
+      <div className="text-[0.6875rem] mt-1" style={faint}>
         {plan.dry_run
           ? 'Dry-run is ON: requesting a proposal makes no cloud call and costs nothing.'
           : 'Dry-run is OFF: requesting a proposal is a paid cloud call.'}{' '}
@@ -276,7 +276,7 @@ function Estimates({ plan }: { plan: Plan }) {
         </button>
       </div>
       {more && (
-        <ul className="text-[11px] mt-1 list-disc pl-4 space-y-0.5" style={faint}>
+        <ul className="text-[0.6875rem] mt-1 list-disc pl-4 space-y-0.5" style={faint}>
           {e.assumptions.map((a) => (
             <li key={a}>{a}</li>
           ))}
@@ -323,7 +323,7 @@ function ProposalView({ p }: { p: Proposal }) {
                 {p.instruction.steps.map((st, i) => (
                   <li key={i}>
                     <span className="hud-mono">{st.tool}</span> <span style={faint}>{st.purpose}</span>
-                    <div className="hud-mono text-[10px] break-all" style={faint}>
+                    <div className="hud-mono text-[0.625rem] break-all" style={faint}>
                       {JSON.stringify(st.args)}
                     </div>
                     {st.verify && <div style={faint}>check: {st.verify}</div>}
@@ -357,7 +357,7 @@ function ProposalView({ p }: { p: Proposal }) {
               <span className="whitespace-pre-line block">{lines(p.user_action)}</span>
             </div>
           )}
-          <div className="text-[11px]" style={faint}>
+          <div className="text-[0.6875rem]" style={faint}>
             Proposal only. Nothing is applied before the approval step exists and you confirm it.
           </div>
         </div>
@@ -427,7 +427,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
             <Chip text={t.effort} />
             <Chip text={t.kind === 'chore' ? 'chore · no change in HA' : 'needs your approval'} />
             {t.deadline && <Chip text={`breaks in ${t.deadline}`} color="var(--color-warning)" />}
-            <span className="text-[11px]" style={faint}>
+            <span className="text-[0.6875rem]" style={faint}>
               {t.count} issue{t.count === 1 ? '' : 's'}
             </span>
           </div>
@@ -437,11 +437,11 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               {t.cause ? ` · likely cause: ${t.cause}` : ''}
             </div>
           )}
-          <div className="text-[11px] mt-1 truncate" style={faint} title={t.examples.join(' | ')}>
+          <div className="text-[0.6875rem] mt-1 truncate" style={faint} title={t.examples.join(' | ')}>
             {t.examples.join(' · ')}
           </div>
           {t.proposal && (
-            <div className="text-[11px] mt-1" style={{ color: 'var(--color-accent)' }}>
+            <div className="text-[0.6875rem] mt-1" style={{ color: 'var(--color-accent)' }}>
               ✓ {{ quick: 'Proposed', investigate: 'Investigated', deep: 'Deep analysis done' }[t.proposal.mode ?? 'quick']} · risk {t.proposal.risk} ·{' '}
               {t.proposal.instruction?.steps.length
                 ? `${t.proposal.instruction.steps.length} executable step${t.proposal.instruction.steps.length === 1 ? '' : 's'}`
@@ -453,14 +453,14 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
           )}
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-[11px] hud-mono" style={faint}>
+          <span className="text-[0.6875rem] hud-mono" style={faint}>
             propose ≈ {tokens(t.estimate.tokens_in + t.estimate.tokens_out)} tok · {usd(t.estimate.usd)}
           </span>
           <div className="flex items-center gap-1.5">
             <select
               value={t.effort_source === 'override' ? t.effort : ''}
               onChange={(e) => void run(() => api.override(t.id, (e.target.value || null) as Effort | null))}
-              className="text-[11px] rounded px-1 py-0.5 cursor-pointer"
+              className="text-[0.6875rem] rounded px-1 py-0.5 cursor-pointer"
               style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
               aria-label="Effort override"
               title="Override the effort rating"
@@ -477,7 +477,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
                 <button
                   onClick={() => escalate(have ?? 'quick')}
                   disabled={running}
-                  className="text-[11px] px-1.5 py-1 rounded cursor-pointer"
+                  className="text-[0.6875rem] px-1.5 py-1 rounded cursor-pointer"
                   style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
                   title="Run this step again (a paid call)"
                   aria-label="Run this step again"
@@ -486,7 +486,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
                 </button>
                 <button
                   onClick={() => setOpen(!open)}
-                  className="text-[11px] px-2 py-1 rounded cursor-pointer"
+                  className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer"
                   style={{ background: 'var(--color-accent-subtle)', border: '1px solid var(--color-accent)', color: 'var(--color-text)' }}
                 >
                   {open ? 'Hide result' : 'Show result'}
@@ -499,7 +499,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               value={focus}
               onChange={(e) => setFocus(e.target.value)}
               placeholder="focus on… e.g. birthdays (optional)"
-              className="w-60 rounded px-2 py-0.5 text-[11px]"
+              className="w-60 rounded px-2 py-0.5 text-[0.6875rem]"
               style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
               aria-label="Focus the investigation on one issue"
               title="This group has many issues. Name the one you care about (part of its automation or entity name) and Sonnet looks at it first."
@@ -519,7 +519,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
                   key={mode}
                   disabled={busy || running}
                   onClick={() => escalate(mode)}
-                  className="text-[11px] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
+                  className="text-[0.6875rem] px-2 py-1 rounded cursor-pointer flex items-center gap-1"
                   style={{
                     background: running ? 'var(--color-accent-subtle)' : 'var(--color-bg-secondary)',
                     border: `1px solid ${running ? 'var(--color-accent)' : 'var(--color-border)'}`,
@@ -548,7 +548,7 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
         </div>
       )}
       {msg && (
-        <div className="text-[11px]" style={muted}>
+        <div className="text-[0.6875rem]" style={muted}>
           {msg}
         </div>
       )}
@@ -603,7 +603,7 @@ function Runs({ runs }: { runs: RunRow[] }) {
   return (
     <ul className="flex flex-col gap-0.5">
       {runs.map((r) => (
-        <li key={r.id} className="text-[11px] hud-mono flex gap-2" style={muted}>
+        <li key={r.id} className="text-[0.6875rem] hud-mono flex gap-2" style={muted}>
           <span style={faint}>{new Date(r.started * 1000).toLocaleString()}</span>
           <span>{r.outcome}</span>
           {r.purpose && <span className="truncate" style={faint}>{r.purpose}</span>}
@@ -652,12 +652,12 @@ function Step({
             <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
               {title}
             </div>
-            <div className="text-[11px] truncate" style={faint}>
+            <div className="text-[0.6875rem] truncate" style={faint}>
               {role}
             </div>
           </div>
         </button>
-        <span className="text-[11px] hud-mono shrink-0" style={muted}>
+        <span className="text-[0.6875rem] hud-mono shrink-0" style={muted}>
           {status}
         </span>
         {action}
@@ -787,13 +787,13 @@ function FlowTab({ plan }: { plan: Plan | null }) {
   const risky = (r: string) => (r === 'high' ? 'var(--color-error)' : r === 'medium' ? 'var(--color-warning)' : 'var(--color-success)');
   const btn = { background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' } as const;
   const run = (k: string, label: string, fn: () => void, extra?: string) => (
-    <button disabled={busy !== null} onClick={fn} className="px-2 py-1 rounded text-[11px] cursor-pointer shrink-0" style={btn} title={extra}>
+    <button disabled={busy !== null} onClick={fn} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer shrink-0" style={btn} title={extra}>
       {busy === k ? 'Working…' : label}
     </button>
   );
   const note = (k: string) =>
     notes[k] ? (
-      <div className="text-[11px]" style={muted}>
+      <div className="text-[0.6875rem]" style={muted}>
         {notes[k]}
       </div>
     ) : null;
@@ -813,7 +813,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
           </label>
           {run('all', 'Run steps 1 to 4', () => void runAll(), 'Check, digest, Qwen read-out, Haiku triage. Never Sonnet.')}
         </div>
-        <div className="text-[11px]" style={faint}>
+        <div className="text-[0.6875rem]" style={faint}>
           {auto ? `Automatic: one run every ${Math.round((t.l0.interval_min ?? 1440) / 60)} h (digest at the schedule time).` : 'Automatic runs are OFF.'}
         </div>
       </div>
@@ -875,12 +875,12 @@ function FlowTab({ plan }: { plan: Plan | null }) {
           <button
             disabled={speech.busy}
             onClick={() => (speech.speaking ? speech.stop() : void speech.run())}
-            className="px-2 py-1 rounded text-[11px] cursor-pointer flex items-center gap-1"
+            className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer flex items-center gap-1"
             style={{ ...btn, border: '1px solid var(--color-accent)' }}
           >
             {speech.speaking ? <Square size={11} /> : <Volume2 size={11} />} {speech.speaking ? 'Stop' : 'Read aloud (and show in chat)'}
           </button>
-          {speech.error && <span className="text-[11px]" style={{ color: 'var(--color-warning)' }}>{speech.error}</span>}
+          {speech.error && <span className="text-[0.6875rem]" style={{ color: 'var(--color-warning)' }}>{speech.error}</span>}
         </div>
         {settings.data && (
           <div className="flex flex-col gap-1">
@@ -910,10 +910,10 @@ function FlowTab({ plan }: { plan: Plan | null }) {
         {t.l1.latest ? (
           <>
             <div className="text-xs" style={{ color: 'var(--color-text)' }}>{t.l1.latest.text}</div>
-            <div className="text-[11px] hud-mono" style={faint}>
+            <div className="text-[0.6875rem] hud-mono" style={faint}>
               {t.l1.latest.model} · {t.l1.latest.tokens_in} in / {t.l1.latest.tokens_out} out · {t.l1.latest.seconds.toFixed(1)}s
             </div>
-            {t.l1.latest.note && <div className="text-[11px]" style={{ color: 'var(--color-warning)' }}>{t.l1.latest.note}</div>}
+            {t.l1.latest.note && <div className="text-[0.6875rem]" style={{ color: 'var(--color-warning)' }}>{t.l1.latest.note}</div>}
           </>
         ) : (
           <div className="text-xs" style={faint}>No read-out yet.</div>
@@ -958,7 +958,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
         open={false}
         onToggle={() => undefined}
         action={
-          <button onClick={() => navigate('/maintenance?tab=plan')} className="px-2 py-1 rounded text-[11px] cursor-pointer shrink-0" style={btn}>
+          <button onClick={() => navigate('/maintenance?tab=plan')} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer shrink-0" style={btn}>
             Open the plan
           </button>
         }
@@ -983,7 +983,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
             <span className="flex-1 min-w-[240px]">
               Dry-run is ON: Sonnet is not called, so no proposal can be written. The buttons only show what it would cost.
             </span>
-            <button onClick={() => navigate('/maintenance?tab=settings')} className="px-2 py-1 rounded text-[11px] cursor-pointer shrink-0" style={btn}>
+            <button onClick={() => navigate('/maintenance?tab=settings')} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer shrink-0" style={btn}>
               Open Settings
             </button>
           </div>
@@ -992,7 +992,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as EscalationMode)}
-            className="text-[11px] rounded px-1 py-1 cursor-pointer"
+            className="text-[0.6875rem] rounded px-1 py-1 cursor-pointer"
             style={btn}
             aria-label="Escalation mode"
           >
@@ -1004,30 +1004,30 @@ function FlowTab({ plan }: { plan: Plan | null }) {
             <button
               disabled={busy !== null || ticked.length === 0}
               onClick={() => setConfirm(true)}
-              className="px-2 py-1 rounded text-[11px] cursor-pointer"
+              className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer"
               style={btn}
             >
               {t.dry_run ? 'Estimate' : 'Run'} {mode === 'quick' ? 'Propose' : mode === 'investigate' ? 'Investigate' : 'Deep'} on {ticked.length} of {selectedAll.length} ticked task{selectedAll.length === 1 ? '' : 's'}
             </button>
           ) : (
             <>
-              <span className="text-[11px]" style={muted}>
+              <span className="text-[0.6875rem]" style={muted}>
                 {t.dry_run ? 'Dry-run: nothing is sent.' : `Up to ${usd(total)} will be spent.`} Start?
               </span>
-              <button onClick={() => void runSonnet()} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={{ ...btn, border: '1px solid var(--color-accent)' }}>
+              <button onClick={() => void runSonnet()} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer" style={{ ...btn, border: '1px solid var(--color-accent)' }}>
                 Yes, start
               </button>
-              <button onClick={() => setConfirm(false)} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}>
+              <button onClick={() => setConfirm(false)} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer" style={btn}>
                 Cancel
               </button>
             </>
           )}
-          <label className="flex items-center gap-1 text-[11px]" style={faint} title="Run again even if the task already has a proposal of this mode">
+          <label className="flex items-center gap-1 text-[0.6875rem]" style={faint} title="Run again even if the task already has a proposal of this mode">
             <input type="checkbox" checked={redo} onChange={(e) => setRedo(e.target.checked)} />
             redo existing
           </label>
           {ticked.length === 0 && (
-            <span className="text-[11px]" style={faint}>
+            <span className="text-[0.6875rem]" style={faint}>
               {selectedAll.length === 0
                 ? 'Tick tasks in the Plan tab first.'
                 : `The ${selectedAll.length} ticked task${selectedAll.length === 1 ? ' already has' : 's already have'} a proposal of this mode or deeper. Pick a deeper mode, or tick "redo existing".`}
@@ -1049,7 +1049,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
                   <button
                     disabled={busy !== null || (execs.data?.executions ?? []).some((e) => e.cluster_id === p.cluster_id && ['awaiting_approval', 'approved', 'running'].includes(e.status))}
                     onClick={() => void requestApproval(p.cluster_id)}
-                    className="ml-auto px-2 py-1 rounded text-[11px] cursor-pointer"
+                    className="ml-auto px-2 py-1 rounded text-[0.6875rem] cursor-pointer"
                     style={{ ...btn, border: '1px solid var(--color-accent)' }}
                     title="Sends the steps to your Janitor bot. Nothing happens until you press Approve in Telegram."
                   >
@@ -1086,11 +1086,11 @@ function FlowTab({ plan }: { plan: Plan | null }) {
           {' · '}locked to your Telegram user only.
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button disabled={busy !== null} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}
+          <button disabled={busy !== null} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer" style={btn}
             onClick={() => void guarded('exec', async () => { await api.telegramTest(); return 'Test message sent to Telegram.'; })}>
             Send test message
           </button>
-          <button disabled={busy !== null} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}
+          <button disabled={busy !== null} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer" style={btn}
             onClick={() => void guarded('exec', async () => { const r = await api.telegramDigest(); return `Digest: ${r.status}`; })}>
             Send digest to Telegram
           </button>
@@ -1130,7 +1130,7 @@ function FlowTab({ plan }: { plan: Plan | null }) {
               <select
                 value={settings.data.executor.operator}
                 onChange={(e) => void setGroup('executor', { ...settings.data!.executor, operator: e.target.value })}
-                className="text-[11px] rounded px-1 py-0.5 cursor-pointer"
+                className="text-[0.6875rem] rounded px-1 py-0.5 cursor-pointer"
                 style={btn}
               >
                 <option value="haiku">Haiku (follows the approved steps only)</option>
@@ -1152,13 +1152,13 @@ function FlowTab({ plan }: { plan: Plan | null }) {
                 <Chip text={e.live ? 'live' : 'simulation'} />
                 <span style={faint}>{ago(e.created_at)} ago</span>
                 {e.status === 'awaiting_approval' && (
-                  <button className="ml-auto px-2 py-1 rounded text-[11px] cursor-pointer" style={btn}
+                  <button className="ml-auto px-2 py-1 rounded text-[0.6875rem] cursor-pointer" style={btn}
                     onClick={() => void guarded('exec', async () => { await api.cancelExecution(e.id); await execs.reload(); return `#${e.id} withdrawn`; })}>
                     Withdraw
                   </button>
                 )}
               </div>
-              <ul className="text-[11px] hud-mono flex flex-col gap-0.5" style={faint}>
+              <ul className="text-[0.6875rem] hud-mono flex flex-col gap-0.5" style={faint}>
                 {e.log.slice(-8).map((l, i) => (
                   <li key={i} className="truncate" title={l.detail}>
                     {new Date(l.t * 1000).toLocaleTimeString()} {l.event}{l.detail ? ` · ${l.detail}` : ''}
@@ -1238,7 +1238,7 @@ function ReportsTab() {
           No digest yet. One is built at the scheduled time (daily 07:30 in the pilot) or with the button above.
         </div>
       )}
-      <div className="text-[11px]" style={faint}>
+      <div className="text-[0.6875rem]" style={faint}>
         Telegram delivery arrives with the Jarvis the Janitor bot. Until then the digest lives here.
       </div>
     </div>
@@ -1278,10 +1278,10 @@ function JobLine({ job, onOpen }: { job: Job; onOpen: () => void }) {
       </div>
       {job.state !== 'running' && (
         <>
-          <button onClick={onOpen} className="px-2 py-0.5 rounded text-[11px] cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+          <button onClick={onOpen} className="px-2 py-0.5 rounded text-[0.6875rem] cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
             Show
           </button>
-          <button onClick={() => dismissJob(job.key)} className="px-1.5 text-[13px] cursor-pointer" style={faint} aria-label="Dismiss">
+          <button onClick={() => dismissJob(job.key)} className="px-1.5 text-[0.8125rem] cursor-pointer" style={faint} aria-label="Dismiss">
             ✕
           </button>
         </>

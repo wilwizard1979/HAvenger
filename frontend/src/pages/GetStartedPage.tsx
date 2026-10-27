@@ -273,7 +273,7 @@ function DesktopView() {
           data leaves your machine.
         </p>
         <span
-          className="inline-block text-[11px] font-mono px-2.5 py-1 rounded-full"
+          className="inline-block text-[0.6875rem] font-mono px-2.5 py-1 rounded-full"
           style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' }}
         >
           v2.8
@@ -346,7 +346,7 @@ function SelfHostedView() {
           energy profiling &mdash; no cloud required.
         </p>
         <span
-          className="inline-block text-[11px] font-mono px-2.5 py-1 rounded-full"
+          className="inline-block text-[0.6875rem] font-mono px-2.5 py-1 rounded-full"
           style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-text-tertiary)' }}
         >
           v2.8
@@ -381,14 +381,14 @@ function SelfHostedView() {
           </a>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            <span className="text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+            <span className="text-[0.6875rem]" style={{ color: 'var(--color-text-tertiary)' }}>
               Or
             </span>
             {others.map((p) => (
               <a
                 key={p.id}
                 href={`${GITHUB_BASE}/${p.file}`}
-                className="text-[11px] underline underline-offset-2 transition-colors"
+                className="text-[0.6875rem] underline underline-offset-2 transition-colors"
                 style={{ color: 'var(--color-text-secondary)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-accent)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-secondary)')}

@@ -390,7 +390,7 @@ export function CommandPalette() {
                         </div>
                       </div>
                       {isActive && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: 'var(--color-accent-subtle)', color: 'var(--color-accent)' }}>
+                        <span className="text-[0.625rem] px-2 py-0.5 rounded-full" style={{ background: 'var(--color-accent-subtle)', color: 'var(--color-accent)' }}>
                           Active
                         </span>
                       )}
@@ -422,7 +422,7 @@ export function CommandPalette() {
                     <Download size={16} style={{ color: 'var(--color-text-tertiary)' }} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm truncate" style={{ color: 'var(--color-text)' }}>{model.id}</div>
-                      <div className="text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>{model.desc} &middot; {model.size}</div>
+                      <div className="text-[0.6875rem]" style={{ color: 'var(--color-text-tertiary)' }}>{model.desc} &middot; {model.size}</div>
                     </div>
                     <button
                       onClick={() => handlePull(model.id)}
@@ -442,7 +442,7 @@ export function CommandPalette() {
                 );
               })}
               <div className="px-4 py-3 mt-1" style={{ borderTop: '1px solid var(--color-border)' }}>
-                <div className="text-[11px] mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Or enter any Ollama model name:</div>
+                <div className="text-[0.6875rem] mb-2" style={{ color: 'var(--color-text-tertiary)' }}>Or enter any Ollama model name:</div>
                 <div className="flex gap-2">
                   <input
                     type="text" value={customModel}
@@ -465,7 +465,7 @@ export function CommandPalette() {
           ) : (
             /* ── Cloud Models tab ── */
             <div className="px-4 py-2">
-              <div className="text-[11px] mb-3" style={{ color: 'var(--color-text-tertiary)' }}>
+              <div className="text-[0.6875rem] mb-3" style={{ color: 'var(--color-text-tertiary)' }}>
                 {desktopKeyStorage
                   ? 'Add your API keys to use cloud models. Keys are stored in secure desktop storage.'
                   : 'Configure cloud provider keys in the server environment to use cloud models.'}
@@ -484,7 +484,7 @@ export function CommandPalette() {
                       <Cloud size={14} style={{ color: hasKey ? 'var(--color-success)' : 'var(--color-text-tertiary)' }} />
                       <span className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>{provider.name}</span>
                       {hasKey && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--color-success) 10%, transparent)', color: 'var(--color-success)' }}>
+                        <span className="text-[0.625rem] px-1.5 py-0.5 rounded-full" style={{ background: 'color-mix(in srgb, var(--color-success) 10%, transparent)', color: 'var(--color-success)' }}>
                           Connected
                         </span>
                       )}
@@ -515,7 +515,7 @@ export function CommandPalette() {
                         <button
                           onClick={() => handleSaveKey(provider, '')}
                           disabled={isSaving}
-                          className="px-2 py-1 rounded-lg text-[10px] cursor-pointer"
+                          className="px-2 py-1 rounded-lg text-[0.625rem] cursor-pointer"
                           style={{ color: 'var(--color-error)', border: '1px solid var(--color-error)', opacity: isSaving ? 0.5 : 1 }}
                         >
                           {isSaving ? 'Saving' : 'Remove'}
@@ -542,12 +542,12 @@ export function CommandPalette() {
                                 <div className="text-xs truncate" style={{ color: isActive ? 'var(--color-accent)' : 'var(--color-text)', fontWeight: isActive ? 500 : 400 }}>
                                   {model.id}
                                 </div>
-                                <div className="text-[10px] truncate" style={{ color: 'var(--color-text-tertiary)' }}>
+                                <div className="text-[0.625rem] truncate" style={{ color: 'var(--color-text-tertiary)' }}>
                                   {model.desc}
                                 </div>
                               </div>
                               {isActive && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'var(--color-accent-subtle)', color: 'var(--color-accent)' }}>
+                                <span className="text-[0.5625rem] px-1.5 py-0.5 rounded-full shrink-0" style={{ background: 'var(--color-accent-subtle)', color: 'var(--color-accent)' }}>
                                   Active
                                 </span>
                               )}
@@ -565,7 +565,7 @@ export function CommandPalette() {
 
         {/* Footer */}
         <div
-          className="flex items-center gap-4 px-4 py-2 text-[11px]"
+          className="flex items-center gap-4 px-4 py-2 text-[0.6875rem]"
           style={{ borderTop: '1px solid var(--color-border)', color: 'var(--color-text-tertiary)' }}
         >
           {tab === 'installed' ? (

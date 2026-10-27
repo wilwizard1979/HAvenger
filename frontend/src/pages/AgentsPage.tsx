@@ -291,7 +291,7 @@ const TEMPLATE_INSTRUCTIONS: Record<string, string> = {
 };
 
 function Tooltip({ text }: { text: string }) {
-  return <span className="inline-block ml-1 cursor-help" style={{ color: 'var(--color-text-tertiary)', fontSize: 10 }} title={text}>(?)</span>;
+  return <span className="inline-block ml-1 cursor-help" style={{ color: 'var(--color-text-tertiary)', fontSize: '0.625rem' }} title={text}>(?)</span>;
 }
 
 // ---------------------------------------------------------------------------
@@ -403,7 +403,7 @@ function ToolsPicker({
     <div>
       <div className="flex items-baseline justify-between mb-1">
         <label
-          className="block text-[13px] font-medium"
+          className="block text-[0.8125rem] font-medium"
           style={{ color: 'var(--color-text-secondary)' }}
         >
           Tools
@@ -415,7 +415,7 @@ function ToolsPicker({
             style={{
               fontFamily:
                 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-              fontSize: 10.5,
+              fontSize: '0.65625rem',
               color: 'var(--color-text-tertiary)',
             }}
           >
@@ -433,7 +433,7 @@ function ToolsPicker({
             style={{
               fontFamily:
                 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-              fontSize: 10,
+              fontSize: '0.625rem',
               color: 'var(--color-text-tertiary)',
               background: 'none',
               border: 'none',
@@ -454,7 +454,7 @@ function ToolsPicker({
         </div>
       </div>
       <p
-        className="text-[10.5px] mb-2"
+        className="text-[0.65625rem] mb-2"
         style={{ color: 'var(--color-text-tertiary)' }}
       >
         What the agent is allowed to call. An empty selection makes a
@@ -491,7 +491,7 @@ function ToolsPicker({
                   style={{
                     fontFamily:
                       'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-                    fontSize: 9.5,
+                    fontSize: '0.59375rem',
                     color: 'var(--color-text-tertiary)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
@@ -524,7 +524,7 @@ function ToolsPicker({
                         style={{
                           fontFamily:
                             'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-                          fontSize: 11,
+                          fontSize: '0.6875rem',
                           lineHeight: 1.2,
                           padding: '3px 7px 3px 5px',
                           borderRadius: 4,
@@ -565,7 +565,7 @@ function ToolsPicker({
                               : isSelected
                                 ? 'var(--color-accent)'
                                 : 'var(--color-text-tertiary)',
-                            fontSize: 10.5,
+                            fontSize: '0.65625rem',
                           }}
                         >
                           {disabled ? '⨯' : isSelected ? '▣' : '□'}
@@ -586,7 +586,7 @@ function ToolsPicker({
               background: 'var(--color-bg)',
               fontFamily:
                 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-              fontSize: 10.5,
+              fontSize: '0.65625rem',
               color: 'var(--color-text-tertiary)',
               minHeight: 26,
             }}
@@ -873,7 +873,7 @@ function LaunchWizard({
               style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
             />
             {wizard.instruction.includes('[') && (
-              <p className="text-[10px] mt-1" style={{ color: 'var(--color-warning)' }}>
+              <p className="text-[0.625rem] mt-1" style={{ color: 'var(--color-warning)' }}>
                 Replace the [bracketed text] with your own values
               </p>
             )}
@@ -2040,7 +2040,7 @@ function ChannelsTab({ agentId }: { agentId: string }) {
     <div style={{ padding: 16 }}>
       <div style={{
         color: 'var(--color-text-secondary)',
-        fontSize: 12, marginBottom: 12,
+        fontSize: '0.75rem', marginBottom: 12,
       }}>
         Data sources your agent can search across
       </div>
@@ -2071,12 +2071,12 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                 padding: '12px 14px',
                 display: 'flex', alignItems: 'center', gap: 8,
               }}>
-                <span style={{ fontSize: 20 }}>{iconMap[c.connector_id] || '\uD83D\uDD17'}</span>
+                <span style={{ fontSize: '1.25rem' }}>{iconMap[c.connector_id] || '\uD83D\uDD17'}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>
                     {c.display_name}
                   </div>
-                  <div style={{ fontSize: 12, color: c.chunks > 0 ? 'var(--color-success)' : 'var(--color-warning)' }}>
+                  <div style={{ fontSize: '0.75rem', color: c.chunks > 0 ? 'var(--color-success)' : 'var(--color-warning)' }}>
                     {c.chunks > 0
                       ? `${c.chunks.toLocaleString()} ${unit}`
                       : 'Connected — no data synced yet'}
@@ -2085,7 +2085,7 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                 <button
                   onClick={() => setExpandedId(isReconnecting ? null : c.connector_id)}
                   style={{
-                    fontSize: 10, padding: '3px 10px',
+                    fontSize: '0.625rem', padding: '3px 10px',
                     background: 'transparent',
                     color: 'var(--color-text-secondary)',
                     border: '1px solid var(--color-border)',
@@ -2101,7 +2101,7 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                   padding: 12,
                 }}>
                   <div style={{
-                    fontSize: 12, color: 'var(--color-warning)',
+                    fontSize: '0.75rem', color: 'var(--color-warning)',
                     marginBottom: 8,
                   }}>
                     Re-enter credentials to reconnect this source.
@@ -2117,12 +2117,12 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                       }}
                     >
                       <div style={{
-                        color: 'var(--color-accent-purple)', fontSize: 10,
+                        color: 'var(--color-accent-purple)', fontSize: '0.625rem',
                         fontWeight: 600, marginBottom: 3,
                       }}>
                         STEP {i + 1}
                       </div>
-                      <div style={{ fontSize: 12, marginBottom: step.url ? 4 : 0 }}>
+                      <div style={{ fontSize: '0.75rem', marginBottom: step.url ? 4 : 0 }}>
                         {step.label}
                       </div>
                       {step.url && (
@@ -2131,7 +2131,7 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{
-                            color: 'var(--color-accent)', fontSize: 11,
+                            color: 'var(--color-accent)', fontSize: '0.6875rem',
                             textDecoration: 'underline',
                           }}
                         >
@@ -2187,19 +2187,19 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                     setExpandedId(isExpanded ? null : c.connector_id)
                   }
                 >
-                  <span style={{ fontSize: 20 }}>{iconMap[c.connector_id] || '\uD83D\uDD17'}</span>
+                  <span style={{ fontSize: '1.25rem' }}>{iconMap[c.connector_id] || '\uD83D\uDD17'}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600,
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600,
                       color: 'var(--color-text-secondary)' }}>
                       {c.display_name}
                     </div>
-                    <div style={{ fontSize: 12,
+                    <div style={{ fontSize: '0.75rem',
                       color: 'var(--color-text-secondary)' }}>
                       Not connected
                     </div>
                   </div>
                   <span style={{
-                    color: 'var(--color-accent-purple)', fontSize: 11, fontWeight: 500,
+                    color: 'var(--color-accent-purple)', fontSize: '0.6875rem', fontWeight: 500,
                   }}>
                     {isExpanded ? '\u2715 Close' : '+ Add'}
                   </span>
@@ -2222,13 +2222,13 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                         }}
                       >
                         <div style={{
-                          color: 'var(--color-accent-purple)', fontSize: 10,
+                          color: 'var(--color-accent-purple)', fontSize: '0.625rem',
                           fontWeight: 600, marginBottom: 3,
                         }}>
                           STEP {i + 1}
                         </div>
                         <div style={{
-                          fontSize: 12, marginBottom: step.url ? 4 : 0,
+                          fontSize: '0.75rem', marginBottom: step.url ? 4 : 0,
                         }}>
                           {step.label}
                         </div>
@@ -2238,7 +2238,7 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
-                              color: 'var(--color-accent)', fontSize: 11,
+                              color: 'var(--color-accent)', fontSize: '0.6875rem',
                               textDecoration: 'underline',
                             }}
                           >
@@ -2257,7 +2257,7 @@ function ChannelsTab({ agentId }: { agentId: string }) {
                       />
                     )}
                     <div style={{
-                      fontSize: 10, color: 'var(--color-text-secondary)',
+                      fontSize: '0.625rem', color: 'var(--color-text-secondary)',
                       textAlign: 'center', marginTop: 8,
                     }}>
                       {'\uD83D\uDD12'} Read-only access {'\u00B7'} No data leaves your device
@@ -2319,7 +2319,7 @@ function InlineConnectForm({
             background: 'var(--color-bg)',
             border: '1px solid var(--color-border)',
             borderRadius: 4, color: 'var(--color-text)',
-            fontSize: 12, marginBottom: 6,
+            fontSize: '0.75rem', marginBottom: 6,
             boxSizing: 'border-box',
           }}
         />
@@ -2331,7 +2331,7 @@ function InlineConnectForm({
           width: '100%', padding: 8,
           background: loading || !allFilled ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
           color: 'var(--color-on-accent)', border: 'none',
-          borderRadius: 6, fontSize: 12, cursor: 'pointer',
+          borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer',
         }}
       >
         {loading ? 'Connecting...' : 'Connect'}
@@ -2420,20 +2420,20 @@ function SendBlueWebhookStep({
         background: 'color-mix(in srgb, var(--color-success) 10%, var(--color-bg))', border: '1px solid color-mix(in srgb, var(--color-success) 22%, transparent)',
         borderRadius: 6, padding: 12, marginBottom: 12, textAlign: 'center',
       }}>
-        <div style={{ fontSize: 11, color: 'var(--color-success)', fontWeight: 600, marginBottom: 4 }}>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--color-success)', fontWeight: 600, marginBottom: 4 }}>
           {'\u2713'} Your agent is now reachable via iMessage / SMS
         </div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-success)' }}>{selectedNumber}</div>
+        <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-success)' }}>{selectedNumber}</div>
       </div>
 
       {/* Webhook / ngrok step */}
       <div style={{ marginTop: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>4</span>
-          <span style={{ fontSize: 12, fontWeight: 600 }}>Set up webhook to receive texts</span>
+          <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0 }}>4</span>
+          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Set up webhook to receive texts</span>
         </div>
         <div style={{
-          fontSize: 11, lineHeight: 1.6,
+          fontSize: '0.6875rem', lineHeight: 1.6,
           color: 'var(--color-text-secondary)',
           padding: '8px 10px', marginBottom: 10,
           background: 'var(--color-bg-secondary)',
@@ -2452,14 +2452,14 @@ function SendBlueWebhookStep({
             style={{
               flex: 1, padding: '7px 10px', background: 'var(--color-bg-secondary)',
               border: '1px solid var(--color-border)', borderRadius: 4,
-              color: 'var(--color-text)', fontSize: 12, boxSizing: 'border-box' as const,
+              color: 'var(--color-text)', fontSize: '0.75rem', boxSizing: 'border-box' as const,
             }}
           />
           <button
             onClick={registerWebhook}
             disabled={!webhookUrl.trim() || webhookStatus === 'registering'}
             style={{
-              fontSize: 11, padding: '7px 14px', whiteSpace: 'nowrap' as const,
+              fontSize: '0.6875rem', padding: '7px 14px', whiteSpace: 'nowrap' as const,
               background: webhookStatus === 'done' ? 'var(--color-success)' : 'var(--color-accent-purple)',
               color: 'var(--color-on-accent)', border: 'none', borderRadius: 5,
               cursor: 'pointer', fontWeight: 600,
@@ -2473,16 +2473,16 @@ function SendBlueWebhookStep({
           </button>
         </div>
         {webhookStatus === 'done' && (
-          <div style={{ fontSize: 11, color: 'var(--color-success)', marginTop: 6 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-success)', marginTop: 6 }}>
             Webhook registered! Incoming texts will be forwarded to your agent.
           </div>
         )}
         {webhookStatus === 'error' && (
-          <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 6 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 6 }}>
             Failed to register. Check your ngrok URL and try again.
           </div>
         )}
-        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
+        <div style={{ fontSize: '0.625rem', color: 'var(--color-text-tertiary)', marginTop: 8 }}>
           Don't have ngrok? <a href="https://ngrok.com/download" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>Download it free</a>
         </div>
       </div>
@@ -2547,12 +2547,12 @@ function SendBlueWizard({
   };
 
   const btnPrimary: React.CSSProperties = {
-    fontSize: 12, padding: '7px 18px', background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
+    fontSize: '0.75rem', padding: '7px 18px', background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
     border: 'none', borderRadius: 5, cursor: 'pointer', fontWeight: 600,
   };
 
   const btnSecondary: React.CSSProperties = {
-    fontSize: 11, padding: '5px 14px', background: 'transparent',
+    fontSize: '0.6875rem', padding: '5px 14px', background: 'transparent',
     color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)',
     borderRadius: 4, cursor: 'pointer',
   };
@@ -2560,7 +2560,7 @@ function SendBlueWizard({
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '7px 10px', background: 'var(--color-bg-secondary)',
     border: '1px solid var(--color-border)', borderRadius: 4,
-    color: 'var(--color-text)', fontSize: 12, boxSizing: 'border-box',
+    color: 'var(--color-text)', fontSize: '0.75rem', boxSizing: 'border-box',
   };
 
   const handleVerify = async () => {
@@ -2635,10 +2635,10 @@ function SendBlueWizard({
     return (
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px' }}>
-          <span style={{ fontSize: 18, marginRight: 10 }}>{'\uD83D\uDCAC'}</span>
+          <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{'\uD83D\uDCAC'}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>iMessage / SMS</div>
-            <div style={{ fontSize: 11, color: healthy ? 'var(--color-success)' : 'var(--color-warning)' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>iMessage / SMS</div>
+            <div style={{ fontSize: '0.6875rem', color: healthy ? 'var(--color-success)' : 'var(--color-warning)' }}>
               {healthy ? `Active on ${activeNumber}` : `Disconnected — ${activeNumber}`}
             </div>
           </div>
@@ -2647,7 +2647,7 @@ function SendBlueWizard({
               <button
                 onClick={handleReconnect}
                 disabled={reconnecting}
-                style={{ ...btnPrimary, fontSize: 10, padding: '3px 10px' }}
+                style={{ ...btnPrimary, fontSize: '0.625rem', padding: '3px 10px' }}
               >
                 {reconnecting ? '...' : 'Reconnect'}
               </button>
@@ -2655,7 +2655,7 @@ function SendBlueWizard({
             <span style={{
               background: healthy ? 'color-mix(in srgb, var(--color-success) 22%, transparent)' : 'color-mix(in srgb, var(--color-warning) 18%, var(--color-bg))',
               color: healthy ? 'var(--color-success)' : 'var(--color-warning)',
-              padding: '2px 8px', borderRadius: 10, fontSize: 10, fontWeight: 600,
+              padding: '2px 8px', borderRadius: 10, fontSize: '0.625rem', fontWeight: 600,
             }}>{healthy ? 'Active' : 'Disconnected'}</span>
             <button onClick={() => setExpanded(true)} style={btnSecondary}>
               Details
@@ -2671,10 +2671,10 @@ function SendBlueWizard({
     return (
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px' }}>
-          <span style={{ fontSize: 18, marginRight: 10 }}>{'\uD83D\uDCAC'}</span>
+          <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{'\uD83D\uDCAC'}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>iMessage / SMS</div>
-            <div style={{ fontSize: 11, color: 'var(--color-success)' }}>Active on {activeNumber}</div>
+            <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>iMessage / SMS</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--color-success)' }}>Active on {activeNumber}</div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setExpanded(false)} style={btnSecondary}>Collapse</button>
@@ -2682,12 +2682,12 @@ function SendBlueWizard({
           </div>
         </div>
         <div style={{ borderTop: '1px solid var(--color-border)', padding: 14, background: 'var(--color-bg)' }}>
-          <div style={{ fontSize: 12, marginBottom: 10, lineHeight: 1.6 }}>
+          <div style={{ fontSize: '0.75rem', marginBottom: 10, lineHeight: 1.6 }}>
             {'\u2192'} Text <strong>{activeNumber}</strong> from any phone to talk to your agent.
             Responses arrive as iMessage (blue bubbles) when possible, SMS otherwise.
           </div>
 
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 8, fontWeight: 600 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 8, fontWeight: 600 }}>
             Send a test message
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -2705,7 +2705,7 @@ function SendBlueWizard({
               {testSent ? 'Sent!' : 'Send Test'}
             </button>
           </div>
-          {error && <div style={{ color: 'var(--color-error)', fontSize: 11, marginTop: 6 }}>{error}</div>}
+          {error && <div style={{ color: 'var(--color-error)', fontSize: '0.6875rem', marginTop: 6 }}>{error}</div>}
         </div>
       </div>
     );
@@ -2719,16 +2719,16 @@ function SendBlueWizard({
         style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', cursor: 'pointer' }}
         onClick={() => setStep(step === 'idle' ? 'creds' : 'idle')}
       >
-        <span style={{ fontSize: 18, marginRight: 10 }}>{'\uD83D\uDCAC'}</span>
+        <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{'\uD83D\uDCAC'}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>iMessage / SMS</div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>iMessage / SMS</div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
             Your agent gets its own phone number — text it via iMessage or SMS
           </div>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); setStep(step === 'idle' ? 'creds' : 'idle'); }}
-          style={{ fontSize: 10, padding: '3px 12px', background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', border: 'none', borderRadius: 5, cursor: 'pointer', fontWeight: 600 }}
+          style={{ fontSize: '0.625rem', padding: '3px 12px', background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', border: 'none', borderRadius: 5, cursor: 'pointer', fontWeight: 600 }}
         >
           {step === 'idle' ? 'Set Up' : 'Cancel'}
         </button>
@@ -2738,8 +2738,8 @@ function SendBlueWizard({
       {(step === 'creds' || step === 'verifying') && (
         <div style={{ borderTop: '1px solid var(--color-border)', padding: 14, background: 'var(--color-bg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>1</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Create a SendBlue account</span>
+            <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0 }}>1</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Create a SendBlue account</span>
           </div>
           <button
             onClick={() => window.open('https://dashboard.sendblue.com/company-signup', '_blank')}
@@ -2749,10 +2749,10 @@ function SendBlueWizard({
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>2</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Paste your API credentials</span>
+            <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0 }}>2</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Paste your API credentials</span>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 8 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 8 }}>
             Go to your{' '}
             <a href="https://dashboard.sendblue.co/api-credentials" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>
               SendBlue API Credentials page
@@ -2761,19 +2761,19 @@ function SendBlueWizard({
           </div>
 
           <div style={{ marginBottom: 8 }}>
-            <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
+            <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
               API Key ID *
             </label>
             <input value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Your API key ID" style={inputStyle} />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
+            <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
               API Secret Key *
             </label>
             <input value={apiSecret} onChange={(e) => setApiSecret(e.target.value)} placeholder="Your API secret key" type="password" style={inputStyle} />
           </div>
 
-          {error && <div style={{ color: 'var(--color-error)', fontSize: 11, marginBottom: 8 }}>{error}</div>}
+          {error && <div style={{ color: 'var(--color-error)', fontSize: '0.6875rem', marginBottom: 8 }}>{error}</div>}
 
           <button
             onClick={handleVerify}
@@ -2789,18 +2789,18 @@ function SendBlueWizard({
       {(step === 'verified' || step === 'connecting') && (
         <div style={{ borderTop: '1px solid var(--color-border)', padding: 14, background: 'var(--color-bg)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ background: 'var(--color-success)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{'\u2713'}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-success)' }}>Credentials verified</span>
+            <span style={{ background: 'var(--color-success)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0 }}>{'\u2713'}</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-success)' }}>Credentials verified</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>3</span>
-            <span style={{ fontSize: 12, fontWeight: 600 }}>Your agent's phone number</span>
+            <span style={{ background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6875rem', fontWeight: 700, flexShrink: 0 }}>3</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>Your agent's phone number</span>
           </div>
 
           {numbers.length > 1 ? (
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
+              <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
                 Select a number for your agent
               </label>
               <select
@@ -2817,16 +2817,16 @@ function SendBlueWizard({
               borderRadius: 6, padding: '10px 12px', marginBottom: 12,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              <span style={{ fontSize: 20 }}>{'\uD83D\uDCF1'}</span>
+              <span style={{ fontSize: '1.25rem' }}>{'\uD83D\uDCF1'}</span>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-success)' }}>{selectedNumber}</div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>This will be your agent's phone number</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-success)' }}>{selectedNumber}</div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>This will be your agent's phone number</div>
               </div>
             </div>
           ) : (
             <div style={{ marginBottom: 12 }}>
               <div style={{
-                fontSize: 11, color: 'var(--color-text-secondary)',
+                fontSize: '0.6875rem', color: 'var(--color-text-secondary)',
                 marginBottom: 8, lineHeight: 1.5,
                 padding: '8px 10px', background: 'var(--color-bg-secondary)',
                 borderRadius: 6, borderLeft: '3px solid var(--color-accent-purple)',
@@ -2834,7 +2834,7 @@ function SendBlueWizard({
                 Copy the phone number shown under <strong>"Send from"</strong> in your SendBlue dashboard
                 and paste it below. On the free tier this is a shared number.
               </div>
-              <label style={{ display: 'block', fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
+              <label style={{ display: 'block', fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 3, fontWeight: 500 }}>
                 SendBlue phone number *
               </label>
               <input
@@ -2846,7 +2846,7 @@ function SendBlueWizard({
             </div>
           )}
 
-          {error && <div style={{ color: 'var(--color-error)', fontSize: 11, marginBottom: 8 }}>{error}</div>}
+          {error && <div style={{ color: 'var(--color-error)', fontSize: '0.6875rem', marginBottom: 8 }}>{error}</div>}
 
           <button
             onClick={handleConnect}
@@ -2919,14 +2919,14 @@ function MessagingTab({ agentId }: { agentId: string }) {
     background: 'var(--color-bg-secondary)',
     border: '1px solid var(--color-border)',
     borderRadius: 4, color: 'var(--color-text)',
-    fontSize: 12, boxSizing: 'border-box',
+    fontSize: '0.75rem', boxSizing: 'border-box',
   };
 
   return (
     <div style={{ padding: 16 }}>
       <div style={{
         color: 'var(--color-text-secondary)',
-        fontSize: 12, marginBottom: 14,
+        fontSize: '0.75rem', marginBottom: 14,
       }}>
         Connect a messaging channel so you can talk to your agent from your phone or other devices.
       </div>
@@ -2941,7 +2941,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
 
       {/* Divider */}
       <div style={{
-        fontSize: 10, color: 'var(--color-text-secondary)',
+        fontSize: '0.625rem', color: 'var(--color-text-secondary)',
         textTransform: 'uppercase', letterSpacing: 1,
         margin: '14px 0 8px', fontWeight: 600,
       }}>
@@ -2975,11 +2975,11 @@ function MessagingTab({ agentId }: { agentId: string }) {
               display: 'flex', alignItems: 'center',
               padding: '12px 14px',
             }}>
-              <span style={{ fontSize: 18, marginRight: 10 }}>{ch.icon}</span>
+              <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{ch.icon}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{ch.name}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{ch.name}</div>
                 <div style={{
-                  fontSize: 11,
+                  fontSize: '0.6875rem',
                   color: binding ? 'var(--color-success)' : 'var(--color-text-secondary)',
                 }}>
                   {binding ? ch.activeLabel(cfg) : ch.description}
@@ -2990,12 +2990,12 @@ function MessagingTab({ agentId }: { agentId: string }) {
                   <span style={{
                     background: 'color-mix(in srgb, var(--color-success) 22%, transparent)', color: 'var(--color-success)',
                     padding: '2px 8px', borderRadius: 10,
-                    fontSize: 10, fontWeight: 600,
+                    fontSize: '0.625rem', fontWeight: 600,
                   }}>Active</span>
                   <button
                     onClick={() => handleRemove(binding.id)}
                     style={{
-                      fontSize: 10, padding: '2px 8px',
+                      fontSize: '0.625rem', padding: '2px 8px',
                       background: 'transparent',
                       color: 'var(--color-text-secondary)',
                       border: '1px solid var(--color-border)',
@@ -3010,7 +3010,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
                     setFormValues({});
                   }}
                   style={{
-                    fontSize: 10, padding: '3px 12px',
+                    fontSize: '0.625rem', padding: '3px 12px',
                     background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
                     border: 'none', borderRadius: 5,
                     cursor: 'pointer', fontWeight: 600,
@@ -3029,7 +3029,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
                 background: 'var(--color-bg)',
               }}>
                 <div style={{
-                  fontSize: 11, color: 'var(--color-text-secondary)',
+                  fontSize: '0.6875rem', color: 'var(--color-text-secondary)',
                   display: 'flex', alignItems: 'flex-start', gap: 6,
                 }}>
                   <span style={{ flexShrink: 0 }}>{'\u2192'}</span>
@@ -3047,7 +3047,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
               }}>
                 {/* Setup instructions */}
                 <div style={{
-                  fontSize: 11, lineHeight: 1.5,
+                  fontSize: '0.6875rem', lineHeight: 1.5,
                   color: 'var(--color-text-secondary)',
                   marginBottom: 12,
                   padding: '8px 10px',
@@ -3065,7 +3065,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
                             background: 'var(--color-bg)',
                             border: '1px solid var(--color-border)',
                             borderRadius: 4, padding: '8px 10px',
-                            fontSize: 10, fontFamily: 'monospace',
+                            fontSize: '0.625rem', fontFamily: 'monospace',
                             wordBreak: 'break-all', lineHeight: 1.4,
                             maxHeight: 80, overflowY: 'auto',
                           }}>
@@ -3074,7 +3074,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
                               onClick={() => { navigator.clipboard.writeText(text); }}
                               style={{
                                 position: 'sticky', float: 'right', top: 0,
-                                fontSize: 10, padding: '2px 8px',
+                                fontSize: '0.625rem', padding: '2px 8px',
                                 background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
                                 border: 'none', borderRadius: 3,
                                 cursor: 'pointer', fontWeight: 600,
@@ -3096,7 +3096,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
                 {ch.fields.map((field) => (
                   <div key={field.key} style={{ marginBottom: 8 }}>
                     <label style={{
-                      display: 'block', fontSize: 11,
+                      display: 'block', fontSize: '0.6875rem',
                       color: 'var(--color-text-secondary)',
                       marginBottom: 3, fontWeight: 500,
                     }}>
@@ -3117,7 +3117,7 @@ function MessagingTab({ agentId }: { agentId: string }) {
                   onClick={() => handleSetup(ch)}
                   disabled={loading || !canConnect}
                   style={{
-                    fontSize: 12, padding: '7px 20px',
+                    fontSize: '0.75rem', padding: '7px 20px',
                     background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
                     border: 'none', borderRadius: 5,
                     cursor: 'pointer', fontWeight: 600,
@@ -3322,7 +3322,7 @@ function LogsTab({ agentId }: { agentId: string }) {
                         style={{ background: learningEventColor(e.event_type) }}
                       />
                       <span
-                        className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                        className="text-[0.625rem] px-1.5 py-0.5 rounded font-medium"
                         style={{
                           background: `${learningEventColor(e.event_type)}20`,
                           color: learningEventColor(e.event_type),
@@ -3365,14 +3365,14 @@ function LogsTab({ agentId }: { agentId: string }) {
                     />
                     <span style={{ color: 'var(--color-text)' }}>{t.outcome}</span>
                     <span
-                      className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                      className="text-[0.625rem] px-1.5 py-0.5 rounded font-medium"
                       style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}
                     >
                       Trace
                     </span>
                     {errorDetail && (
                       <span
-                        className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                        className="text-[0.625rem] px-1.5 py-0.5 rounded font-medium"
                         style={{
                           background: errorDetail.error_type === 'fatal' ? 'var(--color-error)20' :
                             errorDetail.error_type === 'escalate' ? 'var(--color-warning)20' : 'var(--color-accent)20',
@@ -3748,7 +3748,7 @@ export function AgentsPage() {
               const energyKj = energyWh * 3.6;
               const fmtFlops = flops >= 1e15 ? `${(flops / 1e15).toFixed(1)} PFLOPs` : `${(flops / 1e12).toFixed(1)} TFLOPs`;
               const hasSavings = inTok + outTok > 0;
-              const sectionTitle = { fontSize: 11, fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 8 };
+              const sectionTitle = { fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-tertiary)', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 8 };
               return (
                 <div className="p-4 rounded-xl" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
                   <div className="flex gap-0 flex-wrap items-stretch">

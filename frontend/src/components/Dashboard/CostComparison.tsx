@@ -52,7 +52,7 @@ export function CostComparison() {
           <div className="text-lg font-semibold" style={{ color: 'var(--color-success)' }}>
             ${savings.local_cost.toFixed(4)}
           </div>
-          <div className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>
+          <div className="text-[0.625rem]" style={{ color: 'var(--color-text-tertiary)' }}>
             electricity only
           </div>
         </div>
@@ -80,7 +80,7 @@ export function CostComparison() {
                   ${cost.toFixed(4)}
                 </div>
                 {saved > 0 && (
-                  <div className="text-[10px] flex items-center gap-0.5 justify-end" style={{ color: 'var(--color-success)' }}>
+                  <div className="text-[0.625rem] flex items-center gap-0.5 justify-end" style={{ color: 'var(--color-success)' }}>
                     <TrendingDown size={10} />
                     ${saved.toFixed(4)} saved
                   </div>
@@ -92,7 +92,7 @@ export function CostComparison() {
       </div>
 
       <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
-        <p className="text-[10px] leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
+        <p className="text-[0.625rem] leading-relaxed" style={{ color: 'var(--color-text-tertiary)' }}>
           *Savings estimates assume local models (e.g. Qwen, Nemotron, Kimi) produce roughly the same number of tokens per request, on average, as closed-source cloud models.
         </p>
       </div>

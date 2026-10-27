@@ -39,7 +39,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 400,
   },
   header: {
-    fontSize: 20,
+    fontSize: '1.25rem',
     fontWeight: 700,
     marginBottom: 20,
     color: '#cdd6f4',
@@ -52,7 +52,7 @@ const styles: Record<string, React.CSSProperties> = {
   input: {
     flex: 1,
     padding: '10px 14px',
-    fontSize: 14,
+    fontSize: '0.875rem',
     backgroundColor: '#313244',
     border: '1px solid #45475a',
     borderRadius: 8,
@@ -61,7 +61,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   button: {
     padding: '10px 20px',
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 600,
     backgroundColor: '#89b4fa',
     color: '#1e1e2e',
@@ -87,13 +87,13 @@ const styles: Record<string, React.CSSProperties> = {
     textAlign: 'center' as const,
   },
   statValue: {
-    fontSize: 22,
+    fontSize: '1.375rem',
     fontWeight: 700,
     color: '#89b4fa',
     lineHeight: 1.2,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: '#a6adc8',
     marginTop: 4,
     textTransform: 'uppercase' as const,
@@ -111,7 +111,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderLeft: '3px solid #89b4fa',
   },
   resultContent: {
-    fontSize: 14,
+    fontSize: '0.875rem',
     lineHeight: 1.6,
     color: '#cdd6f4',
     marginBottom: 10,
@@ -127,11 +127,11 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 4,
   },
   scoreLabel: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: '#a6adc8',
   },
   scoreValue: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     fontWeight: 600,
     color: '#89b4fa',
   },
@@ -157,7 +157,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     padding: '2px 8px',
     borderRadius: 4,
-    fontSize: 11,
+    fontSize: '0.6875rem',
     backgroundColor: '#45475a',
     color: '#a6adc8',
   },
@@ -171,11 +171,11 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 12,
     backgroundColor: '#f3858811',
     borderRadius: 8,
-    fontSize: 13,
+    fontSize: '0.8125rem',
     marginBottom: 16,
   },
   resultCount: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: '#a6adc8',
     marginBottom: 12,
   },

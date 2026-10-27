@@ -72,7 +72,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 24,
   },
   title: {
-    fontSize: 22,
+    fontSize: '1.375rem',
     fontWeight: 600,
     margin: 0,
     color: colors.text,
@@ -81,7 +81,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.green,
     background: 'rgba(166,227,161,0.1)',
     padding: '4px 10px',
@@ -108,26 +108,26 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
     marginBottom: 6,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
   },
   statValue: {
-    fontSize: 26,
+    fontSize: '1.625rem',
     fontWeight: 700,
     color: colors.accent,
     lineHeight: 1.1,
   },
   statUnit: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 400,
     color: colors.textMuted,
     marginLeft: 4,
   },
   sectionHeading: {
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 600,
     color: colors.textMuted,
     textTransform: 'uppercase' as const,
@@ -149,17 +149,17 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden' as const,
   },
   providerName: {
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 600,
     marginBottom: 4,
   },
   providerModel: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
     marginBottom: 14,
   },
   savingsAmount: {
-    fontSize: 32,
+    fontSize: '2rem',
     fontWeight: 700,
     color: colors.green,
     marginBottom: 8,
@@ -173,13 +173,13 @@ const styles: Record<string, React.CSSProperties> = {
     borderTop: `1px solid ${colors.border}`,
   },
   breakdownLabel: {
-    fontSize: 11,
+    fontSize: '0.6875rem',
     color: colors.textMuted,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.04em',
   },
   breakdownValue: {
-    fontSize: 16,
+    fontSize: '1rem',
     fontWeight: 600,
     marginTop: 2,
   },
@@ -207,7 +207,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: '0.9375rem',
     textAlign: 'center' as const,
   },
   errorBanner: {
@@ -216,7 +216,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     padding: '10px 16px',
     marginBottom: 16,
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: colors.red,
   },
 };
@@ -382,7 +382,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
           <h2 style={styles.title}>Savings Dashboard</h2>
         </div>
         <div style={styles.emptyState}>
-          <div style={{ fontSize: 40, opacity: 0.4 }}>$</div>
+          <div style={{ fontSize: '2.5rem', opacity: 0.4 }}>$</div>
           <div style={styles.emptyText}>
             No savings data available.<br />
             Start making inference requests to see savings vs cloud providers.
@@ -419,10 +419,10 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
       {/* Leaderboard Opt-in */}
       {showOptIn ? (
         <div style={{ ...styles.statCard, marginBottom: 24, padding: 20 }}>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8, color: colors.text }}>
+          <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: 8, color: colors.text }}>
             Share Your Savings
           </div>
-          <div style={{ fontSize: 13, color: colors.textMuted, marginBottom: 14, lineHeight: 1.5 }}>
+          <div style={{ fontSize: '0.8125rem', color: colors.textMuted, marginBottom: 14, lineHeight: 1.5 }}>
             Opt in to privately share your savings for the chance to win a Mac Mini!
           </div>
           <div style={{ marginBottom: 8 }}>
@@ -440,14 +440,14 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
                 background: colors.bg,
                 border: `1px solid ${colors.border}`,
                 color: colors.text,
-                fontSize: 14,
+                fontSize: '0.875rem',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
           </div>
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, color: colors.textMuted, marginBottom: 4 }}>
+            <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginBottom: 4 }}>
               Email <span style={{ color: colors.red }}>*</span>
               <span style={{ fontWeight: 400, marginLeft: 4, opacity: 0.7 }}>(never shown publicly)</span>
             </div>
@@ -464,13 +464,13 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
                 background: colors.bg,
                 border: `1px solid ${colors.border}`,
                 color: colors.text,
-                fontSize: 14,
+                fontSize: '0.875rem',
                 outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
             {nameError && (
-              <div style={{ fontSize: 12, color: colors.red, marginTop: 4 }}>{nameError}</div>
+              <div style={{ fontSize: '0.75rem', color: colors.red, marginTop: 4 }}>{nameError}</div>
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -482,7 +482,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
                 background: colors.accent,
                 color: '#1e1e2e',
                 fontWeight: 600,
-                fontSize: 13,
+                fontSize: '0.8125rem',
                 border: 'none',
                 cursor: 'pointer',
               }}
@@ -496,7 +496,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
                 borderRadius: 8,
                 background: 'transparent',
                 color: colors.textMuted,
-                fontSize: 13,
+                fontSize: '0.8125rem',
                 border: `1px solid ${colors.border}`,
                 cursor: 'pointer',
               }}
@@ -511,7 +511,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
                   borderRadius: 8,
                   background: 'transparent',
                   color: colors.red,
-                  fontSize: 13,
+                  fontSize: '0.8125rem',
                   border: `1px solid ${colors.border}`,
                   cursor: 'pointer',
                   marginLeft: 'auto',
@@ -532,7 +532,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
               background: optInEnabled ? 'rgba(166,227,161,0.15)' : colors.surface,
               border: optInEnabled ? `1px solid ${colors.green}` : `1px solid ${colors.border}`,
               color: optInEnabled ? colors.green : colors.textMuted,
-              fontSize: 12,
+              fontSize: '0.75rem',
               fontWeight: 500,
               cursor: 'pointer',
               display: 'inline-flex',
@@ -546,7 +546,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
             href="https://open-jarvis.github.io/OpenJarvis/leaderboard"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 12, color: colors.accent, textDecoration: 'none' }}
+            style={{ fontSize: '0.75rem', color: colors.accent, textDecoration: 'none' }}
           >
             View Leaderboard ↗
           </a>
@@ -609,7 +609,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
         ))}
       </div>
 
-      <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: '0.6875rem', color: colors.textMuted, marginTop: 8, lineHeight: 1.5 }}>
         *Savings estimates assume local models (e.g. Qwen, Nemotron, Kimi) produce roughly the same number of tokens per request, on average, as closed-source cloud models.
       </div>
 
@@ -623,22 +623,22 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
             <div style={styles.cloudAgentGrid}>
               <div>
                 <div style={styles.breakdownLabel}>MODERATE USE</div>
-                <div style={{ ...styles.breakdownValue, color: colors.yellow, fontSize: 20 }}>
+                <div style={{ ...styles.breakdownValue, color: colors.yellow, fontSize: '1.25rem' }}>
                   ${cloudAgent.moderate_low}&ndash;{cloudAgent.moderate_high}/mo
                 </div>
               </div>
               <div>
                 <div style={styles.breakdownLabel}>HEAVY USE</div>
-                <div style={{ ...styles.breakdownValue, color: colors.red, fontSize: 20 }}>
+                <div style={{ ...styles.breakdownValue, color: colors.red, fontSize: '1.25rem' }}>
                   ${cloudAgent.heavy_low}&ndash;{cloudAgent.heavy_high}+/mo
                 </div>
               </div>
               <div>
                 <div style={styles.breakdownLabel}>YOUR COST</div>
-                <div style={{ ...styles.breakdownValue, color: colors.green, fontSize: 24 }}>
+                <div style={{ ...styles.breakdownValue, color: colors.green, fontSize: '1.5rem' }}>
                   $0.00
                 </div>
-                <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                <div style={{ fontSize: '0.75rem', color: colors.textMuted, marginTop: 2 }}>
                   local inference
                 </div>
               </div>
@@ -663,7 +663,7 @@ export function SavingsDashboard({ apiUrl }: { apiUrl: string }) {
             <div style={styles.savingsAmount}>
               {fmtDollar(projection[p.provider] ?? 0)}
             </div>
-            <div style={{ fontSize: 12, color: colors.textMuted }}>
+            <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>
               per month at current rate
             </div>
           </div>

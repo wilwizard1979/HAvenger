@@ -92,7 +92,7 @@ export function XRayFooter({ usage, telemetry, isResearch = false }: Props) {
           style={{ background: 'var(--color-accent)' }}
         />
         <span
-          className="text-[11px] flex-1"
+          className="text-[0.6875rem] flex-1"
           style={{ color: 'var(--color-text-tertiary)', fontFamily: 'system-ui' }}
         >
           {summary}
@@ -113,11 +113,11 @@ export function XRayFooter({ usage, telemetry, isResearch = false }: Props) {
           <div className="grid gap-y-0.5" style={{ gridTemplateColumns: 'auto 1fr', columnGap: '1rem' }}>
             {rows.map((row) => (
               <div key={row.label} className="contents">
-                <span className="text-[11px]" style={{ color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>
+                <span className="text-[0.6875rem]" style={{ color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>
                   {row.label}
                 </span>
                 <span
-                  className="text-[11px]"
+                  className="text-[0.6875rem]"
                   style={{ color: row.color || 'var(--color-text-secondary)', fontFamily: 'monospace' }}
                 >
                   {row.value}

@@ -19,8 +19,8 @@
     --color-border-subtle: rgba(0, 0, 0, 0.04);
 
     --color-text: #09090b;
-    --color-text-secondary: #71717a;
-    --color-text-tertiary: #a1a1aa;
+    --color-text-secondary: #52525b;
+    --color-text-tertiary: #6b6b74;
     --color-text-inverse: #fafafa;
 
     --color-accent: #0891b2;
@@ -74,12 +74,12 @@
     --color-bg-tertiary: #18181b;
     --color-surface: #121214;
     --color-sidebar: rgba(12, 12, 14, 0.72);
-    --color-border: rgba(255, 255, 255, 0.09);
+    --color-border: rgba(255, 255, 255, 0.14);
     --color-border-subtle: rgba(255, 255, 255, 0.05);
 
-    --color-text: #ededef;
-    --color-text-secondary: #8d8d93;
-    --color-text-tertiary: #5c5c63;
+    --color-text: #f4f4f6;
+    --color-text-secondary: #b8b8c0;
+    --color-text-tertiary: #93939c;
     --color-text-inverse: #0a0a0b;
 
     --color-accent: #22d3ee;
@@ -122,12 +122,12 @@
       --color-bg-tertiary: #18181b;
       --color-surface: #121214;
       --color-sidebar: rgba(12, 12, 14, 0.72);
-      --color-border: rgba(255, 255, 255, 0.09);
+      --color-border: rgba(255, 255, 255, 0.14);
       --color-border-subtle: rgba(255, 255, 255, 0.05);
 
-      --color-text: #ededef;
-      --color-text-secondary: #8d8d93;
-      --color-text-tertiary: #5c5c63;
+      --color-text: #f4f4f6;
+      --color-text-secondary: #b8b8c0;
+      --color-text-tertiary: #93939c;
       --color-text-inverse: #0a0a0b;
 
       --color-accent: #22d3ee;
@@ -169,6 +169,10 @@
     padding: 0;
     box-sizing: border-box;
   }
+
+  html { font-size: 16px; }
+  html[data-font='default'] { font-size: 18px; }
+  html[data-font='large'] { font-size: 20px; }
 
   html, body, #root {
     height: 100%;

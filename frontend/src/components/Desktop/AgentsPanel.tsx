@@ -202,7 +202,7 @@ function LaunchWizard({
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 12px', borderRadius: 6,
     background: C.mantle, border: `1px solid ${C.border}`,
-    color: C.text, fontSize: 13, outline: 'none',
+    color: C.text, fontSize: '0.8125rem', outline: 'none',
     boxSizing: 'border-box',
   };
   const selectStyle: React.CSSProperties = {
@@ -215,18 +215,18 @@ function LaunchWizard({
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: C.accent, fontSize: 16 }}>◈</span>
-            <span style={{ color: C.text, fontWeight: 600, fontSize: 15 }}>Launch Agent</span>
+            <span style={{ color: C.accent, fontSize: '1rem' }}>◈</span>
+            <span style={{ color: C.text, fontWeight: 600, fontSize: '0.9375rem' }}>Launch Agent</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* Step indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: C.overlay0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: C.overlay0 }}>
               {([1, 2, 3] as const).map((s) => (
                 <span key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <span style={{
                     width: 20, height: 20, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 600,
+                    fontSize: '0.6875rem', fontWeight: 600,
                     background: wizard.step >= s ? C.accent : C.surface0,
                     color: wizard.step >= s ? C.bg : C.overlay0,
                   }}>
@@ -236,7 +236,7 @@ function LaunchWizard({
                 </span>
               ))}
             </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.overlay0, cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 2 }}>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: C.overlay0, cursor: 'pointer', fontSize: '1.125rem', lineHeight: 1, padding: 2 }}>
               ✕
             </button>
           </div>
@@ -247,7 +247,7 @@ function LaunchWizard({
           {/* Step 1: Template picker */}
           {wizard.step === 1 && (
             <div>
-              <p style={{ color: C.subtext0, fontSize: 13, marginBottom: 12 }}>
+              <p style={{ color: C.subtext0, fontSize: '0.8125rem', marginBottom: 12 }}>
                 Choose a template or start from scratch
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -260,8 +260,8 @@ function LaunchWizard({
                     cursor: 'pointer',
                   }}
                 >
-                  <div style={{ color: C.text, fontSize: 13, fontWeight: 500 }}>Custom Agent</div>
-                  <div style={{ color: C.overlay0, fontSize: 11, marginTop: 2 }}>Start from scratch with full control</div>
+                  <div style={{ color: C.text, fontSize: '0.8125rem', fontWeight: 500 }}>Custom Agent</div>
+                  <div style={{ color: C.overlay0, fontSize: '0.6875rem', marginTop: 2 }}>Start from scratch with full control</div>
                 </button>
                 {templates.map((t) => (
                   <button
@@ -274,9 +274,9 @@ function LaunchWizard({
                       cursor: 'pointer',
                     }}
                   >
-                    <div style={{ color: C.text, fontSize: 13, fontWeight: 500 }}>{t.name}</div>
+                    <div style={{ color: C.text, fontSize: '0.8125rem', fontWeight: 500 }}>{t.name}</div>
                     {t.description && (
-                      <div style={{ color: C.overlay0, fontSize: 11, marginTop: 2 }}>{t.description.slice(0, 80)}</div>
+                      <div style={{ color: C.overlay0, fontSize: '0.6875rem', marginTop: 2 }}>{t.description.slice(0, 80)}</div>
                     )}
                   </button>
                 ))}
@@ -288,7 +288,7 @@ function LaunchWizard({
           {wizard.step === 2 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label style={{ display: 'block', color: C.subtext0, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                <label style={{ display: 'block', color: C.subtext0, fontSize: '0.75rem', marginBottom: 6, fontWeight: 500 }}>
                   Agent Name *
                 </label>
                 <input
@@ -302,7 +302,7 @@ function LaunchWizard({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', color: C.subtext0, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                  <label style={{ display: 'block', color: C.subtext0, fontSize: '0.75rem', marginBottom: 6, fontWeight: 500 }}>
                     Schedule Type
                   </label>
                   <select
@@ -316,7 +316,7 @@ function LaunchWizard({
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', color: C.subtext0, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                  <label style={{ display: 'block', color: C.subtext0, fontSize: '0.75rem', marginBottom: 6, fontWeight: 500 }}>
                     Schedule Value
                   </label>
                   <input
@@ -331,7 +331,7 @@ function LaunchWizard({
               </div>
 
               <div>
-                <label style={{ display: 'block', color: C.subtext0, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                <label style={{ display: 'block', color: C.subtext0, fontSize: '0.75rem', marginBottom: 6, fontWeight: 500 }}>
                   Tools
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -350,7 +350,7 @@ function LaunchWizard({
                         checked={wizard.selectedTools.includes(tool.id)}
                         onChange={() => toggleTool(tool.id)}
                       />
-                      <span style={{ color: C.text, fontSize: 12 }}>{tool.label}</span>
+                      <span style={{ color: C.text, fontSize: '0.75rem' }}>{tool.label}</span>
                     </label>
                   ))}
                 </div>
@@ -358,7 +358,7 @@ function LaunchWizard({
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', color: C.subtext0, fontSize: 12, marginBottom: 6, fontWeight: 500 }}>
+                  <label style={{ display: 'block', color: C.subtext0, fontSize: '0.75rem', marginBottom: 6, fontWeight: 500 }}>
                     Budget ($, optional)
                   </label>
                   <input
@@ -382,7 +382,7 @@ function LaunchWizard({
                       checked={wizard.learningEnabled}
                       onChange={(e) => update({ learningEnabled: e.target.checked })}
                     />
-                    <span style={{ color: C.text, fontSize: 12 }}>Enable Learning</span>
+                    <span style={{ color: C.text, fontSize: '0.75rem' }}>Enable Learning</span>
                   </label>
                 </div>
               </div>
@@ -392,7 +392,7 @@ function LaunchWizard({
           {/* Step 3: Review */}
           {wizard.step === 3 && (
             <div>
-              <p style={{ color: C.subtext0, fontSize: 13, marginBottom: 12 }}>Review your configuration</p>
+              <p style={{ color: C.subtext0, fontSize: '0.8125rem', marginBottom: 12 }}>Review your configuration</p>
               <div style={{ background: C.surface0, borderRadius: 8, padding: 16, border: `1px solid ${C.border}` }}>
                 {[
                   ['Name', wizard.name || '(unnamed)'],
@@ -402,14 +402,14 @@ function LaunchWizard({
                   ['Budget', wizard.budget ? `$${wizard.budget}` : 'Unlimited'],
                   ['Learning', wizard.learningEnabled ? 'Enabled' : 'Disabled'],
                 ].map(([label, value]) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: 13 }}>
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: '0.8125rem' }}>
                     <span style={{ color: C.overlay0 }}>{label}</span>
                     <span style={{ color: C.text }}>{value}</span>
                   </div>
                 ))}
               </div>
               {error && (
-                <p style={{ color: C.red, fontSize: 12, marginTop: 10 }}>{error}</p>
+                <p style={{ color: C.red, fontSize: '0.75rem', marginTop: 10 }}>{error}</p>
               )}
             </div>
           )}
@@ -419,14 +419,14 @@ function LaunchWizard({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderTop: `1px solid ${C.border}` }}>
           <button
             onClick={() => wizard.step > 1 ? update({ step: (wizard.step - 1) as 1 | 2 | 3 }) : onClose()}
-            style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: 'none', color: C.subtext0, cursor: 'pointer', fontSize: 13 }}
+            style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: 'none', color: C.subtext0, cursor: 'pointer', fontSize: '0.8125rem' }}
           >
             {wizard.step === 1 ? 'Cancel' : 'Back'}
           </button>
           {wizard.step < 3 ? (
             <button
               onClick={() => update({ step: (wizard.step + 1) as 2 | 3 })}
-              style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+              style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: C.accent, color: C.bg, cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
             >
               Next
             </button>
@@ -434,7 +434,7 @@ function LaunchWizard({
             <button
               onClick={handleLaunch}
               disabled={launching}
-              style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: C.accent, color: C.bg, cursor: launching ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: launching ? 0.7 : 1 }}
+              style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: C.accent, color: C.bg, cursor: launching ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600, opacity: launching ? 0.7 : 1 }}
             >
               {launching ? 'Launching...' : 'Launch'}
             </button>
@@ -500,7 +500,7 @@ function InteractTab({ apiUrl, agentId }: { apiUrl: string; agentId: string }) {
       {/* Message list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 8px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {messages.length === 0 && (
-          <div style={{ color: C.overlay0, fontSize: 13, textAlign: 'center', marginTop: 32 }}>
+          <div style={{ color: C.overlay0, fontSize: '0.8125rem', textAlign: 'center', marginTop: 32 }}>
             No messages yet. Send a message to the agent below.
           </div>
         )}
@@ -515,14 +515,14 @@ function InteractTab({ apiUrl, agentId }: { apiUrl: string; agentId: string }) {
             >
               <div
                 style={{
-                  maxWidth: '75%', padding: '8px 12px', borderRadius: 8, fontSize: 13,
+                  maxWidth: '75%', padding: '8px 12px', borderRadius: 8, fontSize: '0.8125rem',
                   background: isUser ? C.accent + '25' : C.surface0,
                   border: `1px solid ${isUser ? C.accent + '40' : C.border}`,
                   color: C.text,
                 }}
               >
                 <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.content}</div>
-                <div style={{ color: C.overlay0, fontSize: 10, marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>
+                <div style={{ color: C.overlay0, fontSize: '0.625rem', marginTop: 4, textAlign: isUser ? 'right' : 'left' }}>
                   {isUser ? `You · ${msg.mode}` : 'Agent'} · {msg.status}
                 </div>
               </div>
@@ -534,7 +534,7 @@ function InteractTab({ apiUrl, agentId }: { apiUrl: string; agentId: string }) {
 
       {/* Error */}
       {error && (
-        <div style={{ color: C.red, fontSize: 12, padding: '4px 0' }}>{error}</div>
+        <div style={{ color: C.red, fontSize: '0.75rem', padding: '4px 0' }}>{error}</div>
       )}
 
       {/* Input area */}
@@ -549,18 +549,18 @@ function InteractTab({ apiUrl, agentId }: { apiUrl: string; agentId: string }) {
             style={{
               width: '100%', padding: '8px 12px', borderRadius: 6,
               background: C.mantle, border: `1px solid ${C.border}`,
-              color: C.text, fontSize: 13, resize: 'none', outline: 'none',
+              color: C.text, fontSize: '0.8125rem', resize: 'none', outline: 'none',
               boxSizing: 'border-box', fontFamily: 'inherit',
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ color: C.overlay0, fontSize: 11 }}>Mode:</span>
+            <span style={{ color: C.overlay0, fontSize: '0.6875rem' }}>Mode:</span>
             {(['queued', 'immediate'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setMode(m)}
                 style={{
-                  padding: '2px 8px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
+                  padding: '2px 8px', borderRadius: 4, fontSize: '0.6875rem', cursor: 'pointer',
                   border: `1px solid ${mode === m ? C.accent : C.border}`,
                   background: mode === m ? C.accent + '20' : 'none',
                   color: mode === m ? C.accent : C.overlay0,
@@ -577,7 +577,7 @@ function InteractTab({ apiUrl, agentId }: { apiUrl: string; agentId: string }) {
           style={{
             padding: '10px 16px', borderRadius: 6, border: 'none',
             background: C.accent, color: C.bg, cursor: sending || !input.trim() ? 'not-allowed' : 'pointer',
-            fontSize: 13, fontWeight: 600, opacity: sending || !input.trim() ? 0.5 : 1,
+            fontSize: '0.8125rem', fontWeight: 600, opacity: sending || !input.trim() ? 0.5 : 1,
             flexShrink: 0,
           }}
         >
@@ -601,7 +601,7 @@ function TasksTab({ tasks }: { tasks: AgentTask[] }) {
   };
 
   if (tasks.length === 0) {
-    return <div style={{ color: C.overlay0, fontSize: 13, textAlign: 'center', marginTop: 32 }}>No tasks found.</div>;
+    return <div style={{ color: C.overlay0, fontSize: '0.8125rem', textAlign: 'center', marginTop: 32 }}>No tasks found.</div>;
   }
 
   return (
@@ -609,17 +609,17 @@ function TasksTab({ tasks }: { tasks: AgentTask[] }) {
       {tasks.map((t) => (
         <div key={t.id} style={{ background: C.surface0, borderRadius: 8, padding: '10px 14px', border: `1px solid ${C.border}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: C.text, fontSize: 13, flex: 1, marginRight: 12 }}>{t.description}</span>
+            <span style={{ color: C.text, fontSize: '0.8125rem', flex: 1, marginRight: 12 }}>{t.description}</span>
             <span style={{
               display: 'inline-block', padding: '2px 8px', borderRadius: 4,
-              fontSize: 11, fontWeight: 600, flexShrink: 0,
+              fontSize: '0.6875rem', fontWeight: 600, flexShrink: 0,
               background: taskStatusColor(t.status) + '25',
               color: taskStatusColor(t.status),
             }}>
               {t.status}
             </span>
           </div>
-          <div style={{ color: C.overlay0, fontSize: 11, marginTop: 4 }}>
+          <div style={{ color: C.overlay0, fontSize: '0.6875rem', marginTop: 4 }}>
             Created {formatRelativeTime(t.created_at)}
           </div>
         </div>
@@ -635,12 +635,12 @@ function TasksTab({ tasks }: { tasks: AgentTask[] }) {
 function MemoryTab({ agent }: { agent: ManagedAgent }) {
   return (
     <div>
-      <div style={{ color: C.subtext0, fontSize: 12, marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div style={{ color: C.subtext0, fontSize: '0.75rem', marginBottom: 8, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Summary Memory
       </div>
       <div style={{ background: C.surface0, borderRadius: 8, padding: 14, border: `1px solid ${C.border}` }}>
         <pre style={{
-          color: C.text, fontSize: 12, whiteSpace: 'pre-wrap', margin: 0,
+          color: C.text, fontSize: '0.75rem', whiteSpace: 'pre-wrap', margin: 0,
           fontFamily: "'JetBrains Mono', 'Fira Code', monospace", lineHeight: 1.6,
         }}>
           {agent.summary_memory || 'No memory stored yet.'}
@@ -667,7 +667,7 @@ function OverviewTab({ agent, onRun, onPause, onResume, onRecover }: {
 
   const rowStyle: React.CSSProperties = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: 13,
+    padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: '0.8125rem',
   };
   const labelStyle: React.CSSProperties = { color: C.overlay0 };
   const valueStyle: React.CSSProperties = { color: C.text, fontWeight: 500 };
@@ -682,7 +682,7 @@ function OverviewTab({ agent, onRun, onPause, onResume, onRecover }: {
           <span style={labelStyle}>Status</span>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '2px 10px', borderRadius: 12, fontSize: 12, fontWeight: 600,
+            padding: '2px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600,
             background: statusColor + '20', color: statusColor,
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor, display: 'inline-block' }} />
@@ -743,7 +743,7 @@ function OverviewTab({ agent, onRun, onPause, onResume, onRecover }: {
           style={{
             padding: '8px 14px', borderRadius: 6, border: 'none',
             background: C.green + '25', color: C.green,
-            cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
           }}
         >
           ▶ Run Now
@@ -754,7 +754,7 @@ function OverviewTab({ agent, onRun, onPause, onResume, onRecover }: {
             style={{
               padding: '8px 14px', borderRadius: 6, border: 'none',
               background: C.yellow + '25', color: C.yellow,
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
             }}
           >
             ⏸ Pause
@@ -766,7 +766,7 @@ function OverviewTab({ agent, onRun, onPause, onResume, onRecover }: {
             style={{
               padding: '8px 14px', borderRadius: 6, border: 'none',
               background: C.accent + '25', color: C.accent,
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
             }}
           >
             ▶ Resume
@@ -778,7 +778,7 @@ function OverviewTab({ agent, onRun, onPause, onResume, onRecover }: {
             style={{
               padding: '8px 14px', borderRadius: 6, border: 'none',
               background: C.peach + '25', color: C.peach,
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
             }}
           >
             ↺ Recover
@@ -825,11 +825,11 @@ function LearningTabContent({
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: C.subtext0, fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <span style={{ color: C.subtext0, fontSize: '0.75rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Learning
           </span>
           <span style={{
-            fontSize: 11, padding: '1px 8px', borderRadius: 8,
+            fontSize: '0.6875rem', padding: '1px 8px', borderRadius: 8,
             background: learningEnabled ? C.green + '25' : C.surface0,
             color: learningEnabled ? C.green : C.overlay0,
           }}>
@@ -842,14 +842,14 @@ function LearningTabContent({
           style={{
             padding: '6px 12px', borderRadius: 6, border: 'none',
             background: C.accent, color: C.bg, cursor: triggering ? 'not-allowed' : 'pointer',
-            fontSize: 12, fontWeight: 600, opacity: triggering ? 0.6 : 1,
+            fontSize: '0.75rem', fontWeight: 600, opacity: triggering ? 0.6 : 1,
           }}
         >
           {triggering ? 'Running...' : 'Run Learning'}
         </button>
       </div>
       {logs.length === 0 ? (
-        <div style={{ color: C.overlay0, fontSize: 13, textAlign: 'center', marginTop: 32 }}>
+        <div style={{ color: C.overlay0, fontSize: '0.8125rem', textAlign: 'center', marginTop: 32 }}>
           No learning events yet. Run the agent or trigger learning manually.
         </div>
       ) : (
@@ -861,17 +861,17 @@ function LearningTabContent({
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <span style={{
-                  fontSize: 11, padding: '1px 8px', borderRadius: 4,
+                  fontSize: '0.6875rem', padding: '1px 8px', borderRadius: 4,
                   background: C.accent + '20', color: C.accent,
                 }}>
                   {entry.event_type}
                 </span>
-                <span style={{ color: C.overlay0, fontSize: 11 }}>
+                <span style={{ color: C.overlay0, fontSize: '0.6875rem' }}>
                   {formatRelativeTime(entry.created_at)}
                 </span>
               </div>
               {entry.description && (
-                <div style={{ color: C.subtext0, fontSize: 12, marginTop: 4 }}>
+                <div style={{ color: C.subtext0, fontSize: '0.75rem', marginTop: 4 }}>
                   {entry.description}
                 </div>
               )}
@@ -896,7 +896,7 @@ function LogsTabContent({ apiUrl, agentId }: { apiUrl: string; agentId: string }
 
   if (traces.length === 0) {
     return (
-      <div style={{ color: C.overlay0, fontSize: 13, textAlign: 'center', marginTop: 32 }}>
+      <div style={{ color: C.overlay0, fontSize: '0.8125rem', textAlign: 'center', marginTop: 32 }}>
         No execution traces yet. Run the agent to generate traces.
       </div>
     );
@@ -905,10 +905,10 @@ function LogsTabContent({ apiUrl, agentId }: { apiUrl: string; agentId: string }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ color: C.subtext0, fontSize: 12, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <span style={{ color: C.subtext0, fontSize: '0.75rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           Execution Traces
         </span>
-        <span style={{ color: C.overlay0, fontSize: 11 }}>
+        <span style={{ color: C.overlay0, fontSize: '0.6875rem' }}>
           {traces.length} trace{traces.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -923,13 +923,13 @@ function LogsTabContent({ apiUrl, agentId }: { apiUrl: string; agentId: string }
                 width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
                 background: t.outcome === 'success' ? C.green : C.red,
               }} />
-              <span style={{ color: C.text, fontSize: 13 }}>{t.outcome}</span>
+              <span style={{ color: C.text, fontSize: '0.8125rem' }}>{t.outcome}</span>
             </div>
-            <span style={{ color: C.overlay0, fontSize: 11 }}>
+            <span style={{ color: C.overlay0, fontSize: '0.6875rem' }}>
               {formatRelativeTime(t.started_at)}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: C.overlay0 }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: '0.6875rem', color: C.overlay0 }}>
             <span>{t.duration.toFixed(1)}s</span>
             <span>{t.steps} step{t.steps !== 1 ? 's' : ''}</span>
           </div>
@@ -980,9 +980,9 @@ function DetailPanel({
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <span style={{ width: 10, height: 10, borderRadius: '50%', background: dotColor, display: 'inline-block', flexShrink: 0 }} />
-          <h2 style={{ color: C.text, fontSize: 18, fontWeight: 700, margin: 0 }}>{agent.name}</h2>
+          <h2 style={{ color: C.text, fontSize: '1.125rem', fontWeight: 700, margin: 0 }}>{agent.name}</h2>
         </div>
-        <div style={{ color: C.overlay0, fontSize: 12 }}>
+        <div style={{ color: C.overlay0, fontSize: '0.75rem' }}>
           {agent.agent_type} · Schedule: {formatAgentSchedule(agent)} · Last run: {formatRelativeTime(agent.last_run_at)}
         </div>
       </div>
@@ -997,7 +997,7 @@ function DetailPanel({
               padding: '6px 14px', border: 'none', borderRadius: '6px 6px 0 0',
               background: activeTab === tab.id ? C.surface0 : 'none',
               color: activeTab === tab.id ? C.text : C.overlay0,
-              cursor: 'pointer', fontSize: 13, fontWeight: activeTab === tab.id ? 600 : 400,
+              cursor: 'pointer', fontSize: '0.8125rem', fontWeight: activeTab === tab.id ? 600 : 400,
               borderBottom: activeTab === tab.id ? `2px solid ${C.accent}` : '2px solid transparent',
               marginBottom: -1,
             }}
@@ -1118,13 +1118,13 @@ export function AgentsPanel({ apiUrl }: Props) {
       <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: C.text, fontSize: 14, fontWeight: 600 }}>Agents ({agents.length})</span>
+          <span style={{ color: C.text, fontSize: '0.875rem', fontWeight: 600 }}>Agents ({agents.length})</span>
           <button
             onClick={() => setShowWizard(true)}
             style={{
               padding: '5px 12px', borderRadius: 6, border: 'none',
               background: C.accent, color: C.bg,
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600,
             }}
           >
             + Launch
@@ -1150,7 +1150,7 @@ export function AgentsPanel({ apiUrl }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0, display: 'inline-block' }} />
-                    <span style={{ color: C.text, fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: C.text, fontSize: '0.8125rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {a.name}
                     </span>
                   </div>
@@ -1158,26 +1158,26 @@ export function AgentsPanel({ apiUrl }: Props) {
                     onClick={(e) => { e.stopPropagation(); handleDelete(a.id); }}
                     style={{
                       background: 'none', border: 'none', color: C.overlay0,
-                      cursor: 'pointer', fontSize: 14, padding: '0 2px', flexShrink: 0, lineHeight: 1,
+                      cursor: 'pointer', fontSize: '0.875rem', padding: '0 2px', flexShrink: 0, lineHeight: 1,
                     }}
                     title="Delete agent"
                   >
                     ×
                   </button>
                 </div>
-                <div style={{ color: C.overlay0, fontSize: 11, marginTop: 4 }}>
+                <div style={{ color: C.overlay0, fontSize: '0.6875rem', marginTop: 4 }}>
                   {formatAgentSchedule(a)}
                 </div>
-                <div style={{ color: C.overlay1, fontSize: 11, marginTop: 2 }}>
+                <div style={{ color: C.overlay1, fontSize: '0.6875rem', marginTop: 2 }}>
                   Last run: {formatRelativeTime(a.last_run_at)}
                 </div>
               </div>
             );
           })}
           {agents.length === 0 && (
-            <div style={{ color: C.overlay0, fontSize: 13, textAlign: 'center', marginTop: 40 }}>
+            <div style={{ color: C.overlay0, fontSize: '0.8125rem', textAlign: 'center', marginTop: 40 }}>
               No agents found.<br />
-              <span style={{ fontSize: 12 }}>Click "+ Launch" to create one.</span>
+              <span style={{ fontSize: '0.75rem' }}>Click "+ Launch" to create one.</span>
             </div>
           )}
         </div>
@@ -1196,7 +1196,7 @@ export function AgentsPanel({ apiUrl }: Props) {
             onRecover={handleRecover}
           />
         ) : (
-          <div style={{ color: C.overlay0, textAlign: 'center', marginTop: 80, fontSize: 14 }}>
+          <div style={{ color: C.overlay0, textAlign: 'center', marginTop: 80, fontSize: '0.875rem' }}>
             Select an agent to view details
           </div>
         )}

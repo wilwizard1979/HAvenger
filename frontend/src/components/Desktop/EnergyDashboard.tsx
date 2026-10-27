@@ -73,7 +73,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 24,
   },
   title: {
-    fontSize: 22,
+    fontSize: '1.375rem',
     fontWeight: 600,
     margin: 0,
     color: colors.text,
@@ -82,7 +82,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.green,
     background: 'rgba(166,227,161,0.1)',
     padding: '4px 10px',
@@ -109,20 +109,20 @@ const styles: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
     marginBottom: 6,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
   },
   statValue: {
-    fontSize: 26,
+    fontSize: '1.625rem',
     fontWeight: 700,
     color: colors.accent,
     lineHeight: 1.1,
   },
   statUnit: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 400,
     color: colors.textMuted,
     marginLeft: 4,
@@ -135,7 +135,7 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: 24,
   },
   chartTitle: {
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 600,
     marginBottom: 16,
     color: colors.text,
@@ -150,11 +150,11 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
   },
   emptyIcon: {
-    fontSize: 40,
+    fontSize: '2.5rem',
     opacity: 0.4,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: '0.9375rem',
     textAlign: 'center' as const,
   },
   errorBanner: {
@@ -163,14 +163,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     padding: '10px 16px',
     marginBottom: 16,
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: colors.red,
   },
   thermalStatus: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 600,
   },
 };
@@ -372,11 +372,11 @@ export function EnergyDashboard({ apiUrl }: { apiUrl: string }) {
               <XAxis
                 dataKey="time"
                 stroke={colors.textMuted}
-                tick={{ fill: colors.textMuted, fontSize: 11 }}
+                tick={{ fill: colors.textMuted, fontSize: '0.6875rem' }}
               />
               <YAxis
                 stroke={colors.textMuted}
-                tick={{ fill: colors.textMuted, fontSize: 11 }}
+                tick={{ fill: colors.textMuted, fontSize: '0.6875rem' }}
                 unit=" W"
               />
               <Tooltip
@@ -385,7 +385,7 @@ export function EnergyDashboard({ apiUrl }: { apiUrl: string }) {
                   border: `1px solid ${colors.border}`,
                   borderRadius: 6,
                   color: colors.text,
-                  fontSize: 13,
+                  fontSize: '0.8125rem',
                 }}
                 labelStyle={{ color: colors.textMuted }}
               />

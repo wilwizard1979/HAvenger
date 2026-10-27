@@ -88,7 +88,7 @@ export function HaPanel({ onAsk }: HaPanelProps) {
           <div className="text-xs font-semibold tracking-wide uppercase" style={{ color: 'var(--color-text-secondary)' }}>
             Home Assistant
           </div>
-          <div className="text-[11px] truncate" style={{ color: 'var(--color-text-tertiary)' }}>
+          <div className="text-[0.6875rem] truncate" style={{ color: 'var(--color-text-tertiary)' }}>
             {data?.ha_version ?? '—'}
             {ago !== null ? ` · checked ${ago < 90 ? `${ago}s` : `${Math.round(ago / 60)} min`} ago` : ' · waiting for first check'}
           </div>
@@ -188,7 +188,7 @@ export function HaPanel({ onAsk }: HaPanelProps) {
             {speech.speaking ? 'Stop reading' : speech.busy ? 'Preparing…' : 'Read the house status aloud'}
           </button>
           {speech.error && (
-            <div className="text-[11px]" style={{ color: 'var(--color-warning)' }}>
+            <div className="text-[0.6875rem]" style={{ color: 'var(--color-warning)' }}>
               {speech.error}
             </div>
           )}

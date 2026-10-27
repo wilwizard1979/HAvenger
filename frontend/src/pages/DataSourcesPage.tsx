@@ -89,7 +89,7 @@ function InlineConnectForm({
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
               borderRadius: 4, color: 'var(--color-text)',
-              fontSize: 12, marginBottom: 6,
+              fontSize: '0.75rem', marginBottom: 6,
               boxSizing: 'border-box',
             }}
           >
@@ -110,7 +110,7 @@ function InlineConnectForm({
               background: 'var(--color-bg)',
               border: '1px solid var(--color-border)',
               borderRadius: 4, color: 'var(--color-text)',
-              fontSize: 12, marginBottom: 6,
+              fontSize: '0.75rem', marginBottom: 6,
               boxSizing: 'border-box',
             }}
           />
@@ -123,7 +123,7 @@ function InlineConnectForm({
           width: '100%', padding: 8,
           background: submitDisabled ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
           color: 'var(--color-on-accent)', border: 'none',
-          borderRadius: 6, fontSize: 12,
+          borderRadius: 6, fontSize: '0.75rem',
           cursor: submitDisabled ? 'default' : 'pointer',
         }}
       >
@@ -185,7 +185,7 @@ function GenericConnectPanel({
         .map((url) => ({ url }));
       return (
         <div>
-          <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
             Add one RSS or Atom feed URL per line.
           </div>
           <textarea
@@ -193,12 +193,12 @@ function GenericConnectPanel({
             onChange={(event) => setFeedUrls(event.target.value)}
             placeholder={'https://example.com/feed.xml\nhttps://example.org/rss'}
             rows={4}
-            style={{ width: '100%', padding: '7px 10px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: 12, marginBottom: 6, boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '7px 10px', background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 4, color: 'var(--color-text)', fontSize: '0.75rem', marginBottom: 6, boxSizing: 'border-box' }}
           />
           <button
             onClick={() => onConnect({ config: { feeds } })}
             disabled={loading || disabled || feeds.length === 0}
-            style={{ width: '100%', padding: 8, background: loading || disabled || feeds.length === 0 ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)', color: 'var(--color-on-accent)', border: 'none', borderRadius: 6, fontSize: 12, cursor: loading || disabled || feeds.length === 0 ? 'default' : 'pointer' }}
+            style={{ width: '100%', padding: 8, background: loading || disabled || feeds.length === 0 ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)', color: 'var(--color-on-accent)', border: 'none', borderRadius: 6, fontSize: '0.75rem', cursor: loading || disabled || feeds.length === 0 ? 'default' : 'pointer' }}
           >
             {loading ? 'Connecting...' : 'Save feeds'}
           </button>
@@ -207,7 +207,7 @@ function GenericConnectPanel({
     }
     return (
       <div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
           {displayName} reads data directly from this device. Grant access if
           prompted, then connect.
         </div>
@@ -218,7 +218,7 @@ function GenericConnectPanel({
             width: '100%', padding: 8,
             background: loading || disabled ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
             color: 'var(--color-on-accent)', border: 'none',
-            borderRadius: 6, fontSize: 12,
+            borderRadius: 6, fontSize: '0.75rem',
             cursor: loading || disabled ? 'default' : 'pointer',
           }}
         >
@@ -231,7 +231,7 @@ function GenericConnectPanel({
   if (authType === 'token') {
     return (
       <div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
           Enter your {displayName} API token.
         </div>
         <InlineConnectForm
@@ -253,7 +253,7 @@ function GenericConnectPanel({
   if (oauthSetup?.has_credentials) {
     return (
       <div>
-        <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
           OAuth app credentials are already configured. Continue directly to
           {oauthSetup.provider ? ` ${oauthSetup.provider}` : ' the provider'} sign-in.
         </div>
@@ -264,7 +264,7 @@ function GenericConnectPanel({
             width: '100%', padding: 8,
             background: loading || disabled ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
             color: 'var(--color-on-accent)', border: 'none',
-            borderRadius: 6, fontSize: 12,
+            borderRadius: 6, fontSize: '0.75rem',
             cursor: loading || disabled ? 'default' : 'pointer',
           }}
         >
@@ -282,21 +282,21 @@ function GenericConnectPanel({
           border: '1px solid var(--color-border)',
           borderRadius: 6, padding: 10, marginBottom: 10,
         }}>
-          <div style={{ color: 'var(--color-accent-purple)', fontSize: 10, fontWeight: 600, marginBottom: 3 }}>
+          <div style={{ color: 'var(--color-accent-purple)', fontSize: '0.625rem', fontWeight: 600, marginBottom: 3 }}>
             SETUP REQUIRED
           </div>
-          <div style={{ fontSize: 12, marginBottom: 6 }}>{oauthSetup.setup_hint}</div>
+          <div style={{ fontSize: '0.75rem', marginBottom: 6 }}>{oauthSetup.setup_hint}</div>
           <a
             href={oauthSetup.setup_url}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: 'var(--color-accent)', fontSize: 11, textDecoration: 'underline' }}
+            style={{ color: 'var(--color-accent)', fontSize: '0.6875rem', textDecoration: 'underline' }}
           >
             Open developer dashboard &rarr;
           </a>
         </div>
       )}
-      <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
+      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
         Paste the Client ID and Client Secret from the app you created above.
       </div>
       <InlineConnectForm
@@ -386,7 +386,7 @@ function UploadForm({ onDone }: { onDone?: () => void }) {
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
     flex: 1, padding: '6px 0', textAlign: 'center',
-    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
     background: active ? 'var(--color-accent-purple)' : 'transparent',
     color: active ? 'white' : 'var(--color-text-secondary)',
     border: 'none', borderRadius: 4,
@@ -397,7 +397,7 @@ function UploadForm({ onDone }: { onDone?: () => void }) {
     background: 'var(--color-bg)',
     border: '1px solid var(--color-border)',
     borderRadius: 4, color: 'var(--color-text)',
-    fontSize: 12, marginBottom: 6,
+    fontSize: '0.75rem', marginBottom: 6,
     boxSizing: 'border-box' as const,
   };
 
@@ -443,7 +443,7 @@ function UploadForm({ onDone }: { onDone?: () => void }) {
               width: '100%', padding: 8,
               background: busy || !content.trim() ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
               color: 'var(--color-on-accent)', border: 'none',
-              borderRadius: 6, fontSize: 12, cursor: 'pointer',
+              borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer',
             }}
           >
             {busy ? 'Adding...' : 'Add to Knowledge Base'}
@@ -464,7 +464,7 @@ function UploadForm({ onDone }: { onDone?: () => void }) {
             style={{ ...inputStyle, padding: 6 }}
           />
           {files.length > 0 && (
-            <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>
               {files.map((f) => f.name).join(', ')}
             </div>
           )}
@@ -475,7 +475,7 @@ function UploadForm({ onDone }: { onDone?: () => void }) {
               width: '100%', padding: 8,
               background: busy || files.length === 0 ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
               color: 'var(--color-on-accent)', border: 'none',
-              borderRadius: 6, fontSize: 12, cursor: 'pointer',
+              borderRadius: 6, fontSize: '0.75rem', cursor: 'pointer',
             }}
           >
             {busy ? 'Uploading...' : 'Upload & Index'}
@@ -484,12 +484,12 @@ function UploadForm({ onDone }: { onDone?: () => void }) {
       )}
 
       {result && (
-        <div style={{ fontSize: 12, color: 'var(--color-success)', marginTop: 8 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-success)', marginTop: 8 }}>
           {result}
         </div>
       )}
       {error && (
-        <div style={{ fontSize: 12, color: 'var(--color-error)', marginTop: 8 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-error)', marginTop: 8 }}>
           {error}
         </div>
       )}
@@ -559,7 +559,7 @@ function GmailOAuthAdvanced({
           background: 'transparent',
           border: 'none',
           padding: 0,
-          fontSize: 11,
+          fontSize: '0.6875rem',
           color: 'var(--color-text-tertiary)',
           cursor: disabled ? 'default' : 'pointer',
           opacity: disabled ? 0.5 : 1,
@@ -578,7 +578,7 @@ function GmailOAuthAdvanced({
             borderRadius: 6,
           }}
         >
-          <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
             For developers with an existing Google Cloud project. Enable the
             Gmail API and create a Desktop OAuth client at{' '}
             <a
@@ -683,10 +683,10 @@ export function SyncStatusDisplay({
   if (sync?.state === 'stopping') {
     return (
       <div>
-        <div style={{ fontSize: 12, color: 'var(--color-warning)', marginBottom: 4 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-warning)', marginBottom: 4 }}>
           Disconnect pending — waiting for the active sync to stop.
         </div>
-        <div style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)' }}>
+        <div style={{ fontSize: '0.65625rem', color: 'var(--color-text-tertiary)' }}>
           Indexed data will be cleaned up before this source disconnects.
         </div>
       </div>
@@ -697,14 +697,14 @@ export function SyncStatusDisplay({
   if (sync?.error) {
     return (
       <div>
-        <div style={{ fontSize: 12, color: 'var(--color-error)', marginBottom: 4 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--color-error)', marginBottom: 4 }}>
           Error: {sync.error}
         </div>
         <button
           onClick={handleSync}
           disabled={syncing || disabled}
           style={{
-            fontSize: 10, padding: '2px 10px',
+            fontSize: '0.625rem', padding: '2px 10px',
             background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
             border: 'none', borderRadius: 3,
             cursor: syncing || disabled ? 'default' : 'pointer', fontWeight: 600,
@@ -733,7 +733,7 @@ export function SyncStatusDisplay({
     const rangeLabel = backlogRange ?? 'building corpus';
     return (
       <div>
-        <div style={{ fontSize: 11, color: 'var(--color-warning)', marginBottom: 4 }}>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--color-warning)', marginBottom: 4 }}>
           Indexed{' '}
           <span key={totalIndexed} className="sync-bump">
             {totalIndexed.toLocaleString()} {unitLabel}
@@ -745,7 +745,7 @@ export function SyncStatusDisplay({
             · Still indexing…
           </span>
         </div>
-        <div style={{ fontSize: 10.5, color: 'var(--color-text-tertiary)' }}>
+        <div style={{ fontSize: '0.65625rem', color: 'var(--color-text-tertiary)' }}>
           Deep Research available now · results improve as more {unitLabel} are indexed
         </div>
       </div>
@@ -762,7 +762,7 @@ export function SyncStatusDisplay({
     return (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--color-success)' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-success)' }}>
             Indexed {totalIndexed.toLocaleString()} {unitLabel}
             {rangeLabel && (
               <span style={{ color: 'var(--color-text-tertiary)' }}>
@@ -779,7 +779,7 @@ export function SyncStatusDisplay({
             onClick={handleSync}
             disabled={syncing || disabled}
             style={{
-              fontSize: 9, padding: '1px 6px',
+              fontSize: '0.5625rem', padding: '1px 6px',
               background: 'transparent',
               color: 'var(--color-text-tertiary)',
               border: '1px solid var(--color-border)',
@@ -790,7 +790,7 @@ export function SyncStatusDisplay({
           >{syncing ? '...' : 'Re-sync'}</button>
         </div>
         {syncError && (
-          <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 4 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 4 }}>
             {syncError}
           </div>
         )}
@@ -803,7 +803,7 @@ export function SyncStatusDisplay({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 12, color: 'var(--color-text-tertiary)' }}>
+        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-tertiary)' }}>
           {hasSynced
             ? `Synced — 0 ${unitLabel} found`
             : 'Connected — not synced yet'}
@@ -812,7 +812,7 @@ export function SyncStatusDisplay({
           onClick={handleSync}
           disabled={syncing || disabled}
           style={{
-            fontSize: 10, padding: '2px 10px',
+            fontSize: '0.625rem', padding: '2px 10px',
             background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
             border: 'none', borderRadius: 3,
             cursor: syncing || disabled ? 'default' : 'pointer', fontWeight: 600,
@@ -821,12 +821,12 @@ export function SyncStatusDisplay({
         >{syncing ? 'Syncing...' : hasSynced ? 'Re-sync' : 'Sync Now'}</button>
       </div>
       {hasSynced && connectorId === 'slack' && (
-        <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+        <div style={{ fontSize: '0.625rem', color: 'var(--color-text-tertiary)', marginTop: 4 }}>
           Tip: invite the bot to channels with /invite @OpenJarvis, then re-sync
         </div>
       )}
       {syncError && (
-        <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 4 }}>
+        <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 4 }}>
           {syncError}
         </div>
       )}
@@ -1100,7 +1100,7 @@ function DataSourcesSection() {
                   display: 'flex', alignItems: 'center', gap: 14,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="font-semibold" style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>
+                    <div className="font-semibold" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text)' }}>
                       {meta?.display_name ?? c.display_name}
                     </div>
                     <SyncStatusDisplay
@@ -1112,7 +1112,7 @@ function DataSourcesSection() {
                       onSyncTriggered={loadConnectors}
                     />
                     {disconnectError?.id === c.connector_id && (
-                      <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 4 }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 4 }}>
                         Disconnect failed: {disconnectError.message}
                       </div>
                     )}
@@ -1175,21 +1175,21 @@ function DataSourcesSection() {
                   onClick={() => setExpandedId(isExpanded ? null : c.connector_id)}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="font-semibold" style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>
+                    <div className="font-semibold" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text)' }}>
                       {meta?.display_name ?? c.display_name}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                    <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
                       {meta?.description ?? 'Not connected'}
                     </div>
                   </div>
-                  <span style={{ color: 'var(--color-text-secondary)', fontSize: 12, fontWeight: 500 }}>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', fontWeight: 500 }}>
                     {isExpanded ? '× Close' : '+ Add'}
                   </span>
                 </div>
 
                 {isExpanded && c.connector_id === 'upload' && (
                   <div style={{ borderTop: '1px solid var(--color-border)', padding: 12 }}>
-                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', marginBottom: 10 }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: 10 }}>
                       Paste text or upload files (.txt, .md, .pdf, .docx, .csv) to add them to your knowledge base.
                     </div>
                     <UploadForm onDone={loadConnectors} />
@@ -1208,16 +1208,16 @@ function DataSourcesSection() {
                           marginBottom: 8,
                         }}
                       >
-                        <div style={{ color: 'var(--color-accent-purple)', fontSize: 10, fontWeight: 600, marginBottom: 3 }}>
+                        <div style={{ color: 'var(--color-accent-purple)', fontSize: '0.625rem', fontWeight: 600, marginBottom: 3 }}>
                           STEP {i + 1}
                         </div>
-                        <div style={{ fontSize: 12, marginBottom: step.url ? 4 : 0 }}>{step.label}</div>
+                        <div style={{ fontSize: '0.75rem', marginBottom: step.url ? 4 : 0 }}>{step.label}</div>
                         {step.url && (
                           <a
                             href={step.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: 'var(--color-accent)', fontSize: 11, textDecoration: 'underline' }}
+                            style={{ color: 'var(--color-accent)', fontSize: '0.6875rem', textDecoration: 'underline' }}
                           >
                             {step.urlLabel || 'Open'} &rarr;
                           </a>
@@ -1241,12 +1241,12 @@ function DataSourcesSection() {
                     )}
                     {meta?.troubleshooting && (
                       <details className="mt-2">
-                        <summary className="text-[11px] cursor-pointer" style={{ color: 'var(--color-text-tertiary)' }}>
+                        <summary className="text-[0.6875rem] cursor-pointer" style={{ color: 'var(--color-text-tertiary)' }}>
                           Having trouble?
                         </summary>
                         <ul className="mt-1 space-y-1">
                           {meta.troubleshooting.map((tip: string, i: number) => (
-                            <li key={i} className="text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                            <li key={i} className="text-[0.6875rem]" style={{ color: 'var(--color-text-tertiary)' }}>
                               {tip}
                             </li>
                           ))}
@@ -1258,7 +1258,7 @@ function DataSourcesSection() {
                       <div style={{ marginTop: 8 }}>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: 6,
-                          fontSize: 12, color: 'var(--color-warning)',
+                          fontSize: '0.75rem', color: 'var(--color-warning)',
                         }}>
                           <div className="animate-spin" style={{
                             width: 12, height: 12, borderRadius: '50%',
@@ -1282,7 +1282,7 @@ function DataSourcesSection() {
                     )}
                     {/* Connection error */}
                     {connectError && connectingId === null && expandedId === c.connector_id && (
-                      <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 6 }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 6 }}>
                         {connectError}
                       </div>
                     )}
@@ -1301,12 +1301,12 @@ function DataSourcesSection() {
                       onOAuthStart={() => handleConnect(c.connector_id, null)}
                     />
                     {connectingId === c.connector_id && connectStage && (
-                      <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-warning)' }}>
+                      <div style={{ marginTop: 8, fontSize: '0.75rem', color: 'var(--color-warning)' }}>
                         {connectStage}
                       </div>
                     )}
                     {connectError && connectingId === null && expandedId === c.connector_id && (
-                      <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 6 }}>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 6 }}>
                         {connectError}
                       </div>
                     )}
@@ -1420,17 +1420,17 @@ function SendBlueSection({
         overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px' }}>
-          <span style={{ fontSize: 18, marginRight: 10 }}>{'\uD83D\uDCF1'}</span>
+          <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{'\uD83D\uDCF1'}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>iMessage + SMS</div>
-            <div style={{ fontSize: 11, color: 'var(--color-success)' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>iMessage + SMS</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--color-success)' }}>
               Active &mdash; text {(cfg.phone_number as string) || 'your number'} to chat
             </div>
           </div>
           <button
             onClick={() => onRemove(binding.id)}
             style={{
-              fontSize: 10, padding: '2px 8px',
+              fontSize: '0.625rem', padding: '2px 8px',
               background: 'transparent',
               color: 'var(--color-text-secondary)',
               border: '1px solid var(--color-border)',
@@ -1441,7 +1441,7 @@ function SendBlueSection({
         {health && (
           <div style={{
             borderTop: '1px solid var(--color-border)',
-            padding: '8px 14px', fontSize: 11,
+            padding: '8px 14px', fontSize: '0.6875rem',
             color: 'var(--color-text-secondary)',
           }}>
             Webhook: {health.webhook_registered ? 'registered' : 'not registered'}
@@ -1455,7 +1455,7 @@ function SendBlueSection({
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '6px 10px',
     background: 'var(--color-bg)', border: '1px solid var(--color-border)',
-    borderRadius: 4, color: 'var(--color-text)', fontSize: 12,
+    borderRadius: 4, color: 'var(--color-text)', fontSize: '0.75rem',
     boxSizing: 'border-box',
   };
 
@@ -1465,7 +1465,7 @@ function SendBlueSection({
       title: 'Get SendBlue API keys',
       content: (
         <div>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>
+          <div style={{ fontSize: '0.75rem', marginBottom: 8 }}>
             SendBlue lets your agent send and receive iMessages and SMS. You need an account and API credentials.
           </div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
@@ -1473,7 +1473,7 @@ function SendBlueSection({
               href="https://sendblue.co"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'var(--color-accent)', fontSize: 12, textDecoration: 'underline' }}
+              style={{ color: 'var(--color-accent)', fontSize: '0.75rem', textDecoration: 'underline' }}
             >
               1. Sign up at sendblue.co &rarr;
             </a>
@@ -1483,12 +1483,12 @@ function SendBlueSection({
               href="https://dashboard.sendblue.co/api-credentials"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ color: 'var(--color-accent)', fontSize: 12, textDecoration: 'underline' }}
+              style={{ color: 'var(--color-accent)', fontSize: '0.75rem', textDecoration: 'underline' }}
             >
               2. Go to your API Credentials page &rarr;
             </a>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', marginBottom: 6 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', marginBottom: 6 }}>
             Copy the "API Key" and "API Secret" from the credentials page and paste them below.
           </div>
           <input value={apiKey} onChange={(e) => setApiKey(e.target.value)}
@@ -1503,7 +1503,7 @@ function SendBlueSection({
       title: 'Enter your phone number',
       content: (
         <div>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>
+          <div style={{ fontSize: '0.75rem', marginBottom: 8 }}>
             Which phone number should SendBlue use? This is the number people will text to reach your agent.
           </div>
           <input value={phone} onChange={(e) => setPhone(e.target.value)}
@@ -1516,11 +1516,11 @@ function SendBlueSection({
       title: 'Set up webhook (ngrok tunnel)',
       content: (
         <div>
-          <div style={{ fontSize: 12, marginBottom: 8 }}>
+          <div style={{ fontSize: '0.75rem', marginBottom: 8 }}>
             SendBlue needs a public URL to send incoming messages to your local server. Use ngrok to create a tunnel.
           </div>
           <div style={{
-            fontSize: 11, lineHeight: 1.6,
+            fontSize: '0.6875rem', lineHeight: 1.6,
             color: 'var(--color-text-secondary)',
             padding: '8px 10px', marginBottom: 10,
             background: 'var(--color-bg-secondary)',
@@ -1542,7 +1542,7 @@ function SendBlueSection({
               onClick={registerWebhook}
               disabled={!webhookUrl.trim() || webhookStatus === 'registering'}
               style={{
-                fontSize: 11, padding: '6px 12px', whiteSpace: 'nowrap',
+                fontSize: '0.6875rem', padding: '6px 12px', whiteSpace: 'nowrap',
                 background: webhookStatus === 'done' ? 'var(--color-success)' : 'var(--color-accent-purple)',
                 color: 'var(--color-on-accent)', border: 'none', borderRadius: 4,
                 cursor: 'pointer', fontWeight: 600,
@@ -1556,16 +1556,16 @@ function SendBlueSection({
             </button>
           </div>
           {webhookStatus === 'done' && (
-            <div style={{ fontSize: 11, color: 'var(--color-success)', marginTop: 6 }}>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--color-success)', marginTop: 6 }}>
               Webhook registered! Incoming texts will be forwarded to your agent.
             </div>
           )}
           {webhookStatus === 'error' && (
-            <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 6 }}>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 6 }}>
               Failed to register webhook. Check your ngrok URL and SendBlue credentials.
             </div>
           )}
-          <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', marginTop: 8 }}>
+          <div style={{ fontSize: '0.625rem', color: 'var(--color-text-tertiary)', marginTop: 8 }}>
             Don't have ngrok? <a href="https://ngrok.com/download" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }}>Download it free</a>. You can also skip this step and register the webhook later.
           </div>
         </div>
@@ -1619,14 +1619,14 @@ function SendBlueSection({
         }}
         onClick={() => setStep(step === 0 && !apiKey ? -1 : 0)}
       >
-        <span style={{ fontSize: 18, marginRight: 10 }}>{'\uD83D\uDCF1'}</span>
+        <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{'\uD83D\uDCF1'}</span>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>iMessage + SMS (SendBlue)</div>
-          <div style={{ fontSize: 11, color: 'var(--color-text-secondary)' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>iMessage + SMS (SendBlue)</div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)' }}>
             Let people text your agent from any phone
           </div>
         </div>
-        <span style={{ color: 'var(--color-accent-purple)', fontSize: 11, fontWeight: 500 }}>
+        <span style={{ color: 'var(--color-accent-purple)', fontSize: '0.6875rem', fontWeight: 500 }}>
           {step >= 0 ? 'Set Up' : '+ Add'}
         </span>
       </div>
@@ -1646,13 +1646,13 @@ function SendBlueSection({
             ))}
           </div>
 
-          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: 8 }}>
             {steps[step]?.title}
           </div>
           {steps[step]?.content}
 
           {error && (
-            <div style={{ fontSize: 11, color: 'var(--color-error)', marginTop: 6 }}>{error}</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--color-error)', marginTop: 6 }}>{error}</div>
           )}
 
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -1660,7 +1660,7 @@ function SendBlueSection({
               <button
                 onClick={() => setStep(step - 1)}
                 style={{
-                  fontSize: 12, padding: '6px 16px',
+                  fontSize: '0.75rem', padding: '6px 16px',
                   background: 'var(--color-bg)',
                   color: 'var(--color-text-secondary)',
                   border: '1px solid var(--color-border)',
@@ -1673,7 +1673,7 @@ function SendBlueSection({
                 onClick={() => setStep(step + 1)}
                 disabled={!steps[step]?.canAdvance}
                 style={{
-                  fontSize: 12, padding: '6px 16px',
+                  fontSize: '0.75rem', padding: '6px 16px',
                   background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
                   border: 'none', borderRadius: 5,
                   cursor: 'pointer', fontWeight: 600,
@@ -1685,7 +1685,7 @@ function SendBlueSection({
                 onClick={handleFinish}
                 disabled={loading || !steps[step]?.canAdvance}
                 style={{
-                  fontSize: 12, padding: '6px 16px',
+                  fontSize: '0.75rem', padding: '6px 16px',
                   background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
                   border: 'none', borderRadius: 5,
                   cursor: 'pointer', fontWeight: 600,
@@ -1744,7 +1744,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
     background: 'var(--color-bg-secondary)',
     border: '1px solid var(--color-border)',
     borderRadius: 4, color: 'var(--color-text)',
-    fontSize: 12, boxSizing: 'border-box',
+    fontSize: '0.75rem', boxSizing: 'border-box',
   };
 
   return (
@@ -1774,11 +1774,11 @@ function MessagingSection({ agentId }: { agentId: string }) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px' }}>
-              <span style={{ fontSize: 18, marginRight: 10 }}>{ch.icon}</span>
+              <span style={{ fontSize: '1.125rem', marginRight: 10 }}>{ch.icon}</span>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{ch.name}</div>
+                <div style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{ch.name}</div>
                 <div style={{
-                  fontSize: 11,
+                  fontSize: '0.6875rem',
                   color: binding ? 'var(--color-success)' : 'var(--color-text-secondary)',
                 }}>
                   {binding ? ch.activeLabel(cfg) : ch.description}
@@ -1789,12 +1789,12 @@ function MessagingSection({ agentId }: { agentId: string }) {
                   <span style={{
                     background: 'color-mix(in srgb, var(--color-success) 22%, transparent)', color: 'var(--color-success)',
                     padding: '2px 8px', borderRadius: 10,
-                    fontSize: 10, fontWeight: 600,
+                    fontSize: '0.625rem', fontWeight: 600,
                   }}>Active</span>
                   <button
                     onClick={() => handleRemove(binding.id)}
                     style={{
-                      fontSize: 10, padding: '2px 8px', background: 'transparent',
+                      fontSize: '0.625rem', padding: '2px 8px', background: 'transparent',
                       color: 'var(--color-text-secondary)',
                       border: '1px solid var(--color-border)',
                       borderRadius: 4, cursor: 'pointer',
@@ -1805,7 +1805,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                 <button
                   onClick={() => { setSetupType(isSetup ? null : ch.type); setFormValues({}); }}
                   style={{
-                    fontSize: 10, padding: '3px 12px', background: 'var(--color-accent-purple)',
+                    fontSize: '0.625rem', padding: '3px 12px', background: 'var(--color-accent-purple)',
                     color: 'var(--color-on-accent)', border: 'none', borderRadius: 5,
                     cursor: 'pointer', fontWeight: 600,
                   }}
@@ -1818,7 +1818,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                 borderTop: '1px solid var(--color-border)',
                 padding: '10px 14px', background: 'var(--color-bg)',
               }}>
-                <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                   <span style={{ flexShrink: 0 }}>{'\u2192'}</span>
                   <span>{ch.howToUse(cfg)}</span>
                 </div>
@@ -1831,7 +1831,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                 padding: 14, background: 'var(--color-bg)',
               }}>
                 <div style={{
-                  fontSize: 11, lineHeight: 1.5,
+                  fontSize: '0.6875rem', lineHeight: 1.5,
                   color: 'var(--color-text-secondary)',
                   marginBottom: 12, padding: '8px 10px',
                   background: 'var(--color-bg-secondary)',
@@ -1848,7 +1848,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                             background: 'var(--color-bg)',
                             border: '1px solid var(--color-border)',
                             borderRadius: 4, padding: '8px 10px',
-                            fontSize: 10, fontFamily: 'monospace',
+                            fontSize: '0.625rem', fontFamily: 'monospace',
                             wordBreak: 'break-all', lineHeight: 1.4,
                             maxHeight: 80, overflowY: 'auto',
                           }}>
@@ -1857,7 +1857,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                               onClick={() => { navigator.clipboard.writeText(text); }}
                               style={{
                                 position: 'sticky', float: 'right', top: 0,
-                                fontSize: 10, padding: '2px 8px',
+                                fontSize: '0.625rem', padding: '2px 8px',
                                 background: 'var(--color-accent-purple)', color: 'var(--color-on-accent)',
                                 border: 'none', borderRadius: 3,
                                 cursor: 'pointer', fontWeight: 600,
@@ -1875,7 +1875,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                 {ch.fields.map((field) => (
                   <div key={field.key} style={{ marginBottom: 8 }}>
                     <label style={{
-                      display: 'block', fontSize: 11,
+                      display: 'block', fontSize: '0.6875rem',
                       color: 'var(--color-text-secondary)',
                       marginBottom: 3, fontWeight: 500,
                     }}>
@@ -1894,7 +1894,7 @@ function MessagingSection({ agentId }: { agentId: string }) {
                   onClick={() => handleSetup(ch)}
                   disabled={loading || !canConnect}
                   style={{
-                    fontSize: 12, padding: '7px 20px', background: 'var(--color-accent-purple)',
+                    fontSize: '0.75rem', padding: '7px 20px', background: 'var(--color-accent-purple)',
                     color: 'var(--color-on-accent)', border: 'none', borderRadius: 5,
                     cursor: 'pointer', fontWeight: 600,
                     opacity: loading || !canConnect ? 0.5 : 1, marginTop: 4,
@@ -2065,7 +2065,7 @@ function MemorySection() {
               <div className="text-lg font-bold tabular-nums" style={{ color: 'var(--color-text)' }}>
                 {stats.entries.toLocaleString()}
               </div>
-              <div className="text-[10px] uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+              <div className="text-[0.625rem] uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
                 indexed
               </div>
             </div>
@@ -2134,7 +2134,7 @@ function MemorySection() {
                   {r.content.length > 250 ? r.content.slice(0, 250) + '...' : r.content}
                 </p>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium" style={{
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[0.625rem] font-medium" style={{
                     background: r.score > 0.5
                       ? 'rgba(74, 222, 128, 0.1)'
                       : r.score > 0.2
@@ -2149,7 +2149,7 @@ function MemorySection() {
                     {(r.score * 100).toFixed(0)}% match
                   </span>
                   {r.metadata?.source != null && (
-                    <span className="text-[10px]" style={{ color: 'var(--color-text-tertiary)' }}>
+                    <span className="text-[0.625rem]" style={{ color: 'var(--color-text-tertiary)' }}>
                       {String(r.metadata.source)}
                     </span>
                   )}

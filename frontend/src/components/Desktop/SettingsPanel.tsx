@@ -47,7 +47,7 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 600,
   },
   heading: {
-    fontSize: 20,
+    fontSize: '1.25rem',
     fontWeight: 600,
     marginBottom: 24,
     color: '#89b4fa',
@@ -57,7 +57,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   label: {
     display: 'block',
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 500,
     color: '#a6adc8',
     marginBottom: 6,
@@ -69,7 +69,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #313244',
     backgroundColor: '#181825',
     color: '#cdd6f4',
-    fontSize: 14,
+    fontSize: '0.875rem',
     outline: 'none',
     boxSizing: 'border-box' as const,
   },
@@ -79,7 +79,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #313244',
     backgroundColor: '#181825',
     color: '#cdd6f4',
-    fontSize: 14,
+    fontSize: '0.875rem',
     outline: 'none',
     cursor: 'pointer',
   },
@@ -94,7 +94,7 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundColor: 'transparent',
     color: '#a6adc8',
     cursor: 'pointer',
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 500,
     transition: 'all 0.15s ease',
   },
@@ -109,7 +109,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 6,
     backgroundColor: '#1e3a2f',
     color: '#a6e3a1',
-    fontSize: 13,
+    fontSize: '0.8125rem',
   },
 };
 

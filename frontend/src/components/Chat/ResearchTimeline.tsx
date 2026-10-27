@@ -82,7 +82,7 @@ function TimelineStep({
       />
 
       <div
-        className="text-[10px] uppercase tracking-[0.08em] mb-0.5"
+        className="text-[0.625rem] uppercase tracking-[0.08em] mb-0.5"
         style={{
           color: active ? 'var(--color-accent)' : 'var(--color-text-tertiary)',
         }}
@@ -99,7 +99,7 @@ function TimelineStep({
 
       {meta.length > 0 && (
         <div
-          className="text-[11px] mt-0.5"
+          className="text-[0.6875rem] mt-0.5"
           style={{ color: 'var(--color-text-tertiary)' }}
         >
           {meta.join(' · ')}
@@ -118,7 +118,7 @@ function TimelineStep({
         </div>
       ) : trace.numHits != null ? (
         <div
-          className="text-[11px] mt-1"
+          className="text-[0.6875rem] mt-1"
           style={{ color: 'var(--color-text-tertiary)' }}
         >
           {trace.numHits} {trace.numHits === 1 ? 'result' : 'results'}
@@ -127,7 +127,7 @@ function TimelineStep({
 
       {trace.topTitles && trace.topTitles.length > 0 && (
         <div
-          className="text-[11px] mt-0.5 truncate"
+          className="text-[0.6875rem] mt-0.5 truncate"
           style={{ color: 'var(--color-text-tertiary)', opacity: 0.75 }}
         >
           {trace.topTitles.slice(0, 2).join(' · ')}
@@ -185,7 +185,7 @@ export function ResearchTimeline({ traces, isLive, hasContent }: Props) {
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
-        className="flex items-center gap-2 text-[11px] mb-2 cursor-pointer transition-colors"
+        className="flex items-center gap-2 text-[0.6875rem] mb-2 cursor-pointer transition-colors"
         style={{
           color: 'var(--color-text-tertiary)',
           background: 'transparent',

@@ -35,7 +35,7 @@ function StepBadge({ type }: { type: string }) {
   const color = STEP_COLORS[type] || 'var(--color-text-tertiary)';
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium"
+      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[0.6875rem] font-medium"
       style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
     >
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
@@ -61,7 +61,7 @@ function TraceCard({ trace, isActive, onClick }: { trace: TraceSummary; isActive
       <div className="text-sm truncate mb-1" style={{ color: 'var(--color-text)' }}>
         {trace.query || 'Untitled query'}
       </div>
-      <div className="flex items-center gap-2 text-[11px]" style={{ color: 'var(--color-text-tertiary)' }}>
+      <div className="flex items-center gap-2 text-[0.6875rem]" style={{ color: 'var(--color-text-tertiary)' }}>
         <span>{trace.steps.length} steps</span>
         <span>&middot;</span>
         <span>{totalMs.toFixed(0)}ms</span>

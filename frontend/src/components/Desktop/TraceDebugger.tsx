@@ -97,14 +97,14 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   listTitle: {
-    fontSize: 18,
+    fontSize: '1.125rem',
     fontWeight: 600,
     margin: 0,
     marginBottom: 4,
     color: colors.text,
   },
   listSubtitle: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
     margin: 0,
   },
@@ -123,14 +123,14 @@ const styles: Record<string, React.CSSProperties> = {
     background: colors.surfaceHover,
   },
   traceItemId: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 600,
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
     color: colors.accent,
     marginBottom: 3,
   },
   traceItemQuery: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.text,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
@@ -141,7 +141,7 @@ const styles: Record<string, React.CSSProperties> = {
   traceItemMeta: {
     display: 'flex',
     justifyContent: 'space-between',
-    fontSize: 11,
+    fontSize: '0.6875rem',
     color: colors.textMuted,
   },
 
@@ -159,14 +159,14 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   detailTitle: {
-    fontSize: 16,
+    fontSize: '1rem',
     fontWeight: 600,
     margin: 0,
     marginBottom: 4,
     color: colors.text,
   },
   detailQuery: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: colors.textMuted,
     margin: 0,
     marginBottom: 8,
@@ -175,7 +175,7 @@ const styles: Record<string, React.CSSProperties> = {
   detailStats: {
     display: 'flex',
     gap: 16,
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
   },
   detailStatValue: {
@@ -230,18 +230,18 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     padding: '2px 10px',
     borderRadius: 10,
-    fontSize: 11,
+    fontSize: '0.6875rem',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.04em',
   },
   stepDuration: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
   },
   stepDetails: {
-    fontSize: 12,
+    fontSize: '0.75rem',
     color: colors.textMuted,
     lineHeight: 1.6,
   },
@@ -257,14 +257,14 @@ const styles: Record<string, React.CSSProperties> = {
   stepDetailValue: {
     color: colors.text,
     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-    fontSize: 11,
+    fontSize: '0.6875rem',
     wordBreak: 'break-all',
   },
   expandButton: {
     background: 'none',
     border: 'none',
     color: colors.accent,
-    fontSize: 11,
+    fontSize: '0.6875rem',
     cursor: 'pointer',
     padding: '4px 0',
     textAlign: 'left',
@@ -282,11 +282,11 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 32,
   },
   emptyIcon: {
-    fontSize: 40,
+    fontSize: '2.5rem',
     opacity: 0.4,
   },
   emptyText: {
-    fontSize: 15,
+    fontSize: '0.9375rem',
     textAlign: 'center',
   },
   errorBanner: {
@@ -295,7 +295,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     padding: '10px 16px',
     margin: 16,
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: colors.red,
   },
   placeholder: {
@@ -304,7 +304,7 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     height: '100%',
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: '0.875rem',
   },
 };
 

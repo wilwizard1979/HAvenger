@@ -102,20 +102,20 @@ function Card({
             {title}
           </div>
           {hint && (
-            <div className="text-[11px]" style={faint}>
+            <div className="text-[0.6875rem]" style={faint}>
               {hint}
             </div>
           )}
         </div>
         {msg && (
-          <span className="text-[11px]" style={{ color: msg.ok ? 'var(--color-success)' : 'var(--color-error)' }}>
+          <span className="text-[0.6875rem]" style={{ color: msg.ok ? 'var(--color-success)' : 'var(--color-error)' }}>
             {msg.text}
           </span>
         )}
         <button
           onClick={() => void save()}
           disabled={!dirty || busy}
-          className="px-2.5 py-1 rounded text-[11px] cursor-pointer shrink-0"
+          className="px-2.5 py-1 rounded text-[0.6875rem] cursor-pointer shrink-0"
           style={{
             ...inputStyle,
             border: `1px solid ${dirty ? 'var(--color-accent)' : 'var(--color-border)'}`,
@@ -136,7 +136,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
       <span className="flex-1 min-w-0" style={muted}>
         {label}
         {hint && (
-          <span className="block text-[10px]" style={faint}>
+          <span className="block text-[0.625rem]" style={faint}>
             {hint}
           </span>
         )}
@@ -158,7 +158,7 @@ function Num({ value, onChange, unit, step = 1 }: { value: number; onChange: (v:
         style={inputStyle}
       />
       {unit && (
-        <span className="text-[10px] w-12" style={faint}>
+        <span className="text-[0.625rem] w-12" style={faint}>
           {unit}
         </span>
       )}
@@ -264,11 +264,11 @@ function Proposal({ current, onAdd }: { current: string[]; onAdd: (ids: string[]
   return (
     <div className="flex flex-col gap-1.5">
       <div>
-        <button onClick={() => void load()} disabled={busy} className="px-2 py-1 rounded text-[11px] cursor-pointer" style={inputStyle}>
+        <button onClick={() => void load()} disabled={busy} className="px-2 py-1 rounded text-[0.6875rem] cursor-pointer" style={inputStyle}>
           {busy ? 'Reading Home Assistant…' : 'Propose from device classes'}
         </button>
         {err && (
-          <span className="ml-2 text-[11px]" style={{ color: 'var(--color-error)' }}>
+          <span className="ml-2 text-[0.6875rem]" style={{ color: 'var(--color-error)' }}>
             {err}
           </span>
         )}
@@ -276,7 +276,7 @@ function Proposal({ current, onAdd }: { current: string[]; onAdd: (ids: string[]
       {rows && (
         <div className="flex flex-col gap-0.5 max-h-56 overflow-y-auto">
           {rows.map((r) => (
-            <label key={r.entity_id} className="flex items-center gap-2 text-[11px]" style={muted}>
+            <label key={r.entity_id} className="flex items-center gap-2 text-[0.6875rem]" style={muted}>
               <input
                 type="checkbox"
                 checked={pick.has(r.entity_id)}
@@ -301,7 +301,7 @@ function Proposal({ current, onAdd }: { current: string[]; onAdd: (ids: string[]
                 onAdd([...pick]);
                 setRows(null);
               }}
-              className="mt-1 px-2 py-1 rounded text-[11px] cursor-pointer"
+              className="mt-1 px-2 py-1 rounded text-[0.6875rem] cursor-pointer"
               style={{ ...inputStyle, border: '1px solid var(--color-accent)' }}
             >
               Add the {pick.size} ticked to the list (then Save)
@@ -432,7 +432,7 @@ export function SettingsTab() {
             <Text value={draft.models[t]} onChange={(v) => set('models', { ...draft.models, [t]: v })} width="w-52" />
           </Row>
         ))}
-        <div className="text-[11px]" style={faint}>
+        <div className="text-[0.6875rem]" style={faint}>
           Prices per million tokens (verified {saved.prices_verified.date}):{' '}
           {Object.entries(saved.prices)
             .map(([m, p]) => `${m.replace('claude-', '')} $${p.input}/$${p.output}`)
@@ -478,7 +478,7 @@ export function SettingsTab() {
           onChange={(v) => set('extra_redaction_terms', v)}
         />
         {draft.extra_redaction_terms.length === 0 && (
-          <div className="text-[11px]" style={{ color: 'var(--color-warning)' }}>
+          <div className="text-[0.6875rem]" style={{ color: 'var(--color-warning)' }}>
             The list is empty: names and addresses in Home Assistant data would reach the cloud models in plain text.
           </div>
         )}
@@ -488,7 +488,7 @@ export function SettingsTab() {
         {CATEGORIES.map((c) => (
           <Row key={c} label={c.replace('_', ' ')}>
             <span className="flex items-center gap-3">
-              <label className="flex items-center gap-1 text-[11px]" style={faint}>
+              <label className="flex items-center gap-1 text-[0.6875rem]" style={faint}>
                 <Toggle
                   value={draft.matrix.chore_categories.includes(c)}
                   onChange={(v) =>

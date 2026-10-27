@@ -11,6 +11,7 @@ function applyTheme() {
   try {
     const raw = localStorage.getItem('openjarvis-settings');
     const settings = raw ? JSON.parse(raw) : {};
+    document.documentElement.dataset.font = settings.fontSize || 'default';
     const theme = settings.theme || 'system';
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');

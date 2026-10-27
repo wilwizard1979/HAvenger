@@ -56,6 +56,11 @@ export default function App() {
     else if (settings.theme === 'light') root.classList.add('light');
   }, [settings.theme]);
 
+  // Apply font size (scales every rem-based size)
+  useEffect(() => {
+    document.documentElement.dataset.font = settings.fontSize;
+  }, [settings.fontSize]);
+
   // Sync overlay conversations into the main app
   const importOverlay = useAppStore((s) => s.importOverlayConversation);
   useEffect(() => {

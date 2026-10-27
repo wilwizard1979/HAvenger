@@ -353,10 +353,10 @@ export default function VoiceMode({ onSend, onClose }: VoiceModeProps) {
   const slot = typeof document !== 'undefined' ? document.getElementById('voice-dock-captions') : null;
   if (!slot) return null;
   return createPortal(
-    <div className="flex flex-col gap-1.5 text-[11px] leading-snug" aria-live="polite">
+    <div className="flex flex-col gap-1.5 text-[0.6875rem] leading-snug" aria-live="polite">
       <div className="flex items-center gap-2">
         <span
-          className="uppercase tracking-[0.18em] text-[10px]"
+          className="uppercase tracking-[0.18em] text-[0.625rem]"
           style={{ color: phase === 'error' ? 'var(--color-error)' : 'var(--color-accent)' }}
         >
           {PHASE_LABEL[phase]}

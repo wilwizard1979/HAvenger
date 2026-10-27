@@ -174,14 +174,14 @@ export function EnergyDashboard() {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="time" tick={{ fontSize: 10, fill: 'var(--color-text-tertiary)' }} />
-              <YAxis tick={{ fontSize: 10, fill: 'var(--color-text-tertiary)' }} unit="W" />
+              <XAxis dataKey="time" tick={{ fontSize: '0.625rem', fill: 'var(--color-text-tertiary)' }} />
+              <YAxis tick={{ fontSize: '0.625rem', fill: 'var(--color-text-tertiary)' }} unit="W" />
               <Tooltip
                 contentStyle={{
                   background: 'var(--color-surface)',
                   border: '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-md)',
-                  fontSize: 12,
+                  fontSize: '0.75rem',
                   color: 'var(--color-text)',
                 }}
               />

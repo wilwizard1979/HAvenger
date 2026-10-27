@@ -43,7 +43,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: 400,
   },
   header: {
-    fontSize: 20,
+    fontSize: '1.25rem',
     fontWeight: 700,
     marginBottom: 20,
     color: '#cdd6f4',
@@ -60,7 +60,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 16,
   },
   cardTitle: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
@@ -74,11 +74,11 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 0',
   },
   label: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     color: '#a6adc8',
   },
   value: {
-    fontSize: 13,
+    fontSize: '0.8125rem',
     fontWeight: 500,
     color: '#cdd6f4',
   },
@@ -105,7 +105,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-block',
     padding: '2px 8px',
     borderRadius: 4,
-    fontSize: 12,
+    fontSize: '0.75rem',
     fontWeight: 600,
   },
   badgeTrue: {
@@ -119,7 +119,7 @@ const styles: Record<string, React.CSSProperties> = {
   agentTable: {
     width: '100%',
     borderCollapse: 'collapse' as const,
-    fontSize: 13,
+    fontSize: '0.8125rem',
   },
   th: {
     textAlign: 'left' as const,
@@ -127,7 +127,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: '1px solid #45475a',
     color: '#89b4fa',
     fontWeight: 600,
-    fontSize: 12,
+    fontSize: '0.75rem',
     textTransform: 'uppercase' as const,
   },
   td: {
@@ -142,7 +142,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   button: {
     padding: '10px 20px',
-    fontSize: 14,
+    fontSize: '0.875rem',
     fontWeight: 600,
     border: 'none',
     borderRadius: 8,
@@ -165,7 +165,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 12,
     backgroundColor: '#f3858811',
     borderRadius: 8,
-    fontSize: 13,
+    fontSize: '0.8125rem',
     marginBottom: 16,
   },
   commandOutput: {
@@ -173,7 +173,7 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 12,
     backgroundColor: '#181825',
     borderRadius: 6,
-    fontSize: 12,
+    fontSize: '0.75rem',
     fontFamily: 'monospace',
     color: '#a6adc8',
     maxHeight: 120,
@@ -189,7 +189,7 @@ const styles: Record<string, React.CSSProperties> = {
   healthStatus: {
     display: 'flex',
     alignItems: 'center',
-    fontSize: 16,
+    fontSize: '1rem',
     fontWeight: 600,
   },
 };
@@ -418,7 +418,7 @@ export function AdminPanel({ apiUrl }: { apiUrl: string }) {
               {agents.map((agent) => (
                 <tr key={agent.key}>
                   <td style={styles.td}>{agent.name}</td>
-                  <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: 12 }}>
+                  <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: '0.75rem' }}>
                     {agent.key}
                   </td>
                   <td style={styles.td}>
@@ -431,7 +431,7 @@ export function AdminPanel({ apiUrl }: { apiUrl: string }) {
                       {agent.accepts_tools ? 'Yes' : 'No'}
                     </span>
                   </td>
-                  <td style={{ ...styles.td, color: '#a6adc8', fontSize: 12 }}>
+                  <td style={{ ...styles.td, color: '#a6adc8', fontSize: '0.75rem' }}>
                     {agent.description || '--'}
                   </td>
                 </tr>
@@ -444,7 +444,7 @@ export function AdminPanel({ apiUrl }: { apiUrl: string }) {
       {agents.length === 0 && !loading && (
         <div style={styles.card}>
           <div style={styles.cardTitle}>Agent Registry</div>
-          <div style={{ color: '#a6adc8', fontSize: 13, padding: '8px 0' }}>
+          <div style={{ color: '#a6adc8', fontSize: '0.8125rem', padding: '8px 0' }}>
             No agents registered or server not reachable.
           </div>
         </div>

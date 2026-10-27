@@ -327,14 +327,14 @@ function StepByStepPanel({
         display: 'flex', alignItems: 'center', gap: 8,
         marginBottom: 16,
       }}>
-        <span style={{ fontSize: 20 }}>
+        <span style={{ fontSize: '1.25rem' }}>
           {connector.icon === 'Mail' ? '\u2709\uFE0F' :
            connector.icon === 'Hash' ? '#\uFE0F\u20E3' :
            connector.icon === 'FileText' ? '\uD83D\uDCC4' :
            connector.icon === 'Mic' ? '\uD83C\uDF99\uFE0F' :
            connector.icon === 'FolderOpen' ? '\uD83D\uDCC1' : '\uD83D\uDD17'}
         </span>
-        <span style={{ fontWeight: 600, fontSize: 15 }}>
+        <span style={{ fontWeight: 600, fontSize: '0.9375rem' }}>
           {connector.display_name}
         </span>
       </div>
@@ -351,14 +351,14 @@ function StepByStepPanel({
           }}
         >
           <div style={{
-            color: 'var(--color-accent-purple)', fontSize: 11,
+            color: 'var(--color-accent-purple)', fontSize: '0.6875rem',
             fontWeight: 600, marginBottom: 4,
           }}>
             STEP {i + 1}
           </div>
           <div style={{
             color: 'var(--color-text)',
-            fontSize: 13, marginBottom: step.url ? 6 : 0,
+            fontSize: '0.8125rem', marginBottom: step.url ? 6 : 0,
           }}>
             {step.label}
           </div>
@@ -368,7 +368,7 @@ function StepByStepPanel({
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                color: 'var(--color-accent)', fontSize: 12,
+                color: 'var(--color-accent)', fontSize: '0.75rem',
                 textDecoration: 'underline',
               }}
             >
@@ -400,7 +400,7 @@ function StepByStepPanel({
                   border: '1px solid var(--color-border)',
                   borderRadius: 4,
                   color: 'var(--color-text)',
-                  fontSize: 13,
+                  fontSize: '0.8125rem',
                   marginBottom: 8,
                   boxSizing: 'border-box',
                 }}
@@ -424,7 +424,7 @@ function StepByStepPanel({
                   border: '1px solid var(--color-border)',
                   borderRadius: 4,
                   color: 'var(--color-text)',
-                  fontSize: 13,
+                  fontSize: '0.8125rem',
                   marginBottom: 8,
                   boxSizing: 'border-box',
                 }}
@@ -435,7 +435,7 @@ function StepByStepPanel({
       )}
 
       <div style={{
-        fontSize: 11, color: 'var(--color-text-secondary)',
+        fontSize: '0.6875rem', color: 'var(--color-text-secondary)',
         marginBottom: 12, textAlign: 'center',
       }}>
         Read-only access &middot; No data leaves your device
@@ -450,7 +450,7 @@ function StepByStepPanel({
             background: isConnecting || (fields.length > 0 && !allFilled)
               ? 'var(--color-disabled-bg)' : 'var(--color-accent-purple)',
             color: 'var(--color-on-accent)', border: 'none',
-            borderRadius: 6, fontSize: 13,
+            borderRadius: 6, fontSize: '0.8125rem',
             cursor: 'pointer',
           }}
         >
@@ -463,7 +463,7 @@ function StepByStepPanel({
             background: 'transparent',
             color: 'var(--color-text-secondary)',
             border: '1px solid var(--color-border)',
-            borderRadius: 6, fontSize: 13,
+            borderRadius: 6, fontSize: '0.8125rem',
             cursor: 'pointer',
           }}
         >
