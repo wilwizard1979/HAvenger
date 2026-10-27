@@ -27,7 +27,7 @@ RESOLVED_FILE = "resolved.md"
 
 
 def book_dir() -> Path:
-    """A visible folder (not the hidden ~/.openjarvis), so the files are easy to find."""
+    """A visible folder (not hidden ~/.openjarvis), so the files are easy to find."""
     env = os.environ.get("JARVIS_TASKBOOK_DIR") or os.environ.get("JARVIS_JANITOR_DIR")
     return Path(env or "~/OpenJarvis/jarvis").expanduser()
 
