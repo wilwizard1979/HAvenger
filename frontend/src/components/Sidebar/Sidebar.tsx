@@ -16,6 +16,7 @@ import {
   ScrollText,
   Wrench,
   KanbanSquare,
+  Workflow,
 } from 'lucide-react';
 import { ConversationList } from './ConversationList';
 import { SessionPanel } from './SessionPanel';
@@ -56,6 +57,7 @@ export function Sidebar() {
   const navItems = [
     { path: '/', icon: MessageSquare, label: 'Chat' },
     { path: '/projects', icon: KanbanSquare, label: 'Projects' },
+    { path: '/automations', icon: Workflow, label: 'Automations' },
     { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/logs', icon: ScrollText, label: 'Logs' },

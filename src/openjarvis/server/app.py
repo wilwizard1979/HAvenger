@@ -16,6 +16,7 @@ from openjarvis.agents.telegram_bot import get_bot_service
 from openjarvis.agents.watchdog import get_watchdog
 from openjarvis.server.analytics_routes import router as analytics_router
 from openjarvis.server.api_routes import include_all_routes
+from openjarvis.server.architect_routes import architect_router
 from openjarvis.server.comparison import comparison_router
 from openjarvis.server.connectors_router import create_connectors_router
 from openjarvis.server.dashboard import dashboard_router
@@ -504,6 +505,7 @@ def create_app(
     app.include_router(ha_router)
     app.include_router(ha_agents_router)
     app.include_router(projects_router)
+    app.include_router(architect_router)
 
     @app.on_event("startup")
     async def _start_janitor_watchdog() -> None:

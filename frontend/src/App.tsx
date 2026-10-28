@@ -10,6 +10,7 @@ import { DataSourcesPage } from './pages/DataSourcesPage';
 import { LogsPage } from './pages/LogsPage';
 import { MaintenancePage } from './pages/MaintenancePage';
 import { ProjectsPage } from './pages/ProjectsPage';
+import { AutomationsPage } from './pages/AutomationsPage';
 import { CommandPalette } from './components/CommandPalette';
 import { SetupScreen } from './components/SetupScreen';
 import { Toaster } from './components/ui/sonner';
@@ -220,6 +221,7 @@ export default function App() {
           <Route path="logs" element={<LogsPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
           <Route path="projects" element={<ProjectsPage />} />
+          <Route path="automations" element={<AutomationsPage />} />
         </Route>
       </Routes>
       <Toaster position="bottom-right" />
