@@ -209,8 +209,8 @@ export function AutomationsPage() {
           <div className="flex flex-col">
             <div className="text-xs mb-1" style={muted}>
               {result.lookup.count} found ({result.lookup.active} active, {result.lookup.disabled} disabled, shown last) · matched on {result.lookup.matched_on?.join(', ') || 'nothing'}
-              <button onClick={() => ask('change')} className="ml-3 underline cursor-pointer" style={{ background: 'none', border: 'none', color: 'var(--color-accent)' }}>
-                treat as a change
+              <button onClick={() => ask('change')} className="ml-3 px-2 py-0.5 rounded cursor-pointer" style={{ border: '1px solid var(--color-accent)', color: 'var(--color-accent)', background: 'none' }}>
+                Ask Sonnet / Opus about this
               </button>
             </div>
             {result.lookup.rows?.map((r) => <Row key={r.entity_id} r={r} />)}
