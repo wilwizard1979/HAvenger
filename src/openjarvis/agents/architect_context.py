@@ -25,6 +25,7 @@ import yaml
 from openjarvis.agents.architect import ENTITY_IN_TEXT, entities_in
 
 MAX_TARGETS = 3
+MAX_EXACT = 8  # automations that use an entity named in the question
 MAX_RELATED = 6
 MAX_ENTITY_LINES = 30
 TOKEN_CAP = 16_000
@@ -78,7 +79,9 @@ entities from the list and deliver it disabled until approved. Change only the
 requested automation; if another one must change too, suggest it separately.
 Placeholders like <email_1> are redacted values: keep them unchanged."""
 
-_NOISE = ("id", "metadata", "description")
+_NOISE = (
+    "metadata",
+)  # nested "id" (trigger ids) must stay: choose/conditions use them
 
 
 def classify(question: str) -> str:
@@ -110,7 +113,7 @@ def _clean(node: Any) -> Any:
 
 def compact_yaml(config: dict[str, Any], only: set[str] | None = None) -> str:
     """Config as short YAML. With ``only``, keep just the blocks that mention them."""
-    cfg = _clean(config)
+    cfg = _clean({k: v for k, v in config.items() if k != "id"})  # the numeric id
     if only:
         for part in ("triggers", "conditions", "actions"):
             items = cfg.get(part)
@@ -154,6 +157,12 @@ def find_targets(
         ]
     enabled = [it for it in items if not it["disabled"]]
     ids = {m for m in ENTITY_IN_TEXT.findall(question.lower()) if "." in m}
+    exact = [it for it in enabled if ids & set(it["entities"])]
+    if exact:  # the user named the entity: those automations, nothing guessed
+        exact.sort(
+            key=lambda it: (-len(ids & set(it["entities"])), it["alias"].lower())
+        )
+        return exact[:MAX_EXACT]
     words = _words(question)
     scored: list[tuple[int, dict[str, Any]]] = []
     for it in enabled:

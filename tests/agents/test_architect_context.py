@@ -158,3 +158,26 @@ def test_architect_limit_blocks_before_the_call(store):
     with pytest.raises(rec.ArchitectRefused):
         rec.recommend(_inv(), "extend the front light time", "opus", None, client)
     assert sdk.requests == []
+
+
+def test_trigger_ids_survive_compact_yaml_but_the_numeric_id_goes():
+    cfg = {
+        "id": "1701631159972",
+        "alias": "X",
+        "triggers": [{"trigger": "state", "entity_id": "light.a", "id": "trig_on"}],
+        "actions": [
+            {"choose": [{"conditions": [{"condition": "trigger", "id": ["trig_on"]}]}]}
+        ],
+    }
+    text = ctx.compact_yaml(cfg)
+    assert "trig_on" in text and "1701631159972" not in text
+
+
+def test_entity_named_in_the_question_picks_exactly_its_automations():
+    inv = _inv()
+    c = ctx.build_context(inv, "which automations control light.lamp_entrada and how?")
+    assert {t["entity_id"] for t in c["targets"]} == {
+        "automation.front",
+        "automation.night",
+    }
+    assert c["disabled_left_out"] == 1
