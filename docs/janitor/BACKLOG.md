@@ -48,3 +48,6 @@ Open: automatic daily run and Telegram alerts (off), Option B approvals, LaunchA
 - [ ] Optional Haiku "polish" button for the closing text (about half a cent per use).
 - [ ] Read-back of edits made inside tasks.md / resolved.md (not planned; the files are one-way exports).
 - [ ] Host-IP value filled in by Python for plan steps, and a check of what ha-mcp can do with config entries (Ollama case).
+
+## Added 2026-10-28
+- [ ] Daily read-only watchdog check at 05:00 (Python only, no cloud cost, no Telegram alert because of quiet hours; runs on wake if the Mac sleeps; needs a LaunchAgent) plus a "Refresh now" button in the Maintenance header. Until then: press Flow step 1 (check) by hand.

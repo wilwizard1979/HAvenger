@@ -112,3 +112,15 @@ def test_overview_from_a_folder_and_endpoint(tmp_path, monkeypatch):
 def test_missing_folder_gives_an_empty_overview(tmp_path):
     out = pr.load_overview(tmp_path / "nope")
     assert out["projects"] == [] and out["needs_you"] == []
+
+
+def test_md_file_index_lists_title_and_purpose(tmp_path):
+    (tmp_path / "A.md").write_text("# Alpha\n\nWhat it is.\n")
+    (tmp_path / "qwen").mkdir()
+    (tmp_path / "qwen" / "b.md").write_text("# Bee\n| x |\nBee text\n")
+    files = {f["name"]: f for f in pr.list_md_files(tmp_path)}
+    assert (
+        files["A.md"]["title"] == "Alpha" and files["A.md"]["purpose"] == "What it is."
+    )
+    assert files["qwen/b.md"]["purpose"] == "Bee text"
+    assert pr.load_overview(tmp_path)["files"]

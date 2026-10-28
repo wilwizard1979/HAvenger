@@ -36,9 +36,10 @@ PLAIN = {
 
 ASK_SYSTEM = (
     "You answer questions about a home using ONLY the status text you are given. "
-    "Answer in at most three short, plain sentences, in English. Copy every number "
-    "exactly as written. If the text does not contain the answer, say you do not "
-    "know. Do not give advice and do not guess."
+    "Answer briefly in plain English: at most three sentences, or a short list when "
+    "the question asks for a list. Copy every number and name exactly as written. "
+    "If the text does not contain the answer, say you do not know. "
+    "Do not give advice and do not guess."
 )
 
 
@@ -202,7 +203,10 @@ def ask_house(
     """Qwen answers from the house status only; numbers are checked."""
     if not store.settings()["qwen"]["house_status"]:
         return {"status": "disabled"}
-    text, _ = write_house_status(store)
+    write_house_status(store)
+    from openjarvis.agents.qwen_brief import context_for
+
+    text = context_for(store, question)  # only the files this question needs
     allowed = readout.numbers(text) | readout.numbers(question)
     model = readout.DEFAULT_MODEL
     prompt = f"STATUS:\n{text}\nQUESTION: {question.strip()[:300]}"

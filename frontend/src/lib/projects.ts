@@ -23,6 +23,7 @@ export interface ProjectsOverview {
   areas: string[];
   needs_you: { text: string; project: string }[];
   janitor_backlog: { group: string; items: string[] }[];
+  files: { name: string; title: string; purpose: string; modified: number }[];
   dir: string;
 }
 

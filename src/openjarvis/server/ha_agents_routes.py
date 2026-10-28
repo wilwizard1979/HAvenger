@@ -192,6 +192,9 @@ def run_triage_now() -> dict[str, Any]:
 def _export_taskbook() -> None:
     try:
         write_taskbook(get_store())
+        from openjarvis.agents.qwen_brief import write_briefs
+
+        write_briefs(get_store())
     except Exception:  # noqa: BLE001 - the export must never break the action
         pass
 

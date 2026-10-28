@@ -55,8 +55,8 @@ export function Sidebar() {
 
   const navItems = [
     { path: '/', icon: MessageSquare, label: 'Chat' },
-    { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
     { path: '/projects', icon: KanbanSquare, label: 'Projects' },
+    { path: '/maintenance', icon: Wrench, label: 'Maintenance' },
     { path: '/dashboard', icon: BarChart3, label: 'Dashboard' },
     { path: '/logs', icon: ScrollText, label: 'Logs' },
     { path: '/settings', icon: Settings, label: 'Settings' },

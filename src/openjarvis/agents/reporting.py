@@ -284,4 +284,7 @@ def generate_report(
     from openjarvis.agents.house import write_house_status
 
     write_house_status(store, now)  # the plain-English file Qwen reads
+    from openjarvis.agents.qwen_brief import write_briefs
+
+    write_briefs(store, now)  # the lean index and detail files for Qwen
     return {"id": rid, "status": status, "text": text, "triage": tri}

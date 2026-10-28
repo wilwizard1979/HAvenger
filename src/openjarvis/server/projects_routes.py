@@ -187,6 +187,40 @@ def parse_handoff(text: str) -> dict[str, Any]:
     return {"groups": groups, "needs_you": needs_you}
 
 
+def list_md_files(base: Path | None = None) -> list[dict[str, Any]]:
+    """Every Markdown file in the notes folder (and ``qwen/``): title, purpose, age."""
+    base = base or projects_dir()
+    out: list[dict[str, Any]] = []
+    if not base.exists():
+        return out
+    for path in sorted([*base.glob("*.md"), *base.glob("qwen/*.md")]):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        title = next(
+            (ln.lstrip("# ").strip() for ln in lines if ln.startswith("#")), ""
+        )
+        purpose = next(
+            (
+                ln.strip()
+                for ln in lines
+                if ln.strip() and not ln.startswith("#") and not ln.startswith("|")
+            ),
+            "",
+        )
+        out.append(
+            {
+                "name": str(path.relative_to(base)),
+                "title": title or path.stem,
+                "purpose": purpose[:160],
+                "modified": mtime,
+            }
+        )
+    return out
+
+
 def load_overview(base: Path | None = None) -> dict[str, Any]:
     base = base or projects_dir()
 
@@ -228,6 +262,7 @@ def load_overview(base: Path | None = None) -> dict[str, Any]:
         "areas": sorted({p["area"] for p in projects}),
         "needs_you": needs,
         "janitor_backlog": handoff["groups"],
+        "files": list_md_files(base),
         "dir": str(base),
     }
 

@@ -78,6 +78,7 @@ export function ProjectsPage() {
   const [area, setArea] = useState<string>('all');
   const [q, setQ] = useState('');
   const [backlogOpen, setBacklogOpen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(false);
 
   const load = useCallback(() => {
     fetchProjects()
@@ -213,6 +214,41 @@ export function ProjectsPage() {
                       </ul>
                     </div>
                   ))}
+              </section>
+            )}
+
+            {data.files.length > 0 && (
+              <section className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  className="text-left text-xs font-medium cursor-pointer"
+                  style={{ color: 'var(--color-text)' }}
+                  onClick={() => setFilesOpen((v) => !v)}
+                >
+                  {filesOpen ? '▾' : '▸'} Files (Markdown) · {data.files.length}
+                </button>
+                {filesOpen && (
+                  <div className="hud-panel p-3 flex flex-col gap-2">
+                    <div className="text-xs" style={muted}>
+                      Folder: {data.dir}
+                    </div>
+                    {data.files.map((f) => (
+                      <div key={f.name} className="flex flex-col">
+                        <div className="text-xs" style={{ color: 'var(--color-text)' }}>
+                          {f.name}{' '}
+                          <span style={muted}>
+                            · {new Date(f.modified * 1000).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {f.purpose && (
+                          <div className="text-xs" style={muted}>
+                            {f.purpose}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
           </>
