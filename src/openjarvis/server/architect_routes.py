@@ -69,7 +69,7 @@ def get_query(q: str = "", pick: str = "", force: str = "") -> dict[str, Any]:
         return {"intent": "lookup", "lookup": architect.ask(inv, q)}
     return {
         "intent": intent,
-        "preview": architect_recommend.preview(inv, q, _picked(pick)),
+        "preview": architect_recommend.preview(inv, q, _picked(pick), intent=intent),
     }
 
 
@@ -77,6 +77,7 @@ class RecommendBody(BaseModel):
     q: str
     model: str
     pick: list[str] = []
+    intent: str = ""
 
 
 @architect_router.post("/recommend")
@@ -86,7 +87,9 @@ def post_recommend(body: RecommendBody) -> dict[str, Any]:
     if not inv:
         return {"error": "No inventory yet. Press Refresh first."}
     try:
-        case = architect_recommend.recommend(inv, body.q, body.model, body.pick[:3])
+        case = architect_recommend.recommend(
+            inv, body.q, body.model, body.pick[:3], intent=body.intent
+        )
     except architect_recommend.ArchitectRefused as exc:
         return {"error": str(exc)}
     return {"case": case}

@@ -118,7 +118,7 @@ export function AutomationsPage() {
     if (!window.confirm(`Send to ${model === 'sonnet' ? 'Sonnet' : 'Opus'}? Worst case $${cost.toFixed(3)}.`)) return;
     setBusy(true);
     setRecErr('');
-    const r = await recommend(asked, model, picked ? [picked] : []);
+    const r = await recommend(asked, model, picked ? [picked] : [], result?.preview?.intent ?? '');
     setBusy(false);
     if (r.error) setRecErr(r.error);
     else if (r.case) {
@@ -131,7 +131,7 @@ export function AutomationsPage() {
   const k = ov?.kpis;
   const read = ov?.fetched_at ? new Date(ov.fetched_at * 1000).toLocaleString() : 'never';
   return (
-    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 max-w-6xl">
+    <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 max-w-6xl [&>*]:shrink-0">
       <div className="flex items-start gap-3">
         <div>
           <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text)' }}>
@@ -219,9 +219,9 @@ export function AutomationsPage() {
         {result?.preview && (
           <div className="flex flex-col gap-1.5 text-xs" style={{ color: 'var(--color-text)' }}>
             <div style={muted}>
-              Understood as a <b>{result.preview.intent}</b> request
+              Sending as a <b>{result.preview.intent}</b> request
               <button onClick={() => ask('lookup')} className="ml-3 underline cursor-pointer" style={{ background: 'none', border: 'none', color: 'var(--color-accent)' }}>
-                treat as a question
+                treat as a free question
               </button>
             </div>
             <div>
@@ -328,11 +328,14 @@ export function AutomationsPage() {
         <section className="hud-panel p-3 flex flex-col">
           <div className="hud-label mb-1">History</div>
           {cases.slice(0, 8).map((c) => (
-            <div key={c.id} className="flex gap-2 py-1 text-xs" style={{ borderTop: '1px solid var(--color-border)' }}>
-              <span className="hud-mono" style={muted}>{c.id}</span>
-              <span className="truncate" style={{ color: 'var(--color-text)' }}>{c.question}</span>
-              <span className="ml-auto shrink-0" style={faint}>{c.model} · ${c.cost_usd.toFixed(3)}</span>
-            </div>
+            <details key={c.id} className="py-1 text-xs" style={{ borderTop: '1px solid var(--color-border)' }}>
+              <summary className="flex gap-2 cursor-pointer">
+                <span className="hud-mono" style={muted}>{c.id}</span>
+                <span className="truncate" style={{ color: 'var(--color-text)' }}>{c.question}</span>
+                <span className="ml-auto shrink-0" style={faint}>{c.model} · ${c.cost_usd.toFixed(3)}</span>
+              </summary>
+              <pre className="whitespace-pre-wrap mt-1.5 p-2 rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>{c.answer || 'No answer saved (dry run).'}</pre>
+            </details>
           ))}
         </section>
       )}

@@ -79,7 +79,7 @@ export const fetchAutomations = (group: string, filter: string, q: string, area 
 export const askArchitect = (q: string) => getJson<AskResult>(`/ask?q=${encodeURIComponent(q)}`);
 
 export interface Preview {
-  intent: 'change' | 'create';
+  intent: 'lookup' | 'change' | 'create';
   tokens: number;
   token_cap: number;
   over_cap: boolean;
@@ -118,11 +118,11 @@ export interface Case {
 export const queryArchitect = (q: string, pick: string[], force = '') =>
   getJson<QueryResult>(`/query?q=${encodeURIComponent(q)}&pick=${encodeURIComponent(pick.join(','))}&force=${force}`);
 
-export async function recommend(q: string, model: 'sonnet' | 'opus', pick: string[]): Promise<{ error?: string; case?: Case }> {
+export async function recommend(q: string, model: 'sonnet' | 'opus', pick: string[], intent = ''): Promise<{ error?: string; case?: Case }> {
   const res = await fetch(`${getBase()}/v1/architect/recommend`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ q, model, pick }),
+    body: JSON.stringify({ q, model, pick, intent }),
   });
   return res.json();
 }

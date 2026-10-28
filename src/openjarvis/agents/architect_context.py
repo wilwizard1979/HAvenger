@@ -220,10 +220,13 @@ def _entity_line(eid: str, info: dict[str, dict[str, str]]) -> str:
 
 
 def build_context(
-    inv: dict[str, Any], question: str, picked: list[str] | None = None
+    inv: dict[str, Any],
+    question: str,
+    picked: list[str] | None = None,
+    intent: str = "",
 ) -> dict[str, Any]:
     """The text for the model plus size, cost and what was left out."""
-    intent = classify(question)
+    intent = intent if intent in ("lookup", "change", "create") else classify(question)
     targets = find_targets(inv, question, picked)
     info = inv.get("entity_info", {})
     shown, hidden, disabled = related(inv, targets)

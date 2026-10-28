@@ -70,10 +70,11 @@ def preview(
     question: str,
     picked: list[str] | None = None,
     client: CloudClient | None = None,
+    intent: str = "",
 ) -> dict[str, Any]:
     """What would be sent and what it could cost. Calls no model."""
     client = client or CloudClient()
-    ctx = build_context(inv, question, picked)
+    ctx = build_context(inv, question, picked, intent)
     ctx["estimate_usd"] = _estimates(client, ctx)
     ctx["token_cap"] = TOKEN_CAP
     ctx["spent_usd"] = round(spend_usd(client.store), 4)
@@ -129,13 +130,14 @@ def recommend(
     model: str,
     picked: list[str] | None = None,
     client: CloudClient | None = None,
+    intent: str = "",
 ) -> dict[str, Any]:
     """Send the request to Sonnet or Opus. Call this only from an explicit click."""
     if model not in TIER_OF:
         raise ArchitectRefused("model must be 'sonnet' or 'opus'")
     client = client or CloudClient()
     now = time.time()
-    pre = preview(inv, question, picked, client)
+    pre = preview(inv, question, picked, client, intent)
     if pre["over_cap"]:
         raise ArchitectRefused(
             f"The request is about {pre['tokens']} tokens (cap {TOKEN_CAP}). "
