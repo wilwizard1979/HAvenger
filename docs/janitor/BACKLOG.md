@@ -51,3 +51,6 @@ Open: automatic daily run and Telegram alerts (off), Option B approvals, LaunchA
 
 ## Added 2026-10-28
 - [ ] Daily read-only watchdog check at 05:00 (Python only, no cloud cost, no Telegram alert because of quiet hours; runs on wake if the Mac sleeps; needs a LaunchAgent) plus a "Refresh now" button in the Maintenance header. Until then: press Flow step 1 (check) by hand.
+- [ ] Jarvis the Architect (HA automations via a Claude web project, no API cost): Python export on click of automations (YAML), entities per group and KPIs to a Google Drive folder. First find out why Claude web did not find the .md files in Drive (test .md vs Google Doc vs .txt). Same export mechanism as the tasks.md/resolved.md Drive export above.
+- [ ] Decide on a dedicated Telegram bot for the Architect (separate token in the Keychain, locked to the owner's id). Today only the Janitor bot (`jarvis_the_janitor_bot`) exists; its alerts are OFF and Approve/Reject has never been tested with a real proposal.
+- [ ] Raise the 6000-character limit on automation config reads (7 long automations are cut off).

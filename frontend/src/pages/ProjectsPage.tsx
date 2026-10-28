@@ -44,6 +44,11 @@ function Card({ p }: { p: Project }) {
           {p.summary}
         </div>
       )}
+      {p.backlog && (
+        <div className="text-[0.6875rem]" style={muted}>
+          <span style={{ color: 'var(--color-text)' }}>Backlog:</span> {p.backlog}
+        </div>
+      )}
       {detail && (
         <button
           onClick={() => setOpen(!open)}

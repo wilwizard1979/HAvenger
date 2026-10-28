@@ -124,3 +124,13 @@ def test_md_file_index_lists_title_and_purpose(tmp_path):
     )
     assert files["qwen/b.md"]["purpose"] == "Bee text"
     assert pr.load_overview(tmp_path)["files"]
+
+
+def test_backlog_line_uses_backlog_then_open_then_next_then_plan():
+    text = (
+        "## A\n**Status:** Idea\n**Backlog:** do x\n**Next:** y\n\n"
+        "## B\n**Status:** Idea\n**Next:** y\n\n"
+        "## C\n**Status:** Idea\n**Proposed plan:**\n1. ✅ done\n2. todo this\n"
+    )
+    got = {p["title"]: p["backlog"] for p in pr.parse_projects(text, "x.md")}
+    assert got == {"A": "do x", "B": "y", "C": "todo this"}

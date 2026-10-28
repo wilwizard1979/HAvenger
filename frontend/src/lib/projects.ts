@@ -12,6 +12,7 @@ export interface Project {
   summary: string;
   plan: string[];
   next: string;
+  backlog: string;
   notes: string;
   user_tasks: string[];
   source: string;

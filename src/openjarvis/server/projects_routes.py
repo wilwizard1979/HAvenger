@@ -131,6 +131,19 @@ def _summary(lines: list[str]) -> str:
     return _clean(" ".join(para))[:500]
 
 
+def _backlog(lines: list[str], plan: list[str], next_step: str) -> str:
+    """One short line on what is still open: ``**Backlog:**``, else Open, Next or
+    the first plan step that is not ticked off."""
+    for name in ("Backlog", "Open"):
+        text = _clean(_field(lines, name))
+        if text:
+            return text[:220]
+    if next_step:
+        return next_step[:220]
+    todo = next((x for x in plan if "\u2705" not in x), "")
+    return _clean(todo)[:220]
+
+
 def parse_projects(text: str, source: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for title, lines in _sections(text):
@@ -142,6 +155,8 @@ def parse_projects(text: str, source: str) -> list[dict[str, Any]]:
         status_text = status_line.split("· **")[0].strip() or title
         added = re.search(r"Added:\*\*\s*([0-9-]+)", status_line)
         user_tasks = _field(lines, "User tasks")
+        plan = _numbered_after(lines, "Proposed plan")[:10]
+        next_step = _clean(_field(lines, "Next"))[:500]
         out.append(
             {
                 "id": re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:60],
@@ -153,8 +168,9 @@ def parse_projects(text: str, source: str) -> list[dict[str, Any]]:
                 "summary": _summary(
                     [x for x in lines if not x.strip().startswith("**Status")]
                 ),
-                "plan": _numbered_after(lines, "Proposed plan")[:10],
-                "next": _clean(_field(lines, "Next"))[:500],
+                "plan": plan,
+                "next": next_step,
+                "backlog": _backlog(lines, plan, next_step),
                 "notes": _clean(_field(lines, "Notes"))[:500],
                 "user_tasks": [
                     _clean(t) for t in re.split(r";\s*", user_tasks) if t.strip()
