@@ -168,7 +168,7 @@ export function AutomationsPage() {
         </div>
       )}
 
-      <section className="hud-panel p-3 flex flex-col gap-2">
+      <section className="hud-panel p-3 flex flex-col gap-2 max-h-[65vh] overflow-y-auto">
         <div className="flex gap-2">
           <input
             value={text}
@@ -263,7 +263,7 @@ export function AutomationsPage() {
             {rec.dry_run ? (
               <div style={faint}>Dry run: nothing was sent to the model. Turn dry run off in Maintenance settings to get a real answer.</div>
             ) : (
-              <pre className="whitespace-pre-wrap">{rec.answer}</pre>
+              <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed">{rec.answer}</pre>
             )}
             {rec.unknown_entities.length > 0 && (
               <div style={{ color: 'var(--color-error)' }}>Not in Home Assistant: {rec.unknown_entities.join(', ')}. Do not apply.</div>
