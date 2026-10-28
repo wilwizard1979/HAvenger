@@ -46,7 +46,11 @@ export interface AutomationRow {
   missing: string[];
   offline: string[];
   readable: boolean;
+  scenes: number;
+  missing_via: string[];
+  offline_via: string[];
   via?: string[];
+  indirect?: boolean;
 }
 
 export interface AskResult {
@@ -56,6 +60,7 @@ export interface AskResult {
   count?: number;
   active?: number;
   disabled?: number;
+  indirect?: number;
   rows?: AutomationRow[];
 }
 
@@ -128,3 +133,12 @@ export async function recommend(q: string, model: 'sonnet' | 'opus', pick: strin
 }
 
 export const fetchCases = () => getJson<{ cases: Case[] }>('/cases');
+
+export interface Relations {
+  id: string;
+  title: string;
+  lines: string[];
+  error?: string;
+}
+
+export const fetchRelations = (id: string) => getJson<Relations>(`/relations?id=${encodeURIComponent(id)}`);

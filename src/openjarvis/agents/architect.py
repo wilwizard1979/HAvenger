@@ -137,6 +137,48 @@ def _device_refs(config: Any) -> int:
     return count
 
 
+CONTAINERS = ("scene.", "group.")
+
+
+def containers_from(
+    states: dict[str, dict[str, Any] | None],
+) -> dict[str, dict[str, Any]]:
+    """Scene/group id -> {name, members}, from the members listed in its state."""
+    out: dict[str, dict[str, Any]] = {}
+    for eid, st in states.items():
+        if not st or not eid.startswith(CONTAINERS):
+            continue
+        attrs = st.get("attributes") or {}
+        members = attrs.get("entity_id")
+        if isinstance(members, str):
+            members = [members]
+        out[eid] = {
+            "name": str(attrs.get("friendly_name") or ""),
+            "members": [m for m in (members or []) if isinstance(m, str)],
+        }
+    return out
+
+
+def link_scenes(
+    items: list[dict[str, Any]], containers: dict[str, dict[str, Any]]
+) -> None:
+    """Scenes/groups an automation uses, and the entities they bring in (``via``)."""
+    for it in items:
+        used = sorted(e for e in it["entities"] if e in containers)
+        via: dict[str, list[str]] = {}
+        for c in used:
+            for member in containers[c]["members"]:
+                if member not in it["entities"]:
+                    via.setdefault(member, []).append(c)
+        it["scenes"] = used
+        it["via"] = via
+
+
+def all_entities(it: dict[str, Any]) -> set[str]:
+    """Entities an automation touches directly or through a scene/group."""
+    return set(it["entities"]) | set(it.get("via", {}))
+
+
 def _age_days(ts: str | None, now: float) -> float | None:
     if not ts:
         return None
@@ -187,7 +229,17 @@ def analyse(
         ]
         it["missing"] = missing
         it["offline"] = gone
-        it["broken"] = bool(missing or gone)
+        via = it.get("via", {})
+        it["missing_via"] = [
+            f"{via[e][0]} -> {e}" for e in sorted(via) if ref_states.get(e) is None
+        ]
+        it["offline_via"] = [
+            f"{via[e][0]} -> {e}"
+            for e in sorted(via)
+            if ref_states.get(e) is not None
+            and str(ref_states[e].get("state")) in ("unavailable", "unknown")
+        ]
+        it["broken"] = bool(missing or gone or it["missing_via"] or it["offline_via"])
         age = _age_days(it.get("last_triggered"), now)
         it["age_days"] = None if age is None else round(age, 1)
         it["stale"] = age is None or age > STALE_DAYS
@@ -292,7 +344,7 @@ def assign_areas(items: list[dict[str, Any]], area_of: dict[str, str]) -> None:
     """An automation belongs to the areas of the entities it uses, most used first."""
     for it in items:
         counts: dict[str, int] = {}
-        for e in it["entities"]:
+        for e in all_entities(it):
             a = area_of.get(e)
             if a:
                 counts[a] = counts.get(a, 0) + 1
@@ -318,15 +370,22 @@ def collect(ha: Any | None = None, now: float | None = None) -> dict[str, Any]:
         refs = sorted({e for it in items for e in it["entities"]} - set(ids))
         ref_states = HaCollector._states(ha, refs)
         ref_states.update({i: states.get(i) for i in ids})
+        containers = containers_from(ref_states)
+        link_scenes(items, containers)
+        extra = sorted(
+            {m for c in containers.values() for m in c["members"]} - set(ref_states)
+        )
+        ref_states.update(HaCollector._states(ha, extra))
         area_of = entity_areas(ha)
         assign_areas(items, area_of)
-        info = entity_info(refs, ref_states, area_of)
+        info = entity_info(sorted(set(refs) | set(extra)), ref_states, area_of)
     finally:
         if own:
             ha.close()
     result = analyse(items, ref_states, now)
     result["items"] = items
     result["entity_info"] = info
+    result["scenes"] = containers
     result["fetched_at"] = now if now is not None else time.time()
     return result
 
@@ -397,6 +456,9 @@ def summary_row(it: dict[str, Any]) -> dict[str, Any]:
         "last_triggered": it["last_triggered"],
         "entities": len(it["entities"]),
         "area": area_label(it.get("area", "")),
+        "scenes": len(it.get("scenes", [])),
+        "missing_via": it.get("missing_via", [])[:5],
+        "offline_via": it.get("offline_via", [])[:5],
         "missing": it["missing"][:5],
         "offline": it["offline"][:5],
         "readable": it["readable"],
@@ -470,31 +532,90 @@ def ask(inv: dict[str, Any], question: str) -> dict[str, Any]:
     words = [
         w for w in re.findall(r"[a-z0-9_]{3,}", question.lower()) if w not in STOP_WORDS
     ]
-    hits: list[tuple[dict[str, Any], list[str]]] = []
+    hits: list[tuple[dict[str, Any], list[str], bool]] = []
     for it in inv.get("items", []):
+        via_map = it.get("via", {})
         if ids:
-            via = [e for e in it["entities"] if e in ids]
+            direct = [e for e in it["entities"] if e in ids]
+            indirect = [
+                f"{m} via {c[0]}"
+                for m, c in via_map.items()
+                if m in ids and m not in it["entities"]
+            ]
         else:
-            via = [e for e in it["entities"] if words and all(w in e for w in words)]
+            direct = [e for e in it["entities"] if words and all(w in e for w in words)]
+            indirect = [
+                f"{m} via {c[0]}"
+                for m, c in via_map.items()
+                if words and all(w in m for w in words)
+            ]
             if words and all(w in it["alias"].lower() for w in words):
-                via = via or [it["alias"]]
-        if via:
-            hits.append((it, via))
-    hits.sort(key=lambda h: _order(h[0]))
+                direct = direct or [it["alias"]]
+        if direct or indirect:
+            hits.append((it, direct + indirect, not direct))
+    # active first; then direct before indirect; then by name
+    hits.sort(key=lambda h: (h[0]["disabled"], h[2], h[0]["alias"].lower()))
     rows = []
-    for it, via in hits[:ASK_LIMIT]:
+    for it, via, indirect in hits[:ASK_LIMIT]:
         row = summary_row(it)
         row["via"] = via[:5]
+        row["indirect"] = indirect
         rows.append(row)
-    active = sum(1 for it, _ in hits if not it["disabled"])
+    active = sum(1 for it, _, _ in hits if not it["disabled"])
     return {
         "question": question,
         "matched_on": ids or words,
         "count": len(hits),
         "active": active,
         "disabled": len(hits) - active,
+        "indirect": sum(1 for _, _, ind in hits if ind),
         "rows": rows,
     }
+
+
+def relations(inv: dict[str, Any], ident: str) -> dict[str, Any]:
+    """A plain-text tree: automation -> scenes -> entities, or entity -> who uses it."""
+    info = inv.get("entity_info", {})
+    scenes = inv.get("scenes", {})
+    by_id = {it["entity_id"]: it for it in inv.get("items", [])}
+
+    def ent(e: str) -> str:
+        i = info.get(e, {})
+        bits = [b for b in (i.get("name"), i.get("area"), i.get("state")) if b]
+        return e + (f" ({', '.join(bits)})" if bits else "")
+
+    lines: list[str] = []
+    it = by_id.get(ident)
+    if it:
+        title = f"{it['alias']} ({it['state']})"
+        lines.append(f"uses directly ({len(it['entities'])}):")
+        lines += [f"  {ent(e)}" for e in it["entities"][:15]]
+        if len(it["entities"]) > 15:
+            lines.append(f"  (and {len(it['entities']) - 15} more...)")
+        for sc in it.get("scenes", [])[:10]:
+            members = scenes.get(sc, {}).get("members", [])
+            lines.append(f"scene {sc} ({scenes.get(sc, {}).get('name', '')}) sets:")
+            lines += [f"  {ent(e)}" for e in members[:8]]
+            if len(members) > 8:
+                lines.append(f"  (and {len(members) - 8} more...)")
+        for label, key in (("missing", "missing_via"), ("offline", "offline_via")):
+            for x in it.get(key, [])[:5]:
+                lines.append(f"PROBLEM {label} through a scene: {x}")
+    else:
+        title = ent(ident)
+        direct = [x for x in by_id.values() if ident in x["entities"]]
+        in_scenes = sorted(sc for sc, c in scenes.items() if ident in c["members"])
+        lines.append(f"used directly by {len(direct)} automation(s):")
+        lines += [
+            f"  {x['alias']}{' (off)' if x['disabled'] else ''}" for x in direct[:15]
+        ]
+        for sc in in_scenes[:10]:
+            users = [x for x in by_id.values() if sc in x.get("scenes", [])]
+            lines.append(f"in scene {sc}, used by {len(users)} automation(s):")
+            lines += [
+                f"  {x['alias']}{' (off)' if x['disabled'] else ''}" for x in users[:10]
+            ]
+    return {"id": ident, "title": title, "lines": lines}
 
 
 STOP_WORDS = {
@@ -527,6 +648,6 @@ STOP_WORDS = {
 def _domains(inv: dict[str, Any]) -> set[str]:
     out = inv.get("_domains")
     if out is None:
-        out = {e.split(".")[0] for it in inv.get("items", []) for e in it["entities"]}
+        out = {e.split(".")[0] for it in inv.get("items", []) for e in all_entities(it)}
         inv["_domains"] = out
     return out

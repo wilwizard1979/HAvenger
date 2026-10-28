@@ -4,6 +4,7 @@ import {
   fetchAutomations,
   fetchCases,
   fetchOverview,
+  fetchRelations,
   queryArchitect,
   recommend,
   startRefresh,
@@ -36,26 +37,59 @@ function Kpi({ label, value, color }: { label: string; value: number | string; c
 }
 
 function Row({ r }: { r: AutomationRow }) {
+  const [rel, setRel] = useState<string[] | null>(null);
+  const toggle = () => {
+    if (rel) return setRel(null);
+    fetchRelations(r.entity_id)
+      .then((d) => setRel(d.lines))
+      .catch(() => setRel(['Could not load the relations.']));
+  };
+  const problems = [
+    ...r.missing.map((e) => `missing ${e}`),
+    ...r.offline.map((e) => `offline ${e}`),
+    ...(r.missing_via ?? []).map((e) => `missing through scene ${e}`),
+    ...(r.offline_via ?? []).map((e) => `offline through scene ${e}`),
+  ];
   return (
-    <div className="flex items-start gap-2 py-1.5" style={{ borderTop: '1px solid var(--color-border)', opacity: r.disabled ? 0.55 : 1 }}>
-      <div className="min-w-0 flex-1">
-        <div className="text-xs truncate" style={{ color: 'var(--color-text)' }}>
-          {r.alias}
-        </div>
-        <div className="text-[0.6875rem] truncate" style={faint}>
-          {r.area ? `${r.area} · ` : ''}{r.entity_id}
-          {r.via && r.via.length > 0 ? ` · uses ${r.via.join(', ')}` : ''}
-        </div>
-        {r.broken && (
-          <div className="text-[0.6875rem]" style={{ color: 'var(--color-error)' }}>
-            {[...r.missing.map((e) => `missing ${e}`), ...r.offline.map((e) => `offline ${e}`)].slice(0, 3).join(' · ')}
+    <div className="py-1.5" style={{ borderTop: '1px solid var(--color-border)', opacity: r.disabled ? 0.55 : 1 }}>
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-xs truncate flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
+            <span className="truncate">{r.alias}</span>
+            {r.indirect && (
+              <span className="text-[0.625rem] px-1.5 rounded shrink-0" style={{ border: '1px solid var(--color-accent)', color: 'var(--color-accent)' }}>
+                via scene
+              </span>
+            )}
+            {r.scenes > 0 && !r.indirect && (
+              <span className="text-[0.625rem] shrink-0" style={faint}>
+                {r.scenes} scene{r.scenes === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
-        )}
+          <div className="text-[0.6875rem] truncate" style={faint}>
+            {r.area ? `${r.area} · ` : ''}{r.entity_id}
+            {r.via && r.via.length > 0 ? ` · uses ${r.via.join(', ')}` : ''}
+          </div>
+          {r.broken && (
+            <div className="text-[0.6875rem]" style={{ color: 'var(--color-error)' }}>
+              {problems.slice(0, 3).join(' · ')}
+            </div>
+          )}
+        </div>
+        <div className="text-[0.6875rem] text-right shrink-0" style={muted}>
+          {r.disabled ? 'off' : r.state}
+          <div style={faint}>{r.age_days == null ? 'never run' : `${Math.round(r.age_days)} d ago`}</div>
+          <button onClick={toggle} className="underline cursor-pointer" style={{ background: 'none', border: 'none', color: 'var(--color-accent)' }}>
+            {rel ? 'hide' : 'relations'}
+          </button>
+        </div>
       </div>
-      <div className="text-[0.6875rem] text-right shrink-0" style={muted}>
-        {r.disabled ? 'off' : r.state}
-        <div style={faint}>{r.age_days == null ? 'never run' : `${Math.round(r.age_days)} d ago`}</div>
-      </div>
+      {rel && (
+        <pre className="text-[0.6875rem] mt-1 p-2 rounded whitespace-pre-wrap" style={{ background: 'var(--color-bg)', color: 'var(--color-text-secondary)' }}>
+          {rel.join('\n')}
+        </pre>
+      )}
     </div>
   );
 }
@@ -208,7 +242,7 @@ export function AutomationsPage() {
         {result?.lookup && (
           <div className="flex flex-col">
             <div className="text-xs mb-1" style={muted}>
-              {result.lookup.count} found ({result.lookup.active} active, {result.lookup.disabled} disabled, shown last) · matched on {result.lookup.matched_on?.join(', ') || 'nothing'}
+              {result.lookup.count} found ({result.lookup.active} active, {result.lookup.disabled} disabled, shown last{result.lookup.indirect ? `; ${result.lookup.indirect} through a scene` : ''}) · matched on {result.lookup.matched_on?.join(', ') || 'nothing'}
               <button onClick={() => ask('change')} className="ml-3 px-2 py-0.5 rounded cursor-pointer" style={{ border: '1px solid var(--color-accent)', color: 'var(--color-accent)', background: 'none' }}>
                 Ask Sonnet / Opus about this
               </button>

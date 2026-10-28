@@ -181,3 +181,25 @@ def test_entity_named_in_the_question_picks_exactly_its_automations():
         "automation.night",
     }
     assert c["disabled_left_out"] == 1
+
+
+def test_scene_users_are_targets_and_their_scenes_are_in_the_context():
+    from tests.agents.test_architect import _scene_inv
+
+    inv = _scene_inv()
+    c = ctx.build_context(inv, "what controls light.lamp_a?")
+    assert [t["entity_id"] for t in c["targets"]] == [
+        "automation.direct",
+        "automation.scene",
+    ]
+    assert "## Scenes the target activates" in c["text"]
+    assert "scene.dinner_off (Dinner Off): light.lamp_a, light.gone" in c["text"]
+
+
+def test_related_through_a_scene_gets_a_via_impact_line():
+    from tests.agents.test_architect import _scene_inv
+
+    inv = _scene_inv()
+    c = ctx.build_context(inv, "change it", ["automation.direct"])
+    assert [r["entity_id"] for r in c["related"]] == ["automation.scene"]
+    assert "also sets light.lamp_a via scene.dinner_off" in c["text"]

@@ -98,3 +98,11 @@ def post_recommend(body: RecommendBody) -> dict[str, Any]:
 @architect_router.get("/cases")
 def get_cases() -> dict[str, Any]:
     return {"cases": list(reversed(architect_recommend.load_cases()))[:30]}
+
+
+@architect_router.get("/relations")
+def get_relations(id: str = "") -> dict[str, Any]:
+    inv = architect.load_inventory()
+    if not inv or not id:
+        return {"error": "No inventory yet. Press Refresh first."}
+    return architect.relations(inv, id)

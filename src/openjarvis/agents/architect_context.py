@@ -22,12 +22,13 @@ from typing import Any
 
 import yaml
 
-from openjarvis.agents.architect import ENTITY_IN_TEXT, entities_in
+from openjarvis.agents.architect import ENTITY_IN_TEXT, all_entities, entities_in
 
 MAX_TARGETS = 3
 MAX_EXACT = 8  # automations that use an entity named in the question
 MAX_RELATED = 6
 MAX_ENTITY_LINES = 30
+MAX_SCENES = 10
 TOKEN_CAP = 16_000
 CHARS_PER_TOKEN = 3.5  # same rough rule as the cloud client
 OUTPUT_TOKENS = 1200  # a diff plus a short explanation
@@ -157,10 +158,14 @@ def find_targets(
         ]
     enabled = [it for it in items if not it["disabled"]]
     ids = {m for m in ENTITY_IN_TEXT.findall(question.lower()) if "." in m}
-    exact = [it for it in enabled if ids & set(it["entities"])]
+    exact = [it for it in enabled if ids & all_entities(it)]
     if exact:  # the user named the entity: those automations, nothing guessed
         exact.sort(
-            key=lambda it: (-len(ids & set(it["entities"])), it["alias"].lower())
+            key=lambda it: (
+                not (ids & set(it["entities"])),  # direct users before scene users
+                -len(ids & all_entities(it)),
+                it["alias"].lower(),
+            )
         )
         return exact[:MAX_EXACT]
     words = _words(question)
@@ -187,30 +192,52 @@ def _acts_on(config: dict[str, Any], entity: str) -> bool:
 def related(
     inv: dict[str, Any], targets: list[dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], int, int]:
-    """(shown, hidden count, disabled count) of automations sharing entities."""
+    """(shown, hidden count, disabled count) of automations sharing entities.
+
+    Sharing counts through scenes too: two automations that set the same lamp,
+    one directly and one by a scene, are related.
+    """
     target_ids = {t["entity_id"] for t in targets}
     shared_by_target = (
-        set().union(*(set(t["entities"]) for t in targets)) if targets else set()
+        set().union(*(all_entities(t) for t in targets)) if targets else set()
     )
-    rows: list[tuple[int, int, dict[str, Any], list[str]]] = []
+    rows: list[dict[str, Any]] = []
     disabled = 0
     for it in inv.get("items", []):
         if it["entity_id"] in target_ids or not it.get("readable"):
             continue
-        shared = sorted(shared_by_target & set(it["entities"]))
+        shared = sorted(shared_by_target & all_entities(it))
         if not shared:
             continue
         if it["disabled"]:
             disabled += 1
             continue
-        acts = [e for e in shared if _acts_on(it["config"], e)]
-        rows.append((-len(acts), -len(shared), it, shared))
-    rows.sort(key=lambda r: (r[0], r[1], r[2]["alias"].lower()))
-    shown = []
-    for _, _, it, shared in rows[:MAX_RELATED]:
-        acts = [e for e in shared if _acts_on(it["config"], e)]
-        shown.append({"item": it, "shared": shared, "acts": acts})
-    return shown, max(0, len(rows) - MAX_RELATED), disabled
+        via = it.get("via", {})
+        acts = [e for e in shared if e in it["entities"] and _acts_on(it["config"], e)]
+        acts_via = [
+            f"{e} via {sc}"
+            for e in shared
+            for sc in via.get(e, [])
+            if e not in it["entities"] and _acts_on(it["config"], sc)
+        ]
+        scenes = sorted({sc for e in shared for sc in via.get(e, [])})
+        rows.append(
+            {
+                "item": it,
+                "shared": shared,
+                "acts": acts,
+                "acts_via": acts_via,
+                "scenes": scenes,
+            }
+        )
+    rows.sort(
+        key=lambda r: (
+            -(len(r["acts"]) + len(r["acts_via"])),
+            -len(r["shared"]),
+            r["item"]["alias"].lower(),
+        )
+    )
+    return rows[:MAX_RELATED], max(0, len(rows) - MAX_RELATED), disabled
 
 
 def _entity_line(eid: str, info: dict[str, dict[str, str]]) -> str:
@@ -247,18 +274,31 @@ def build_context(
         if len(ent) > MAX_ENTITY_LINES:
             parts.append(f"... and {len(ent) - MAX_ENTITY_LINES} more")
         parts.append("")
+    scene_ids = sorted({sc for t in targets for sc in t.get("scenes", [])})
+    if scene_ids:
+        parts.append("## Scenes the target activates (entities they set)")
+        scenes = inv.get("scenes", {})
+        for sc in scene_ids[:MAX_SCENES]:
+            members = scenes.get(sc, {}).get("members", [])
+            parts.append(
+                f"- {sc} ({scenes.get(sc, {}).get('name', '')}): "
+                + ", ".join(members[:6])
+                + (f" and {len(members) - 6} more" if len(members) > 6 else "")
+            )
+        parts.append("")
     if shown:
         parts.append("## Other enabled automations using the same entities")
     for r in shown:
         it = r["item"]
-        impact = (
-            "also ACTS on " + ", ".join(r["acts"])
-            if r["acts"]
-            else "only reads " + ", ".join(r["shared"][:3])
-        )
+        bits = []
+        if r["acts"]:
+            bits.append("also ACTS on " + ", ".join(r["acts"]))
+        if r["acts_via"]:
+            bits.append("also sets " + ", ".join(r["acts_via"][:4]))
+        impact = "; ".join(bits) or "only reads " + ", ".join(r["shared"][:3])
         parts += [
             f"### {it['alias']} ({it['entity_id']}) - impact: {impact}",
-            compact_yaml(it["config"], set(r["shared"])),
+            compact_yaml(it["config"], set(r["shared"]) | set(r["scenes"])),
             "",
         ]
     if hidden:

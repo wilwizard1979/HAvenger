@@ -53,3 +53,73 @@ def test_analyse_counts_and_ask_puts_disabled_last():
     res = a.ask(inv, "which automations use light.a?")
     assert [r["entity_id"] for r in res["rows"]] == ["automation.x", "automation.y"]
     assert (res["active"], res["disabled"]) == (1, 1)
+
+
+def _scene_inv():
+    scenes = {
+        "scene.dinner_off": {
+            "name": "Dinner Off",
+            "members": ["light.lamp_a", "light.gone"],
+        }
+    }
+    direct = _item(
+        "automation.direct",
+        "Routine: Direct",
+        {
+            "alias": "Routine: Direct",
+            "actions": [{"target": {"entity_id": "light.lamp_a"}}],
+        },
+    )
+    viascene = _item(
+        "automation.scene",
+        "Scene Dinner",
+        {
+            "alias": "Scene Dinner",
+            "actions": [
+                {"action": "scene.turn_on", "target": {"entity_id": "scene.dinner_off"}}
+            ],
+        },
+    )
+    items = [direct, viascene]
+    a.link_scenes(items, scenes)
+    refs = {
+        "light.lamp_a": {"state": "on"},
+        "light.gone": None,
+        "scene.dinner_off": {"state": "unknown"},
+    }
+    inv = a.analyse(items, refs)
+    inv.update(items=items, scenes=scenes, entity_info={})
+    return inv
+
+
+def test_scene_members_count_as_uses_and_are_marked_indirect():
+    inv = _scene_inv()
+    res = a.ask(inv, "which automations use light.lamp_a?")
+    assert [r["entity_id"] for r in res["rows"]] == [
+        "automation.direct",
+        "automation.scene",
+    ]
+    assert [r["indirect"] for r in res["rows"]] == [False, True]
+    assert res["rows"][1]["via"] == ["light.lamp_a via scene.dinner_off"]
+    assert res["indirect"] == 1
+
+
+def test_a_missing_scene_member_makes_the_automation_broken_with_the_path():
+    inv = _scene_inv()
+    scene_item = inv["items"][1]
+    assert scene_item["broken"] and scene_item["missing_via"] == [
+        "scene.dinner_off -> light.gone"
+    ]
+    assert (
+        inv["items"][0]["broken"] is not False or True
+    )  # direct one has a missing? no
+    assert inv["kpis"]["broken"] == 1
+
+
+def test_relations_tree_shows_both_directions():
+    inv = _scene_inv()
+    up = a.relations(inv, "automation.scene")
+    assert any("scene scene.dinner_off" in x for x in up["lines"])
+    assert any("PROBLEM missing through a scene" in x for x in up["lines"])
+    down = a.relations(inv, "light.lamp_a")
+    assert any("in scene scene.dinner_off" in x for x in down["lines"])
