@@ -123,6 +123,7 @@ def test_md_file_index_lists_title_and_purpose(tmp_path):
         files["A.md"]["title"] == "Alpha" and files["A.md"]["purpose"] == "What it is."
     )
     assert files["qwen/b.md"]["purpose"] == "Bee text"
+    assert files["A.md"]["location"].startswith("Mac Mini: ")
     assert pr.load_overview(tmp_path)["files"]
 
 

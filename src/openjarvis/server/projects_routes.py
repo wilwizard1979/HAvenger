@@ -229,6 +229,7 @@ def list_md_files(base: Path | None = None) -> list[dict[str, Any]]:
         out.append(
             {
                 "name": str(path.relative_to(base)),
+                "location": "Mac Mini: " + str(path).replace(str(Path.home()), "~", 1),
                 "title": title or path.stem,
                 "purpose": purpose[:160],
                 "modified": mtime,

@@ -245,6 +245,9 @@ export function ProjectsPage() {
                             · {new Date(f.modified * 1000).toLocaleDateString()}
                           </span>
                         </div>
+                        <div className="text-xs" style={faint}>
+                          {f.location}
+                        </div>
                         {f.purpose && (
                           <div className="text-xs" style={muted}>
                             {f.purpose}
