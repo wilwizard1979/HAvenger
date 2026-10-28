@@ -9,7 +9,7 @@ const CLOUD = [
 
 const money = (n: number) => `$${n.toFixed(n < 0.1 ? 4 : 2)}`;
 
-/** Compact session data: latest measured speed, usage, and local-vs-cloud cost. */
+/** Compact cost comparison (kept across restarts): latest measured speed, usage, and local-vs-cloud cost. */
 export function SessionPanel() {
   const savings = useAppStore((s) => s.savings);
   const messages = useAppStore((s) => s.messages);
@@ -24,7 +24,7 @@ export function SessionPanel() {
 
   return (
     <div className="mx-2 mb-2 p-2.5 rounded-lg text-[0.6875rem]" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)' }}>
-      <div className="hud-label mb-1.5">Session</div>
+      <div className="hud-label mb-1.5">Cost Comparison</div>
       <div className="flex items-center gap-2 mb-1.5">
         <Gauge size={13} style={{ color: 'var(--color-accent)' }} />
         <span style={{ color: 'var(--color-text-secondary)' }}>Last speed</span>

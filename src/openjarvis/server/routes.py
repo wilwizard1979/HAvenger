@@ -1291,12 +1291,24 @@ async def reload_cloud_engine(request: Request):
     return {"status": "ok", "message": "Cloud engine reloaded"}
 
 
+def _first_telemetry_ts(db_path) -> float | None:
+    """Time of the oldest stored record, so the totals have a real start."""
+    import sqlite3
+
+    try:
+        with sqlite3.connect(str(db_path)) as conn:
+            row = conn.execute("SELECT MIN(timestamp) FROM telemetry").fetchone()
+    except sqlite3.Error:
+        return None
+    return float(row[0]) if row and row[0] else None
+
+
 @router.get("/v1/savings")
 async def savings(request: Request):
     """Return savings summary compared to cloud providers.
 
-    Only includes telemetry from the current server session so that
-    counters start at zero each time a new model + agent is launched.
+    Counts all stored local telemetry, so the totals survive a restart. They
+    start again at zero only after ``POST /v1/telemetry/reset``.
     """
     from openjarvis.core.config import DEFAULT_CONFIG_DIR
     from openjarvis.server.savings import compute_savings, savings_to_dict
@@ -1307,15 +1319,14 @@ async def savings(request: Request):
         empty = compute_savings(0, 0, 0)
         return savings_to_dict(empty)
 
-    session_start = getattr(request.app.state, "session_start", None)
-
     agg = TelemetryAggregator(db_path)
     try:
+        session_start = _first_telemetry_ts(db_path)
         # current_methodology_only excludes pre-fix legacy rows from
         # the leaderboard's per-token efficiency numerator/denominator
         # — see the comment on _time_filter for the bimodal-Wh/token
         # background.
-        summary = agg.summary(since=session_start, current_methodology_only=True)
+        summary = agg.summary(current_methodology_only=True)
         # Exclude cloud model tokens from savings — only local
         # inference counts toward cost savings.
         _cloud_prefixes = (
