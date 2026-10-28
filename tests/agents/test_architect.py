@@ -27,7 +27,8 @@ def test_groups_by_prefix():
     assert a.group_of("Routine: Morning") == "Routine"
     assert a.group_of("Scene Kino") == "Scene"
     assert a.group_of("AI_Assist foo") == "Test / AI"
-    assert a.group_of("Rollladen up") == "Other"
+    assert a.group_of("Rollladen up") == "Shades"
+    assert a.group_of("Whatever x") == "Other"
 
 
 def test_analyse_counts_and_ask_puts_disabled_last():

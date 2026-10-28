@@ -26,6 +26,9 @@ export interface ArchitectOverview {
   fetched_at?: number;
   kpis?: ArchitectKpis;
   groups?: ArchitectGroup[];
+  areas?: { id: string; name: string; count: number }[];
+  spent_usd?: number;
+  limit_usd?: number;
 }
 
 export interface AutomationRow {
@@ -39,6 +42,7 @@ export interface AutomationRow {
   age_days: number | null;
   last_triggered: string | null;
   entities: number;
+  area: string;
   missing: string[];
   offline: string[];
   readable: boolean;
@@ -67,9 +71,60 @@ export async function startRefresh(): Promise<void> {
   await fetch(`${getBase()}/v1/architect/refresh`, { method: 'POST' });
 }
 
-export const fetchAutomations = (group: string, filter: string, q: string) =>
+export const fetchAutomations = (group: string, filter: string, q: string, area = '') =>
   getJson<{ rows: AutomationRow[] }>(
-    `/automations?group=${encodeURIComponent(group)}&filter=${encodeURIComponent(filter)}&q=${encodeURIComponent(q)}`,
+    `/automations?group=${encodeURIComponent(group)}&filter=${encodeURIComponent(filter)}&q=${encodeURIComponent(q)}&area=${encodeURIComponent(area)}`,
   );
 
 export const askArchitect = (q: string) => getJson<AskResult>(`/ask?q=${encodeURIComponent(q)}`);
+
+export interface Preview {
+  intent: 'change' | 'create';
+  tokens: number;
+  token_cap: number;
+  over_cap: boolean;
+  can_send: boolean;
+  dry_run: boolean;
+  text: string;
+  targets: { entity_id: string; alias: string }[];
+  related: { entity_id: string; alias: string }[];
+  related_hidden: number;
+  disabled_left_out: number;
+  picked_disabled: string[];
+  estimate_usd: { sonnet: number; opus: number };
+  spent_usd: number;
+  limit_usd: number;
+}
+
+export interface QueryResult {
+  error?: string;
+  intent?: 'lookup' | 'change' | 'create';
+  lookup?: AskResult;
+  preview?: Preview;
+}
+
+export interface Case {
+  id: string;
+  question: string;
+  intent: string;
+  model: string;
+  tokens: number;
+  cost_usd: number;
+  dry_run: boolean;
+  answer: string;
+  unknown_entities: string[];
+}
+
+export const queryArchitect = (q: string, pick: string[], force = '') =>
+  getJson<QueryResult>(`/query?q=${encodeURIComponent(q)}&pick=${encodeURIComponent(pick.join(','))}&force=${force}`);
+
+export async function recommend(q: string, model: 'sonnet' | 'opus', pick: string[]): Promise<{ error?: string; case?: Case }> {
+  const res = await fetch(`${getBase()}/v1/architect/recommend`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ q, model, pick }),
+  });
+  return res.json();
+}
+
+export const fetchCases = () => getJson<{ cases: Case[] }>('/cases');

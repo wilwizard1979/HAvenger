@@ -51,7 +51,10 @@ GROUP_PREFIXES: dict[str, tuple[str, ...]] = {
     "Monitor": ("monitor",),
     "Alarm": ("alarm",),
     "Notification": ("notification",),
-    "Test / AI": ("test", "ai", "ai_assist", "ha-mcp"),
+    "Test / AI": ("test", "ai", "ai_assist", "ha-mcp", "new"),
+    "Shades": ("rollladen", "tilt", "shutter", "blinds"),
+    "Climate": ("comfort", "control", "temp"),
+    "Logs / Alerts": ("log", "alert", "counter", "detect", "house", "general"),
 }
 OTHER = "Other"
 GROUP_ORDER = [*GROUP_PREFIXES, OTHER]
@@ -60,6 +63,10 @@ _lock = threading.Lock()
 _state: dict[str, Any] = {"refreshing": False, "error": "", "started": 0.0}
 # A read normally takes under 3 minutes; past this it is treated as hung.
 REFRESH_DEAD_S = 480
+
+
+def area_label(area_id: str) -> str:
+    return area_id.replace("_", " ").title() if area_id else ""
 
 
 def cache_path() -> Path:
@@ -230,6 +237,70 @@ def _config_of(client: Any, entity_id: str) -> dict[str, Any] | None:
     return cfg if isinstance(cfg, dict) else None
 
 
+def entity_areas(ha: Any) -> dict[str, str]:
+    """entity_id -> area id, one search per area (read-only)."""
+    try:
+        overview = ha.read("ha_get_overview")
+        areas = [
+            a
+            for a, info in (overview.get("area_analysis") or {}).items()
+            if (info or {}).get("count")
+        ]
+    except Exception as exc:  # noqa: BLE001 - areas are a bonus, not required
+        logger.info("Architect: no area list: %s", exc)
+        return {}
+    out: dict[str, str] = {}
+    for area in areas:
+        offset = 0
+        while True:
+            try:
+                r = ha.read(
+                    "ha_search",
+                    {"query": "", "area_filter": area, "limit": 500, "offset": offset},
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.info("Architect: area %s failed: %s", area, exc)
+                break
+            for e in r.get("entities", []):
+                out.setdefault(e["entity_id"], area)
+            nxt = r.get("entity_next_offset")
+            if not r.get("entity_has_more") or not nxt or nxt <= offset:
+                break
+            offset = int(nxt)
+    return out
+
+
+def entity_info(
+    ids: list[str],
+    states: dict[str, dict[str, Any] | None],
+    area_of: dict[str, str],
+) -> dict[str, dict[str, str]]:
+    """Name, state and area of every entity the automations use (for the context)."""
+    out: dict[str, dict[str, str]] = {}
+    for eid in ids:
+        st = states.get(eid) or {}
+        attrs = st.get("attributes") or {}
+        out[eid] = {
+            "name": str(attrs.get("friendly_name") or ""),
+            "state": str(st.get("state", "missing" if not st else "")),
+            "area": area_label(area_of.get(eid, "")),
+        }
+    return out
+
+
+def assign_areas(items: list[dict[str, Any]], area_of: dict[str, str]) -> None:
+    """An automation belongs to the areas of the entities it uses, most used first."""
+    for it in items:
+        counts: dict[str, int] = {}
+        for e in it["entities"]:
+            a = area_of.get(e)
+            if a:
+                counts[a] = counts.get(a, 0) + 1
+        ranked = sorted(counts, key=lambda a: (-counts[a], a))
+        it["areas"] = ranked[:3]
+        it["area"] = ranked[0] if ranked else ""
+
+
 def collect(ha: Any | None = None, now: float | None = None) -> dict[str, Any]:
     """Read all automations from ha-mcp (read-only) and build the inventory."""
     from openjarvis.agents.ha_collector import HaCollector
@@ -247,11 +318,15 @@ def collect(ha: Any | None = None, now: float | None = None) -> dict[str, Any]:
         refs = sorted({e for it in items for e in it["entities"]} - set(ids))
         ref_states = HaCollector._states(ha, refs)
         ref_states.update({i: states.get(i) for i in ids})
+        area_of = entity_areas(ha)
+        assign_areas(items, area_of)
+        info = entity_info(refs, ref_states, area_of)
     finally:
         if own:
             ha.close()
     result = analyse(items, ref_states, now)
     result["items"] = items
+    result["entity_info"] = info
     result["fetched_at"] = now if now is not None else time.time()
     return result
 
@@ -321,6 +396,7 @@ def summary_row(it: dict[str, Any]) -> dict[str, Any]:
         "age_days": it["age_days"],
         "last_triggered": it["last_triggered"],
         "entities": len(it["entities"]),
+        "area": area_label(it.get("area", "")),
         "missing": it["missing"][:5],
         "offline": it["offline"][:5],
         "readable": it["readable"],
@@ -333,11 +409,13 @@ def _order(it: dict[str, Any]) -> tuple[int, str]:
 
 
 def list_automations(
-    inv: dict[str, Any], group: str = "", flt: str = "", q: str = ""
+    inv: dict[str, Any], group: str = "", flt: str = "", q: str = "", area: str = ""
 ) -> list[dict[str, Any]]:
     rows = list(inv.get("items", []))
     if group:
         rows = [r for r in rows if r["group"] == group]
+    if area:
+        rows = [r for r in rows if area in r.get("areas", [])]
     if flt == "disabled":
         rows = [r for r in rows if r["disabled"]]
     elif flt == "broken":
@@ -365,7 +443,19 @@ def overview(inv: dict[str, Any] | None) -> dict[str, Any]:
         "fetched_at": inv.get("fetched_at"),
         "kpis": inv["kpis"],
         "groups": inv["groups"],
+        "areas": area_counts(inv),
     }
+
+
+def area_counts(inv: dict[str, Any]) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for it in inv.get("items", []):
+        for a in it.get("areas", []):
+            counts[a] = counts.get(a, 0) + 1
+    return [
+        {"id": a, "name": area_label(a), "count": n}
+        for a, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    ]
 
 
 def ask(inv: dict[str, Any], question: str) -> dict[str, Any]:
