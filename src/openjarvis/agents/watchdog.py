@@ -222,6 +222,7 @@ def observe(
                     "count": len(ids),
                     "total": total,
                     "examples": ids[:8],
+                    "entities": ids[:50],
                 },
                 persist,
             )
@@ -354,6 +355,7 @@ def apply_observations(
     ok_categories: set[str],
     now: float,
     result: TickResult,
+    resolve_after: int = RESOLVE_AFTER_MISSES,
 ) -> None:
     seen: set[str] = set()
     for o in observations:
@@ -389,7 +391,7 @@ def apply_observations(
         if issue is None or issue["state"] in ("resolved", "ignored"):
             store.watch_forget(fp)
             continue
-        if store.watch_miss(fp) >= RESOLVE_AFTER_MISSES:
+        if store.watch_miss(fp) >= resolve_after:
             store.set_issue_state(fp, "resolved")
             store.watch_forget(fp)
             result.resolved.append(
@@ -465,8 +467,14 @@ def track_long_unavailable(store: Store, snap: dict[str, Any], now: float) -> No
 
 
 def run_tick(
-    store: Store, collector: Collector, *, now: float | None = None
+    store: Store,
+    collector: Collector,
+    *,
+    now: float | None = None,
+    manual: bool = False,
 ) -> TickResult:
+    """One check. ``manual`` (the user pressed Run check): an issue that is gone is
+    resolved on the first clean read; scheduled checks wait for two."""
     now = now if now is not None else time.time()
     t0 = time.monotonic()
     settings = store.settings()
@@ -477,7 +485,14 @@ def run_tick(
         result.errors = dict(snap.get("errors") or {})
         result.observed = len(observations)
         result.quiet_hours = is_quiet_hours(now, settings)
-        apply_observations(store, observations, ok_cats, now, result)
+        apply_observations(
+            store,
+            observations,
+            ok_cats,
+            now,
+            result,
+            1 if manual else RESOLVE_AFTER_MISSES,
+        )
         track_long_unavailable(store, snap, now)
         if snap.get("facts"):
             store.set_facts({**snap["facts"], "checked_at": now})
@@ -552,13 +567,15 @@ class WatchdogService:
             self._collector = HaCollector()
         return self._collector
 
-    def tick(self, *, wait: bool = True) -> dict[str, Any]:
+    def tick(self, *, wait: bool = True, manual: bool = False) -> dict[str, Any]:
         """Run one tick (blocking). ``wait=False`` returns the last result if busy."""
         if not self._lock.acquire(blocking=wait):
             return {**(self.last or {}), "busy": True}
         try:
             self.running = True
-            result = run_tick(self.store, self.collector, now=self._clock())
+            result = run_tick(
+                self.store, self.collector, now=self._clock(), manual=manual
+            )
             try:
                 self._notifier(result)
             except Exception:  # noqa: BLE001

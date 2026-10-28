@@ -207,7 +207,15 @@ def _open_tasks(store: Store, now: float) -> tuple[str, str]:
             lines.append(f"  Seen before: {t['seen_before']}.")
         if c.get("note"):
             lines.append(f"  Note: {c['note']}")
-        if c.get("examples"):
+        if c.get("affected"):
+            more = c.get("affected_more") or 0
+            names = "; ".join(
+                f"{a['name']} ({a['detail']})" for a in c["affected"][:LIST_LIMIT]
+            )
+            lines.append(
+                f"  Affected: {names}" + (f"; and {more} more." if more else ".")
+            )
+        elif c.get("examples"):
             lines.append("  Affected: " + "; ".join(c["examples"][:3]) + ".")
     summary = (
         "No open tasks."

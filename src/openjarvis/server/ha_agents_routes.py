@@ -103,7 +103,7 @@ def watchdog_status() -> dict[str, Any]:
 @ha_agents_router.post("/watchdog/run")
 def watchdog_run() -> dict[str, Any]:
     """Run one read-only check now (no cloud call, no change in Home Assistant)."""
-    return get_watchdog().tick(wait=False)
+    return get_watchdog().tick(wait=False, manual=True)
 
 
 @ha_agents_router.get("/issues")

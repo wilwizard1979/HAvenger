@@ -92,6 +92,8 @@ export interface Task {
   note: string | null;
   cause: string | null;
   examples: string[];
+  affected: { name: string; detail: string }[];
+  affected_more: number;
   selected: boolean;
   proposal: Proposal | null;
   proposal_stale: boolean;

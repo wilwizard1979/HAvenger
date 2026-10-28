@@ -145,7 +145,7 @@ function DashboardTab({ o, initial }: { o: Overview; initial: string | null }) {
                           )}
                         </div>
                         {it.detail && (
-                          <div className="hud-mono text-[0.625rem] truncate pl-1" style={faint} title={it.detail}>
+                          <div className="hud-mono text-[0.625rem] break-words pl-1" style={faint} title={it.detail}>
                             {it.detail}
                           </div>
                         )}
@@ -191,10 +191,26 @@ const LANE_TITLES: Record<string, string> = {
   fill_in: 'Fill-ins',
 };
 
-function Matrix({ plan }: { plan: Plan }) {
+type Cell = { s: string; e: string } | null;
+
+function Matrix({ plan, cell: picked, onPick }: { plan: Plan; cell: Cell; onPick: (c: Cell) => void }) {
   return (
     <div className="hud-panel p-3">
-      <div className="hud-label mb-2">Severity × effort (clusters / issues)</div>
+      <div className="hud-label mb-2 flex items-center gap-2">
+        <span>Severity × effort (clusters / issues)</span>
+        <span className="normal-case tracking-normal" style={faint}>
+          {picked ? (
+            <>
+              Filter: {picked.s} × {picked.e} ·{' '}
+              <button className="underline cursor-pointer" onClick={() => onPick(null)}>
+                clear
+              </button>
+            </>
+          ) : (
+            'click a cell to filter the tasks'
+          )}
+        </span>
+      </div>
       <div className="grid gap-1" style={{ gridTemplateColumns: '90px repeat(3, 1fr)' }}>
         <div />
         {EFFORTS.map((e) => (
@@ -210,18 +226,29 @@ function Matrix({ plan }: { plan: Plan }) {
             {EFFORTS.map((e) => {
               const cell = plan.matrix.cells[s][e];
               const hot = cell.clusters > 0;
+              const on = picked?.s === s && picked?.e === e;
               return (
-                <div
+                <button
                   key={e}
+                  type="button"
+                  disabled={!hot}
+                  onClick={() => onPick(on ? null : { s, e })}
+                  aria-pressed={on}
                   className="rounded-md text-center py-2 hud-mono text-sm"
                   style={{
-                    background: hot ? `color-mix(in srgb, ${SEVERITY_COLOR[s]} 14%, transparent)` : 'var(--color-bg-secondary)',
+                    cursor: hot ? 'pointer' : 'default',
+                    background: on
+                      ? `color-mix(in srgb, ${SEVERITY_COLOR[s]} 38%, transparent)`
+                      : hot
+                        ? `color-mix(in srgb, ${SEVERITY_COLOR[s]} 14%, transparent)`
+                        : 'var(--color-bg-secondary)',
                     color: hot ? 'var(--color-text)' : 'var(--color-text-tertiary)',
-                    border: '1px solid var(--color-border)',
+                    border: on ? `2px solid ${SEVERITY_COLOR[s]}` : '1px solid var(--color-border)',
+                    opacity: picked && !on ? 0.5 : 1,
                   }}
                 >
                   {cell.clusters} <span style={faint}>/ {cell.issues}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -731,9 +758,21 @@ function TaskRow({ t, onChange }: { t: Task; onChange: () => void }) {
               {t.cause ? ` · likely cause: ${t.cause}` : ''}
             </div>
           )}
-          <div className="text-[0.6875rem] mt-1 truncate" style={faint} title={t.examples.join(' | ')}>
-            {t.examples.join(' · ')}
-          </div>
+          {t.affected?.length > 0 ? (
+            <div className="text-[0.6875rem] mt-1 flex flex-col gap-0.5" style={faint}>
+              <div style={muted}>Affected ({t.affected.length + (t.affected_more ?? 0)}):</div>
+              {t.affected.map((a, i) => (
+                <div key={i} className="truncate" title={`${a.name} · ${a.detail}`}>
+                  <span style={{ color: 'var(--color-text)' }}>{a.name}</span> · {a.detail}
+                </div>
+              ))}
+              {t.affected_more > 0 && <div>(and {t.affected_more} more…)</div>}
+            </div>
+          ) : (
+            <div className="text-[0.6875rem] mt-1 truncate" style={faint} title={t.examples.join(' | ')}>
+              {t.examples.join(' · ')}
+            </div>
+          )}
           {t.proposal && (
             <div className="text-[0.6875rem] mt-1" style={{ color: 'var(--color-accent)' }}>
               ✓ {{ quick: 'Proposed', investigate: 'Investigated', deep: 'Deep analysis done' }[t.proposal.mode ?? 'quick']} · risk {t.proposal.risk} ·{' '}
@@ -813,14 +852,17 @@ function PlanTab({ plan, reload }: { plan: Plan; reload: () => void }) {
   const byId = useMemo(() => new Map(plan.tasks.map((t) => [t.id, t])), [plan]);
   const lanes = Object.keys(LANE_TITLES).filter((l) => (plan.lanes[l] ?? []).length > 0);
   const ticked = plan.tasks.filter((t) => t.selected).length;
+  const [cell, setCell] = useState<Cell>(null);
+  const shows = (t: Task | undefined) => Boolean(t) && (!cell || (t!.severity === cell.s && t!.effort === cell.e));
+  const visible = plan.tasks.filter((t) => shows(t)).length;
   return (
     <div className="flex flex-col gap-3">
       <div className="grid gap-3" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.2fr)' }}>
-        <Matrix plan={plan} />
+        <Matrix plan={plan} cell={cell} onPick={setCell} />
         <Estimates plan={plan} />
       </div>
       <div className="text-xs" style={muted}>
-        {plan.tasks.length} tasks, quick wins first (a deadline moves a task to the top). You decide which to fix: tick a task, request its
+        {cell ? `${visible} of ${plan.tasks.length}` : plan.tasks.length} tasks, quick wins first (a deadline moves a task to the top). You decide which to fix: tick a task, request its
         proposal when you want one. {ticked} ticked.
       </div>
       {plan.tasks.length === 0 && (
@@ -844,17 +886,21 @@ function PlanTab({ plan, reload }: { plan: Plan; reload: () => void }) {
           ))}
         </section>
       )}
-      {lanes.map((lane) => (
-        <section key={lane} className="flex flex-col gap-2">
-          <div className="hud-label">
-            {LANE_TITLES[lane]} · {plan.lanes[lane].length}
-          </div>
-          {plan.lanes[lane].map((id) => {
-            const t = byId.get(id);
-            return t ? <TaskRow key={id} t={t} onChange={reload} /> : null;
-          })}
-        </section>
-      ))}
+      {lanes.map((lane) => {
+        const ids = plan.lanes[lane].filter((id) => shows(byId.get(id)));
+        if (ids.length === 0) return null;
+        return (
+          <section key={lane} className="flex flex-col gap-2">
+            <div className="hud-label">
+              {LANE_TITLES[lane]} · {ids.length}
+            </div>
+            {ids.map((id) => {
+              const t = byId.get(id);
+              return t ? <TaskRow key={id} t={t} onChange={reload} /> : null;
+            })}
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -1046,8 +1092,9 @@ function FlowTab({ plan }: { plan: Plan | null }) {
 
   const runCheck = () =>
     guarded('check', async () => {
-      const r = (await api.runWatchdog()) as { ok?: boolean; observed?: number; busy?: boolean };
-      return r.busy ? 'A check is already running.' : `done: ${r.observed ?? 0} findings`;
+      const r = (await api.runWatchdog()) as { ok?: boolean; observed?: number; busy?: boolean; resolved?: unknown[] };
+      const gone = Array.isArray(r.resolved) ? r.resolved.length : 0;
+      return r.busy ? 'A check is already running.' : `done: ${r.observed ?? 0} findings${gone ? ` · ${gone} resolved` : ''}`;
     });
   const runDigest = () =>
     guarded('digest', async () => {

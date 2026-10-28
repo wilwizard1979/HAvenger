@@ -23,6 +23,7 @@ from openjarvis.agents.cloud_client import (
 )
 from openjarvis.agents.clusters import build_clusters, matrix_counts
 from openjarvis.agents.escalation import ReadOnlyHA, escalate, estimate_investigation
+from openjarvis.agents.explain import affected, example_text, explain_repair
 from openjarvis.agents.redaction import RedactionError
 from openjarvis.agents.reporting import TRIAGE_MAX_TOKENS, _loads_json
 from openjarvis.agents.store import RISKS, Store
@@ -77,14 +78,15 @@ def _active(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _item(i: dict[str, Any]) -> dict[str, Any]:
     meta = _meta(i)
+    found = explain_repair(i)
     return {
         "fingerprint": i["fingerprint"],
-        "title": i["title"],
+        "title": found[0] if found else i["title"],
         "severity": i["severity"],
         "state": i["state"],
         "category": i["category"],
         "first_seen": i["first_seen"],
-        "detail": meta.get("example") or "",
+        "detail": found[1] if found else meta.get("example") or "",
     }
 
 
@@ -375,9 +377,18 @@ def _sum(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 # -- the plan -------------------------------------------------------------------
 def plan_clusters(store: Store) -> list[dict[str, Any]]:
-    return build_clusters(
-        store.issues(), store.settings(), store.overrides(), store.triage_notes()
+    issues = store.issues()
+    clusters = build_clusters(
+        issues, store.settings(), store.overrides(), store.triage_notes()
     )
+    by_fp = {i["fingerprint"]: i for i in issues}
+    for c in clusters:  # plain-language details, written by Python
+        members = [by_fp[f] for f in c["fingerprints"] if f in by_fp]
+        c["examples"] = [example_text(m) for m in members[:3]]
+        rows, total = affected(store, members)
+        c["affected"] = rows
+        c["affected_more"] = max(0, total - len(rows))
+    return clusters
 
 
 def sync_open_tasks(
@@ -453,6 +464,8 @@ def build_plan(store: Store, client: CloudClient | None = None) -> dict[str, Any
                         "note",
                         "cause",
                         "examples",
+                        "affected",
+                        "affected_more",
                     )
                 },
                 "selected": c["id"] in selected,
