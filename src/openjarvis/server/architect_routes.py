@@ -106,3 +106,29 @@ def get_relations(id: str = "") -> dict[str, Any]:
     if not inv or not id:
         return {"error": "No inventory yet. Press Refresh first."}
     return architect.relations(inv, id)
+
+
+@architect_router.post("/cases/{case_id}/request-approval")
+def post_request_approval(case_id: str) -> dict[str, Any]:
+    """Ask for the Telegram approval of a case's edit. Approving happens only there."""
+    from openjarvis.agents import architect_apply, janitor_executor
+    from openjarvis.agents.store import get_store
+    from openjarvis.agents.telegram_bot import TelegramError, get_bot_service
+
+    case = next(
+        (c for c in architect_recommend.load_cases() if c["id"] == case_id), None
+    )
+    inv = architect.load_inventory()
+    if case is None or not inv:
+        return {"error": "Unknown case or no inventory yet."}
+    store = get_store()
+    out = architect_apply.request_approval(store, case, inv)
+    if out["status"] != "awaiting_approval":
+        return out
+    try:
+        get_bot_service().bot.request_approval(out["id"])
+    except TelegramError as exc:
+        janitor_executor.cancel(store, out["id"])
+        return {"error": f"Could not reach Telegram: {exc}"}
+    architect_recommend.update_case(case_id, execution_id=out["id"])
+    return out

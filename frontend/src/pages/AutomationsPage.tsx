@@ -11,6 +11,7 @@ import {
   type ArchitectOverview,
   type AutomationRow,
   type Case,
+  requestApproval,
   type QueryResult,
 } from '../lib/architect';
 
@@ -32,6 +33,40 @@ function Kpi({ label, value, color }: { label: string; value: number | string; c
       <div className="text-xl font-semibold hud-mono" style={{ color: color ?? 'var(--color-text)' }}>
         {value}
       </div>
+    </div>
+  );
+}
+
+function ApprovalBox({ c, onDone }: { c: Case; onDone: (id: number) => void }) {
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (c.dry_run) return null;
+  if (c.execution_id) return <div style={{ color: 'var(--color-success)' }}>Approval #{c.execution_id} sent to Telegram. Approve or reject it there.</div>;
+  if (!c.proposal) return <div style={{ color: 'var(--color-text-tertiary)' }}>No single-automation change in this answer, so there is nothing to approve.</div>;
+  const blocked = [...(c.proposal_problems ?? []), ...(c.unknown_entities.length ? ['unknown entities in the answer'] : [])];
+  const go = async () => {
+    setBusy(true);
+    setMsg('');
+    const r = await requestApproval(c.id);
+    setBusy(false);
+    if (r.status === 'awaiting_approval' && r.id) onDone(r.id);
+    else setMsg(r.error ?? (r.problems ?? [r.status ?? 'failed']).join('; '));
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      {blocked.length > 0 ? (
+        <div style={{ color: 'var(--color-error)' }}>Cannot be applied: {blocked.join('; ')}</div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <button onClick={go} disabled={busy} className="px-3 py-1.5 rounded cursor-pointer" style={{ background: 'var(--color-accent)', color: 'var(--color-bg)', border: 'none' }}>
+            {busy ? 'Reading the live config…' : 'Request approval on Telegram'}
+          </button>
+          <span style={{ color: 'var(--color-text-tertiary)' }}>
+            {c.proposal.identifier} · risk {c.proposal.risk}. You see the exact diff in Telegram; nothing is applied until you approve there.
+          </span>
+        </div>
+      )}
+      {msg && <div style={{ color: 'var(--color-error)' }}>{msg}</div>}
     </div>
   );
 }
@@ -302,7 +337,7 @@ export function AutomationsPage() {
             {rec.unknown_entities.length > 0 && (
               <div style={{ color: 'var(--color-error)' }}>Not in Home Assistant: {rec.unknown_entities.join(', ')}. Do not apply.</div>
             )}
-            <div style={faint}>Approval on Telegram comes in the next step; nothing is applied from here.</div>
+            <ApprovalBox c={rec} onDone={(id) => { setRec({ ...rec, execution_id: id }); fetchCases().then((d) => setCases(d.cases)).catch(() => {}); }} />
           </div>
         )}
       </section>

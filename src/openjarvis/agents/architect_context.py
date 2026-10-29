@@ -78,7 +78,15 @@ Use only the automations and entities provided. If something is missing, say so;
 never invent entity ids. Do not touch secrets. For a new automation, use only
 entities from the list and deliver it disabled until approved. Change only the
 requested automation; if another one must change too, suggest it separately.
-Placeholders like <email_1> are redacted values: keep them unchanged."""
+Placeholders like <email_1> are redacted values: keep them unchanged.
+For a change to ONE existing automation, end with a fenced block named edits, exactly:
+```edits
+{"identifier": "automation.x", "risk": "low", "edits": [
+ {"path": "triggers.0.for.minutes", "old": 30, "set": 15}]}
+```
+path = dotted keys and list indexes into the automation config shown above;
+old = the current value (required for set and delete); use "delete": true instead of
+"set" to remove a key. Skip the block if no single-automation change is proposed."""
 
 _NOISE = (
     "metadata",

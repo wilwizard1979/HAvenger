@@ -14,6 +14,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from openjarvis.agents import architect_apply
 from openjarvis.agents.architect import ENTITY_DOMAINS, ENTITY_IN_TEXT
 from openjarvis.agents.architect_context import (
     OUTPUT_TOKENS,
@@ -116,6 +117,16 @@ def _next_case_id(cases: list[dict[str, Any]], now: float) -> str:
     return f"A_{day}_{n:03d}"
 
 
+def update_case(case_id: str, **fields: Any) -> dict[str, Any] | None:
+    cases = load_cases()
+    found = next((c for c in cases if c["id"] == case_id), None)
+    if found is None:
+        return None
+    found.update(fields)
+    cases_path().write_text(json.dumps(cases[-200:]), encoding="utf-8")
+    return found
+
+
 def save_case(case: dict[str, Any]) -> None:
     cases = load_cases()
     cases.append(case)
@@ -178,6 +189,12 @@ def recommend(
         "answer": answer,
         "unknown_entities": unknown_entities(answer, inv) if answer else [],
     }
+    case["proposal"] = architect_apply.parse_edits(answer) if answer else None
+    case["proposal_problems"] = (
+        architect_apply.proposal_problems(case["proposal"], case, inv)
+        if case["proposal"]
+        else []
+    )
     if not res.dry_run:
         save_case(case)
     return case

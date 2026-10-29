@@ -118,6 +118,9 @@ export interface Case {
   dry_run: boolean;
   answer: string;
   unknown_entities: string[];
+  proposal?: { identifier: string; risk: string; edits: unknown[] } | null;
+  proposal_problems?: string[];
+  execution_id?: number;
 }
 
 export const queryArchitect = (q: string, pick: string[], force = '') =>
@@ -142,3 +145,15 @@ export interface Relations {
 }
 
 export const fetchRelations = (id: string) => getJson<Relations>(`/relations?id=${encodeURIComponent(id)}`);
+
+export interface ApprovalResult {
+  status?: string;
+  id?: number;
+  problems?: string[];
+  error?: string;
+}
+
+export async function requestApproval(caseId: string): Promise<ApprovalResult> {
+  const res = await fetch(`${getBase()}/v1/architect/cases/${encodeURIComponent(caseId)}/request-approval`, { method: 'POST' });
+  return res.json();
+}
