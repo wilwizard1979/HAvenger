@@ -1,7 +1,7 @@
 <div align="center">
-  <img alt="Jarvis particle sphere, pulsing" src="docs/ha-agents/img/particle-sphere.gif" width="200">
+  <img alt="HAvenger particle sphere, pulsing" src="docs/ha-agents/img/particle-sphere.gif" width="200">
 
-  # Jarvis Core
+  # HAvenger
 
   **A local-first AI maintenance team for your smart home (Home Assistant).**
   One assistant that watches your Home Assistant, explains what is wrong in plain English,
