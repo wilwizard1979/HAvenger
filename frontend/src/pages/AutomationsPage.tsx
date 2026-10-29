@@ -113,7 +113,7 @@ function Row({ r }: { r: AutomationRow }) {
         <div className="min-w-0 flex-1">
           <div className="text-xs truncate flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
             {r.edit_url ? (
-              <a href={r.edit_url} target="_blank" rel="noopener noreferrer" className="truncate" style={{ color: 'var(--color-text)', textDecoration: 'underline', textDecorationColor: 'var(--color-border)' }} title="Open in the Home Assistant editor">
+              <a href={r.edit_url} target="_blank" rel="noopener noreferrer" className="truncate" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }} title="Open in the Home Assistant editor">
                 {r.alias}
               </a>
             ) : (
@@ -235,7 +235,7 @@ export function AutomationsPage() {
             Automations
           </h1>
           <div className="text-xs" style={muted}>
-            Jarvis the Architect: understand, fix, create. Read-only for now · last read {read}
+            Jarvis the Architect: understand, fix, create. Changes need your approval on Telegram · last read {read}
           </div>
         </div>
         <button onClick={refresh} disabled={ov?.refreshing} className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-bg-secondary)' }}>

@@ -48,9 +48,9 @@ function Stat({
     >
       <div className="hud-label flex items-center gap-1.5">
         <Icon size={12} style={{ color: TONE_COLOR[tone] }} />
-        <span className="truncate">{label}</span>
+        <span className="truncate" title={label}>{label}</span>
       </div>
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-1 flex-wrap">
         <span className="text-2xl font-semibold hud-mono" style={{ color: TONE_COLOR[tone] }}>
           {value ?? '—'}
         </span>
@@ -182,7 +182,7 @@ export function JarvisPanel({ onAsk }: JarvisPanelProps) {
           />
           <Stat
             icon={Activity}
-            label="Automations ran, 7 d"
+            label="Ran, 7 days"
             value={k ? k.recent : null}
             unit={k ? `of ${k.total}` : undefined}
             to="/automations"
@@ -192,7 +192,7 @@ export function JarvisPanel({ onAsk }: JarvisPanelProps) {
             icon={Coins}
             label="Claude cost"
             value={c ? usd(c.total_usd) : null}
-            unit={since ? `since ${since}` : undefined}
+            unit={since ? `from ${since}` : undefined}
             title="Real Claude cost from the ledger (dry runs excluded). Reset in Settings."
           />
           <Stat icon={Coins} label="This month" value={c ? usd(c.month_usd) : null} />
