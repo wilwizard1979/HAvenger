@@ -37,6 +37,28 @@ function Kpi({ label, value, color }: { label: string; value: number | string; c
   );
 }
 
+/** Text with every automation named in it turned into a link to Home Assistant's editor. */
+function LinkedText({ text, links }: { text: string; links?: { text: string; url: string }[] }) {
+  if (!links || links.length === 0) return <>{text}</>;
+  const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(${links.map((l) => esc(l.text)).join('|')})`, 'gi');
+  const byText = new Map(links.map((l) => [l.text.toLowerCase(), l.url]));
+  return (
+    <>
+      {text.split(re).map((part, i) => {
+        const url = byText.get(part.toLowerCase());
+        return url ? (
+          <a key={i} href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-accent)', textDecoration: 'underline' }} title="Open in the Home Assistant editor">
+            {part}
+          </a>
+        ) : (
+          <span key={i}>{part}</span>
+        );
+      })}
+    </>
+  );
+}
+
 function ApprovalBox({ c, onDone }: { c: Case; onDone: (id: number) => void }) {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -90,7 +112,13 @@ function Row({ r }: { r: AutomationRow }) {
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <div className="text-xs truncate flex items-center gap-1.5" style={{ color: 'var(--color-text)' }}>
-            <span className="truncate">{r.alias}</span>
+            {r.edit_url ? (
+              <a href={r.edit_url} target="_blank" rel="noopener noreferrer" className="truncate" style={{ color: 'var(--color-text)', textDecoration: 'underline', textDecorationColor: 'var(--color-border)' }} title="Open in the Home Assistant editor">
+                {r.alias}
+              </a>
+            ) : (
+              <span className="truncate">{r.alias}</span>
+            )}
             {r.indirect && (
               <span className="text-[0.625rem] px-1.5 rounded shrink-0" style={{ border: '1px solid var(--color-accent)', color: 'var(--color-accent)' }}>
                 via scene
@@ -332,7 +360,7 @@ export function AutomationsPage() {
             {rec.dry_run ? (
               <div style={faint}>Dry run: nothing was sent to the model. Turn dry run off in Maintenance settings to get a real answer.</div>
             ) : (
-              <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed">{rec.answer}</pre>
+              <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed"><LinkedText text={rec.answer} links={rec.links} /></pre>
             )}
             {rec.unknown_entities.length > 0 && (
               <div style={{ color: 'var(--color-error)' }}>Not in Home Assistant: {rec.unknown_entities.join(', ')}. Do not apply.</div>
@@ -403,7 +431,7 @@ export function AutomationsPage() {
                 <span className="truncate" style={{ color: 'var(--color-text)' }}>{c.question}</span>
                 <span className="ml-auto shrink-0" style={faint}>{c.model} · ${c.cost_usd.toFixed(3)}</span>
               </summary>
-              <pre className="whitespace-pre-wrap mt-1.5 p-2 rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>{c.answer || 'No answer saved (dry run).'}</pre>
+              <pre className="whitespace-pre-wrap mt-1.5 p-2 rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>{c.answer ? <LinkedText text={c.answer} links={c.links} /> : 'No answer saved (dry run).'}</pre>
             </details>
           ))}
         </section>

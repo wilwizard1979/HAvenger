@@ -443,8 +443,60 @@ def status() -> dict[str, Any]:
 # -- views for the page --------------------------------------------------------------
 
 
+DEFAULT_HA_URL = "http://192.168.176.200:8123"
+
+
+def config_path() -> Path:
+    from openjarvis.core.config import DEFAULT_CONFIG_DIR
+
+    return Path(DEFAULT_CONFIG_DIR) / "architect" / "config.json"
+
+
+def ha_base() -> str:
+    """Address of Home Assistant for the edit links (no trailing slash)."""
+    try:
+        url = str(json.loads(config_path().read_text(encoding="utf-8")).get("ha_url"))
+    except (OSError, ValueError, AttributeError):
+        url = ""
+    url = url if url.startswith(("http://", "https://")) else DEFAULT_HA_URL
+    return url.rstrip("/")
+
+
+def set_ha_base(url: str) -> str:
+    url = url.strip()
+    if "://" not in url:
+        url = "http://" + url
+    if not re.fullmatch(r"https?://[A-Za-z0-9.\-]+(:\d{1,5})?/?", url):
+        raise ValueError("not a valid address, e.g. http://192.168.1.10:8123")
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"ha_url": url.rstrip("/")}), encoding="utf-8")
+    return url.rstrip("/")
+
+
+def edit_url(it: dict[str, Any]) -> str:
+    """Link to the automation in Home Assistant's editor (list page if no id)."""
+    ident = str((it.get("config") or {}).get("id") or "")
+    if re.fullmatch(r"[A-Za-z0-9_\-]+", ident):
+        return f"{ha_base()}/config/automation/edit/{ident}"
+    return f"{ha_base()}/config/automation/dashboard"
+
+
+def answer_links(answer: str, inv: dict[str, Any]) -> list[dict[str, str]]:
+    """Automations named in a text (entity id, or alias spelled out) with edit links."""
+    low = (answer or "").lower()
+    out: list[dict[str, str]] = []
+    for it in inv.get("items", []):
+        for text in (it["entity_id"], it["alias"]):
+            if len(text) >= 6 and text.lower() in low:
+                out.append({"text": text, "url": edit_url(it)})
+    out.sort(key=lambda link: -len(link["text"]))  # longest first for the page
+    return out
+
+
 def summary_row(it: dict[str, Any]) -> dict[str, Any]:
     return {
+        "edit_url": edit_url(it),
         "entity_id": it["entity_id"],
         "alias": it["alias"],
         "group": it["group"],

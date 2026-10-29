@@ -19,6 +19,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAppStore, type ThemeMode } from '../lib/store';
+import { api, type Costs } from '../lib/maintenance';
+import { fetchOverview as fetchArchitectOverview, saveHaUrl } from '../lib/architect';
 import {
   checkHealth,
   fetchSpeechHealth,
@@ -212,6 +214,86 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h3>
       {children}
     </div>
+  );
+}
+
+function CostCounterSection() {
+  const [c, setC] = useState<Costs | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    api.costs().then(setC).catch(() => {});
+  }, []);
+  const reset = async () => {
+    const total = c ? `$${c.total_usd.toFixed(2)}` : 'the total';
+    if (!window.confirm(`Reset the Claude cost counter (${total})? It counts again from zero. The ledger and the budget limits are not touched.`)) return;
+    setBusy(true);
+    try {
+      setC(await api.resetCosts());
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section title="Claude cost counter">
+      <SettingRow
+        label={c ? `$${c.total_usd.toFixed(2)} counted${c.counted_from ? ` since ${new Date(c.counted_from * 1000).toLocaleDateString()}` : ''}` : 'Loading…'}
+        description="Real cost of Jarvis the Janitor and Jarvis the Architect (dry runs excluded). Shown on the front page. Resetting only moves the start date; the budget limits keep counting."
+      >
+        <button
+          onClick={() => void reset()}
+          disabled={busy}
+          className="px-3 py-1.5 rounded-lg text-xs cursor-pointer"
+          style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-error)', color: 'var(--color-text)' }}
+        >
+          Reset counter
+        </button>
+      </SettingRow>
+    </Section>
+  );
+}
+
+function HaAddressSection() {
+  const [url, setUrl] = useState('');
+  const [msg, setMsg] = useState('');
+  useEffect(() => {
+    fetchArchitectOverview().then((o) => setUrl(o.ha_url ?? '')).catch(() => {});
+  }, []);
+  const save = async () => {
+    const r = await saveHaUrl(url);
+    if (r.error) setMsg(r.error);
+    else {
+      setUrl(r.ha_url ?? url);
+      setMsg('Saved.');
+    }
+  };
+  return (
+    <Section title="Home Assistant address">
+      <SettingRow
+        label="Address for the edit links"
+        description="Used by the links that open an automation in the Home Assistant editor (Automations page). Use the IP address if homeassistant.local points to the wrong device."
+      >
+        <div className="flex items-center gap-2">
+          <input
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setMsg('');
+            }}
+            className="px-2 py-1.5 rounded-lg text-xs w-60"
+            style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
+            placeholder="http://192.168.1.10:8123"
+          />
+          <button onClick={() => void save()} className="px-3 py-1.5 rounded-lg text-xs cursor-pointer" style={{ background: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}>
+            Save
+          </button>
+        </div>
+      </SettingRow>
+      {msg && (
+        <div className="text-xs mt-1" style={{ color: 'var(--color-text-secondary)' }}>
+          {msg}
+        </div>
+      )}
+    </Section>
   );
 }
 
@@ -920,6 +1002,10 @@ export function SettingsPage() {
           </Section>
 
           {/* Updates */}
+          <CostCounterSection />
+
+          <HaAddressSection />
+
           <Section title="Updates">
             <SettingRow label="Auto-update" description="Check for new desktop builds automatically every 30 minutes">
               <button

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { MaintenanceKpis } from '../components/Ha/MaintenanceKpis';
 import { useNavigate, useSearchParams } from 'react-router';
 import { SettingsTab } from './MaintenanceSettings';
 import { MODE_NAME, dismissJob, markSeen, onJobFinished, startEscalation, useElapsed, useJobs, type Job } from '../lib/jobs';
@@ -1744,6 +1745,8 @@ export function MaintenancePage() {
         </header>
 
         <JobsBar />
+
+        {overview.data && <MaintenanceKpis c={overview.data.cards} />}
 
         <nav className="flex gap-1" style={{ borderBottom: '1px solid var(--color-border)' }}>
           {TABS.map((t) => (

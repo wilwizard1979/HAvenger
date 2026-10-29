@@ -4,6 +4,8 @@ import { ParticleOrb } from './ParticleOrb';
 import { voiceLevelRef } from './voiceLevel';
 import { useAppStore } from '../../lib/store';
 
+const ORB_SIZE = 150;
+
 /**
  * Bottom-left voice sphere. Solid and still while you type; it starts moving
  * when voice mode is on. The button turns hands-free voice on and off.
@@ -23,18 +25,24 @@ export function VoiceDock() {
 
   return (
     <div className="px-3 pb-3 pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col items-center gap-2">
         <button
           type="button"
           onClick={() => active && window.dispatchEvent(new Event('jarvis-voice-orb-click'))}
           className="relative shrink-0 rounded-full outline-none"
-          style={{ width: 92, height: 92, cursor: active ? 'pointer' : 'default' }}
+          style={{
+            width: ORB_SIZE,
+            height: ORB_SIZE,
+            cursor: active ? 'pointer' : 'default',
+            boxShadow: `0 0 ${active ? 34 : 20}px color-mix(in srgb, var(--color-accent) ${active ? 45 : 22}%, transparent)`,
+            transition: 'box-shadow 400ms ease',
+          }}
           title={active ? 'Tap to interrupt or resume' : 'Voice is off'}
           aria-label="Jarvis voice sphere"
         >
           <ParticleOrb levelRef={voiceLevelRef} mode={active ? mode : 'idle'} frozen={!active} />
         </button>
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <div className="w-full min-w-0 flex flex-col gap-2">
           <button
             type="button"
             onClick={toggle}

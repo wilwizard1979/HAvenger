@@ -29,9 +29,11 @@ export interface ArchitectOverview {
   areas?: { id: string; name: string; count: number }[];
   spent_usd?: number;
   limit_usd?: number;
+  ha_url?: string;
 }
 
 export interface AutomationRow {
+  edit_url?: string;
   entity_id: string;
   alias: string;
   group: string;
@@ -121,6 +123,7 @@ export interface Case {
   proposal?: { identifier: string; risk: string; edits: unknown[] } | null;
   proposal_problems?: string[];
   execution_id?: number;
+  links?: { text: string; url: string }[];
 }
 
 export const queryArchitect = (q: string, pick: string[], force = '') =>
@@ -155,5 +158,14 @@ export interface ApprovalResult {
 
 export async function requestApproval(caseId: string): Promise<ApprovalResult> {
   const res = await fetch(`${getBase()}/v1/architect/cases/${encodeURIComponent(caseId)}/request-approval`, { method: 'POST' });
+  return res.json();
+}
+
+export async function saveHaUrl(url: string): Promise<{ ha_url?: string; error?: string }> {
+  const res = await fetch(`${getBase()}/v1/architect/ha-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
   return res.json();
 }

@@ -325,7 +325,18 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T;
 }
 
+export interface Costs {
+  total_usd: number;
+  month_usd: number;
+  janitor_usd: number;
+  architect_usd: number;
+  counted_from: number | null;
+  reset: boolean;
+}
+
 export const api = {
+  costs: () => call<Costs>('/costs'),
+  resetCosts: () => call<Costs>('/costs/reset', { method: 'POST' }),
   overview: () => call<Overview>('/overview'),
   plan: () => call<Plan>('/plan'),
   library: () => call<{ items: LibraryItem[] }>('/library'),

@@ -16,6 +16,11 @@ from openjarvis.agents import architect, architect_context, architect_recommend
 architect_router = APIRouter(prefix="/v1/architect", tags=["architect"])
 
 
+def _with_links(case: dict[str, Any], inv: dict[str, Any] | None) -> dict[str, Any]:
+    links = architect.answer_links(case.get("answer", ""), inv) if inv else []
+    return {**case, "links": links}
+
+
 @architect_router.get("/overview")
 def get_overview() -> dict[str, Any]:
     from openjarvis.agents.store import get_store
@@ -24,7 +29,21 @@ def get_overview() -> dict[str, Any]:
     store = get_store()
     out["spent_usd"] = round(architect_recommend.spend_usd(store), 4)
     out["limit_usd"] = architect_recommend.limit_usd(store)
+    out["ha_url"] = architect.ha_base()
     return out
+
+
+class HaUrlBody(BaseModel):
+    url: str
+
+
+@architect_router.post("/ha-url")
+def post_ha_url(body: HaUrlBody) -> dict[str, Any]:
+    """Where the edit links point to (your Home Assistant address)."""
+    try:
+        return {"ha_url": architect.set_ha_base(body.url)}
+    except ValueError as exc:
+        return {"error": str(exc)}
 
 
 @architect_router.post("/refresh")
@@ -92,12 +111,14 @@ def post_recommend(body: RecommendBody) -> dict[str, Any]:
         )
     except architect_recommend.ArchitectRefused as exc:
         return {"error": str(exc)}
-    return {"case": case}
+    return {"case": _with_links(case, inv)}
 
 
 @architect_router.get("/cases")
 def get_cases() -> dict[str, Any]:
-    return {"cases": list(reversed(architect_recommend.load_cases()))[:30]}
+    inv = architect.load_inventory()
+    cases = list(reversed(architect_recommend.load_cases()))[:30]
+    return {"cases": [_with_links(c, inv) for c in cases]}
 
 
 @architect_router.get("/relations")

@@ -12,6 +12,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from openjarvis.agents import costs
 from openjarvis.agents import janitor_executor as executor
 from openjarvis.agents.cloud_client import KEYCHAIN_SERVICE, CloudClient
 from openjarvis.agents.clusters import build_clusters, matrix_counts
@@ -75,6 +76,18 @@ def _status() -> dict[str, Any]:
         "models": s["models"],
         "prices_verified": s["prices_verified"],
     }
+
+
+@ha_agents_router.get("/costs")
+def get_costs() -> dict[str, Any]:
+    """Real Claude cost since the start (or the last reset), split by function."""
+    return costs.summary(get_store())
+
+
+@ha_agents_router.post("/costs/reset")
+def reset_costs() -> dict[str, Any]:
+    """Start counting from now. The ledger and the budget limits are untouched."""
+    return costs.reset(get_store())
 
 
 @ha_agents_router.get("/status")
