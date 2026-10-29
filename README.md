@@ -1,9 +1,9 @@
 <div align="center">
   <img alt="Jarvis particle sphere, pulsing" src="docs/ha-agents/img/particle-sphere.gif" width="200">
 
-  # Jarvis for Home Assistant
+  # Jarvis Core
 
-  **A local-first AI maintenance team for a smart home.**
+  **A local-first AI maintenance team for your smart home (Home Assistant).**
   One assistant that watches your Home Assistant, explains what is wrong in plain English,
   and changes nothing without your approval.
 
