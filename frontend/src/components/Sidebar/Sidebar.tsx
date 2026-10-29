@@ -19,8 +19,6 @@ import {
   Workflow,
 } from 'lucide-react';
 import { ConversationList } from './ConversationList';
-import { SessionPanel } from './SessionPanel';
-import { VoiceDock } from '../Voice/VoiceDock';
 import { useAppStore } from '../../lib/store';
 
 export function Sidebar() {
@@ -193,9 +191,6 @@ export function Sidebar() {
             <ConversationList searchQuery={searchQuery} />
           </div>
 
-          {/* Session data: latest speed, usage, cost vs cloud */}
-          <SessionPanel />
-
           {/* Bottom nav */}
           <nav className="px-2 pb-2 pt-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--color-border)' }}>
             {navItems.map((item) => {
@@ -233,9 +228,6 @@ export function Sidebar() {
               );
             })}
           </nav>
-
-          {/* Voice sphere (bottom left) */}
-          <VoiceDock />
         </div>
       </aside>
     </>

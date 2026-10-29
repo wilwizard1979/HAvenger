@@ -4,10 +4,10 @@ import { ParticleOrb } from './ParticleOrb';
 import { voiceLevelRef } from './voiceLevel';
 import { useAppStore } from '../../lib/store';
 
-const ORB_SIZE = 150;
+const ORB_SIZE = 220;
 
 /**
- * Bottom-left voice sphere. Solid and still while you type; it starts moving
+ * Bottom-right voice sphere (bottom of the Jarvis panel). Solid and still while you type; it starts moving
  * when voice mode is on. The button turns hands-free voice on and off.
  */
 export function VoiceDock() {

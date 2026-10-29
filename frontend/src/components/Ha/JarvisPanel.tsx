@@ -1,3 +1,5 @@
+import { SessionPanel } from '../Sidebar/SessionPanel';
+import { VoiceDock } from '../Voice/VoiceDock';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
@@ -230,6 +232,11 @@ export function JarvisPanel({ onAsk }: JarvisPanelProps) {
             </button>
           )}
         </div>
+      </div>
+
+      <div className="mt-auto shrink-0">
+        <SessionPanel />
+        <VoiceDock />
       </div>
     </aside>
   );
