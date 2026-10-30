@@ -7,6 +7,7 @@ import {
   fetchRelations,
   queryArchitect,
   recommend,
+  exportFiles,
   startRefresh,
   type ArchitectOverview,
   type AutomationRow,
@@ -191,6 +192,16 @@ export function AutomationsPage() {
     fetchAutomations(group, filter, '', area).then((d) => setRows(d.rows)).catch(() => {});
   }, [ov?.ready, ov?.fetched_at, group, filter, area]);
 
+  const [exported, setExported] = useState<string | null>(null);
+  const doExport = async () => {
+    setExported('Writing…');
+    try {
+      const r = await exportFiles();
+      setExported(r.error ?? `Saved to ${r.dir} (map ${r.inventory_age_h} h old). Add the 3 files to Claude web with "Upload from device".`);
+    } catch {
+      setExported('Export failed.');
+    }
+  };
   const refresh = async () => {
     await startRefresh();
     load();
@@ -238,11 +249,19 @@ export function AutomationsPage() {
             Jarvis the Architect: understand, fix, create. Changes need your approval on Telegram · last read {read}
           </div>
         </div>
-        <button onClick={refresh} disabled={ov?.refreshing} className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-bg-secondary)' }}>
+        <button onClick={doExport} className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-bg-secondary)' }} title="Writes automations.yaml, scenes.yaml and kpis.md to a local folder for a Claude web project">
+          Export files for Claude web
+        </button>
+        <button onClick={refresh} disabled={ov?.refreshing} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded cursor-pointer" style={{ border: '1px solid var(--color-border)', color: 'var(--color-text)', background: 'var(--color-bg-secondary)' }}>
           <RefreshCw size={13} className={ov?.refreshing ? 'animate-spin' : ''} />
           {ov?.refreshing ? 'Reading Home Assistant…' : 'Refresh'}
         </button>
       </div>
+      {exported && (
+        <div className="text-xs" style={muted}>
+          {exported}
+        </div>
+      )}
       {(err || ov?.error) && (
         <div className="text-xs" style={{ color: 'var(--color-error)' }}>
           {err || ov?.error}

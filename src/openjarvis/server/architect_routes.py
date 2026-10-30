@@ -37,6 +37,17 @@ class HaUrlBody(BaseModel):
     url: str
 
 
+@architect_router.post("/export")
+def export_files() -> dict[str, Any]:
+    """Write automations.yaml, scenes.yaml and kpis.md for Claude web (local only)."""
+    from openjarvis.agents import architect_export
+
+    inv = architect.load_inventory()
+    if not inv:
+        return {"error": "No automation map yet. Press Refresh first."}
+    return architect_export.export(inv)
+
+
 @architect_router.post("/ha-url")
 def post_ha_url(body: HaUrlBody) -> dict[str, Any]:
     """Where the edit links point to (your Home Assistant address)."""

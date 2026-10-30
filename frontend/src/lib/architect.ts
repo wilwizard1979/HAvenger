@@ -169,3 +169,8 @@ export async function saveHaUrl(url: string): Promise<{ ha_url?: string; error?:
   });
   return res.json();
 }
+
+export async function exportFiles(): Promise<{ dir?: string; files?: Record<string, number>; inventory_age_h?: number; error?: string }> {
+  const res = await fetch(`${getBase()}/v1/architect/export`, { method: 'POST' });
+  return res.json();
+}
